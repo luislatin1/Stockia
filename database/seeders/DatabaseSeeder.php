@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Validation\Rules\In;
 
 class DatabaseSeeder extends Seeder
 {
@@ -19,7 +20,8 @@ class DatabaseSeeder extends Seeder
     CurrencySeeder::class,
     CompanySeeder::class,
     UserSeeder::class,
-    CompanyUserSeeder::class,
+    //CompanyUserSeeder::class,
+    InitialWarehouseSeeder::class,
 ]);
     }
 }

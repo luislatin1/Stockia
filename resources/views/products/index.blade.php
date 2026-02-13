@@ -32,7 +32,7 @@
         <th class="p-3 text-right">Acciones</th>
     </x-slot>
 
-    @forelse($products as $product)
+        @forelse($products as $product)
 <tr class="hover:bg-gray-50">
     <td class="p-3">{{ $product->id }}</td>
     <td class="p-3">{{ $product->name }}</td>
@@ -43,7 +43,7 @@
                 {{ $product->stock }} ⚠
             </span>
         @else
-            {{ $product->stock }}
+                {{ $product->stock }}
         @endif
     </td>
     <td class="p-3 text-right space-x-2">
@@ -51,7 +51,7 @@
             Editar
         </a>
 
-        <form action="{{ route('products.destroy', $product) }}"
+        {{-- <form action="{{ route('products.destroy', $product) }}"
               method="POST"
               class="inline">
             @csrf
@@ -61,7 +61,7 @@
                 onclick="return confirm('¿Estás seguro de eliminar este producto?')">
                 Eliminar
             </button>
-        </form>
+        </form> --}}
         <a href="{{ route('products.adjust', $product) }}"
             class="text-blue-600 text-sm">
             Ajustar

@@ -12,25 +12,40 @@ class DashboardController extends Controller
 {
     public function index()
 {
-    $companyId = auth()->user()->company_id;
+    $companyId = session('current_company_id');
+    $warehouseId = 1; // luego lo hacemos dinámico
 
     $todaySales = Sale::where('company_id', $companyId)
-        ->whereDate('created_at', Carbon::today())
+        ->whereDate('created_at', now())
         ->sum('total');
 
     $monthSales = Sale::where('company_id', $companyId)
-        ->whereMonth('created_at', Carbon::now()->month)
+        ->whereMonth('created_at', now()->month)
         ->sum('total');
 
     $totalSales = Sale::where('company_id', $companyId)
         ->sum('total');
 
+    // 🔴 STOCK BAJO (comparando columnas pivot)
     $lowStock = Product::where('company_id', $companyId)
-        ->where('stock', '<=', 5)
+        ->whereHas('warehouses', function ($q) use ($warehouseId) {
+            $q->where('warehouse_id', $warehouseId)
+              ->whereColumn('product_warehouse.stock', '<=', 'product_warehouse.min_stock');
+        })
+        ->with(['warehouses' => function ($q) use ($warehouseId) {
+            $q->where('warehouse_id', $warehouseId);
+        }])
         ->get();
 
+    // ⚫ SIN STOCK
     $outOfStock = Product::where('company_id', $companyId)
-        ->where('stock', 0)
+        ->whereHas('warehouses', function ($q) use ($warehouseId) {
+            $q->where('warehouse_id', $warehouseId)
+              ->where('product_warehouse.stock', 0);
+        })
+        ->with(['warehouses' => function ($q) use ($warehouseId) {
+            $q->where('warehouse_id', $warehouseId);
+        }])
         ->get();
 
     $latestSales = Sale::where('company_id', $companyId)
@@ -47,4 +62,5 @@ class DashboardController extends Controller
         'latestSales'
     ));
 }
+
 }
