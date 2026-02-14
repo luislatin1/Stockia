@@ -30,7 +30,7 @@ function active($route) {
        class="block px-3 py-2 rounded hover:bg-gray-800 {{ active('dashboard') }}">
         📊 Dashboard
     </a>
-
+    
     {{-- COMERCIAL --}}
     <p class="text-gray-400 uppercase text-xs mt-6">Comercial</p>
 

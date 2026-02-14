@@ -13,8 +13,17 @@
 @endsection
 
 @forelse($sales as $sale)
-    <div class="border p-3 mb-2">
-        Venta #{{ $sale->id }} - ${{ $sale->total }}
+    <div class="bg-white p-4 rounded shadow mb-4">
+        <div class="flex justify-between items-center mb-2">
+            <div>
+                <strong>Venta #{{ $sale->id }}</strong>
+                <span class="text-gray-600 text-sm">({{ $sale->created_at->format('d/m/Y H:i') }})</span>
+            </div>
+            <a href="{{ route('sales.show', $sale) }}" class="text-blue-600">
+                Ver Detalles
+            </a>
+        </div>
+        <p>Total: ${{ number_format($sale->total, 2) }}</p>
     </div>
 @empty
     <p>No hay ventas aún.</p>

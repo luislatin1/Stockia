@@ -28,8 +28,15 @@
 
     @forelse($lowStock as $product)
         <div class="text-red-600">
-            {{ $product->name }} — Stock: {{ $product->stock }}
+        {{ $product->name }} — Stock: {{ $product->stock }} en {{ $product->warehouses->pluck('name')->join(', ') }}
         </div>
+
+        <div class="text-sm text-gray-500">
+            <a href="{{ route('products.show', $product) }}" class="text-blue-600">
+                Ver Detalles
+            </a>
+        </div>
+            
     @empty
         <p>No hay productos con stock bajo.</p>
     @endforelse

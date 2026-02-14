@@ -169,15 +169,16 @@ public function index(Request $request)
                 DB::transaction(function () use ($product, $quantity, $request, $warehouseId) {
 
                 InventoryMovement::create([
-                'company_id' => session('current_company_id'),
-                'product_id' => $product->id,
-                'warehouse_id'=> $warehouseId,
-                'type' => $quantity > 0 ? 'in' : 'out',
-                'quantity' => abs($quantity),
-                'reference_type' => 'adjustment',
-                'reference_id' => null,
-                'user_id' => auth()->id(),
-            ]);
+                    'company_id' => session('current_company_id'),
+                    'product_id' => $product->id,
+                    'warehouse_id'=> $warehouseId,
+                    'type' => $quantity > 0 ? 'in' : 'out',
+                    'quantity' => abs($quantity),
+                    'reference_type' => 'adjustment',
+                    'reference_id' => null,
+                    'reason' => $request->reason,
+                    'user_id' => auth()->id(),
+                ]);
     });
 
                 return redirect()

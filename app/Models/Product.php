@@ -61,11 +61,9 @@ class Product extends Model
 
     public function stockInWarehouse($warehouseId): int
     {
-        $warehouse = $this->warehouses()
-            ->where('warehouse_id', $warehouseId)
-            ->first();
-
-        return $warehouse?->pivot->stock ?? 0;
+        return (int) $this->warehouses()
+    ->where('warehouses.id', $warehouseId)
+    ->value('product_warehouse.stock') ?? 0;
     }
 
     public function minStockInWarehouse($warehouseId): int
@@ -86,7 +84,7 @@ class Product extends Model
     public function removeStock(int $warehouseId, int $quantity): void
     {
         $warehouse = $this->warehouses()
-            ->where('warehouse_id', $warehouseId)
+            ->where('warehouses.id', $warehouseId)
             ->first();
 
         if (! $warehouse) {
@@ -103,6 +101,23 @@ class Product extends Model
             'stock' => $currentStock - $quantity
         ]);
     }
+
+    public function addStock(int $warehouseId, int $quantity): void
+{
+    $warehouse = $this->warehouses()
+        ->where('warehouses.id', $warehouseId)
+        ->first();
+
+    if (! $warehouse) {
+        throw new \Exception("El producto no existe en esta bodega.");
+    }
+
+    $currentStock = $warehouse->pivot->stock;
+
+    $this->warehouses()->updateExistingPivot($warehouseId, [
+        'stock' => $currentStock + $quantity
+    ]);
+}
 
     /*
     |--------------------------------------------------------------------------

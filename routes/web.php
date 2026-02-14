@@ -43,6 +43,9 @@ Route::middleware(['auth'])->group(function () {
     Route::resource('sales', SaleController::class)
         ->only(['index','create','store', 'show', 'edit', 'update', 'destroy']);
 
+    Route::post('sales/{sale}/cancel', [SaleController::class, 'cancel'])
+    ->name('sales.cancel');
+
     Route::resource('users', UserController::class)
         ->only(['index','create','store','show', 'edit', 'update', 'destroy']);
     
@@ -51,6 +54,7 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('/inventory-movements', [InventoryMovementController::class, 'index'])
     ->name('inventory_movements.index');
+    
 });
 
 /*

@@ -18,6 +18,7 @@ class InventoryMovement extends Model
         'reference_type',
         'reference_id',
         'user_id',
+        'reason',
     ];
 
 protected static function booted()

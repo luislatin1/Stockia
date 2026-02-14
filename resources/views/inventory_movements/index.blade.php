@@ -14,6 +14,7 @@
                 <th class="px-4 py-3 text-left">Tipo</th>
                 <th class="px-4 py-3 text-left">Cantidad</th>
                 <th class="px-4 py-3 text-left">Referencia</th>
+                <th class="px-4 py-3 text-left">Motivo</th>
             </tr>
         </thead>
 
@@ -35,13 +36,16 @@
                         <span class="text-red-600 font-semibold">Salida</span>
                     @endif
                 </td>
+                <td class="px-4 py-2">
+                    {{ $movement->reason ?? '-' }}
+                </td>
 
                 <td class="px-4 py-2 font-medium">
                     {{ $movement->quantity }}
                 </td>
 
                 <td class="px-4 py-2 text-gray-500">
-                    {{ $movement->reference }}
+                    {{ $movement->reference_type }} #{{ $movement->reference_id }}
                 </td>
             </tr>
             @endforeach

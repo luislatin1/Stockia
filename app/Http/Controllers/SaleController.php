@@ -33,12 +33,15 @@ class SaleController extends Controller
         return view('sales.show', compact('sale'));
     }
 
-    public function edit($id)
-    {
-        $sale = Sale::with('items.product')->findOrFail($id);
-
-        return view('sales.edit', compact('sale'));
+    public function edit(Sale $sale)
+{
+    if ($sale->status !== 'pending') {
+        return redirect()->route('sales.index')
+            ->withErrors('No se puede editar una venta completada o cancelada.');
     }
+
+    return view('sales.edit', compact('sale'));
+}
 
     public function store(Request $request)
     {
@@ -48,7 +51,9 @@ class SaleController extends Controller
 
             $sale = Sale::create([
                 'company_id' => session('current_company_id'),
+                'warehouse_id' => $warehouseId,
                 'user_id'    => auth()->id(),
+                'status'     => 'completed',
                 'total'      => 0
             ]);
 
@@ -81,7 +86,8 @@ class SaleController extends Controller
                     'product_id'   => $product->id,
                     'type'         => 'out',
                     'quantity'     => $quantity,
-                    'reference'    => 'Venta #' . $sale->id,
+                    'reference_type' => 'sale',
+                    'reference_id'   => $sale->id,
                     'user_id'      => auth()->id(),
                 ]);
 
@@ -95,5 +101,22 @@ class SaleController extends Controller
 
         return redirect()->route('sales.index')
             ->with('success', 'Venta registrada correctamente');
+    }
+
+    public function cancel(Sale $sale)
+    {
+        if ($sale->company_id !== session('current_company_id')) {
+            abort(403);
+        }
+
+        try {
+            $sale->cancel();
+        } catch (\Exception $e) {
+            return back()->withErrors($e->getMessage());
+        }
+
+        return redirect()
+            ->route('sales.index')
+            ->with('success', 'Venta cancelada correctamente');
     }
 }
