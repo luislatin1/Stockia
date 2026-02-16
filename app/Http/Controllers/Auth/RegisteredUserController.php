@@ -45,6 +45,9 @@ class RegisteredUserController extends Controller
 
         Auth::login($user);
 
-        return redirect(route('dashboard', absolute: false));
+        $request->session()->regenerate();
+        $request->session()->forget(['current_company_id', 'current_warehouse_id']);
+
+        return redirect()->route('company.select');
     }
 }

@@ -20,10 +20,9 @@ return Application::configure(basePath: dirname(__DIR__))
         SetCurrentCompany::class,
         ]);
         $middleware->alias([
-        'role' => \App\Http\Middleware\EnsureCompanyRole::class,
-        'role' => \App\Http\Middleware\RoleMiddleware::class,
-        'company.selected' => EnsureCompanySelected::class,
-    ]);
+            'role' => \App\Http\Middleware\EnsureCompanyRole::class,
+            'company.selected' => EnsureCompanySelected::class,
+        ]);
 
     
     })

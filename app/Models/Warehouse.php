@@ -8,6 +8,14 @@ use Illuminate\Database\Eloquent\Model;
 
 class Warehouse extends Model
 {
+    protected $fillable = [
+        'company_id',
+        'name',
+        'code',
+        'location',
+        'is_active',
+    ];
+
     public function products()
     {
         return $this->belongsToMany(Product::class)

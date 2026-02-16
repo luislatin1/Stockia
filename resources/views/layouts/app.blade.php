@@ -46,11 +46,6 @@ function active($route) {
         ➕ Nueva Venta
     </a>
 
-    <a href="{{ route('payments.index') }}"
-       class="block px-3 py-2 rounded hover:bg-gray-800 {{ active('payments.*') }}">
-        💳 Pagos
-    </a>
-
     {{-- INVENTARIO --}}
     <p class="text-gray-400 uppercase text-xs mt-6">Inventario</p>
 

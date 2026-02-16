@@ -4,7 +4,6 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use App\Models\Company;
 use Illuminate\Support\Facades\Auth;
 
 class SetCurrentCompany
@@ -12,25 +11,39 @@ class SetCurrentCompany
     public function handle(Request $request, Closure $next)
     {
         if (Auth::check()) {
+            $user = $request->user();
+            $currentCompanyId = session('current_company_id');
 
-            // Si no existe empresa en sesión, asignar la primera
-            if (!session()->has('current_company_id')) {
+            if ($currentCompanyId) {
+                $hasAccess = $user->companies()
+                    ->where('companies.id', (int) $currentCompanyId)
+                    ->exists();
 
-                $company = Company::first();
-
-                if ($company) {
-                    session(['current_company_id' => $company->id]);
+                if (! $hasAccess) {
+                    session()->forget(['current_company_id', 'current_warehouse_id']);
+                    $currentCompanyId = null;
                 }
             }
 
-            // Registrar empresa actual
-            if (session()->has('current_company_id')) {
+            if (! $currentCompanyId) {
+                $firstCompanyId = $user->companies()
+                    ->orderBy('companies.id')
+                    ->value('companies.id');
 
-                $company = Company::find(session('current_company_id'));
-
-                if ($company) {
-                    app()->instance('currentCompany', $company);
+                if ($firstCompanyId) {
+                    session(['current_company_id' => (int) $firstCompanyId]);
                 }
+            }
+
+            $selectedCompany = null;
+            if (session()->has('current_company_id')) {
+                $selectedCompany = $user->companies()
+                    ->where('companies.id', (int) session('current_company_id'))
+                    ->first();
+            }
+
+            if ($selectedCompany) {
+                app()->instance('currentCompany', $selectedCompany);
             }
         }
 

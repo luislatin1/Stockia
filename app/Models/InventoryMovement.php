@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Product;
 use App\Models\Warehouse;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
 class InventoryMovement extends Model
@@ -63,6 +64,11 @@ public function product()
 public function warehouse()
 {
     return $this->belongsTo(Warehouse::class);
+}
+
+public function user()
+{
+    return $this->belongsTo(User::class);
 }
 
 }

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Http\RedirectResponse;
 
 class CompanySelectionController extends Controller
 {
@@ -15,6 +16,7 @@ class CompanySelectionController extends Controller
             session([
                 'current_company_id' => $companies->first()->id
             ]);
+            session()->forget('current_warehouse_id');
 
             return redirect()->route('warehouse.select');
         }
@@ -22,11 +24,25 @@ class CompanySelectionController extends Controller
         return view('auth.select-company', compact('companies'));
     }
 
-    public function store(Request $request)
+    public function store(Request $request): RedirectResponse
     {
-        session([
-            'current_company_id' => $request->company_id
+        $validated = $request->validate([
+            'company_id' => ['required', 'integer'],
         ]);
+
+        $companyId = (int) $validated['company_id'];
+        $hasAccess = auth()->user()->companies()
+            ->where('companies.id', $companyId)
+            ->exists();
+
+        if (! $hasAccess) {
+            return back()->withErrors('No tienes acceso a esa empresa.');
+        }
+
+        session([
+            'current_company_id' => $companyId
+        ]);
+        session()->forget('current_warehouse_id');
 
         return redirect()->route('warehouse.select');
     }

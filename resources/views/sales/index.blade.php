@@ -3,30 +3,35 @@
 @section('title', 'Ventas')
 
 @section('content')
-
-<h2 class="text-xl font-bold mb-4">Ventas</h2>
-
-@section('boton-accion')
-    <a href="create.blade.php"px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
-        +Nueva Venta
-    </a>
-@endsection
-
-@forelse($sales as $sale)
-    <div class="bg-white p-4 rounded shadow mb-4">
-        <div class="flex justify-between items-center mb-2">
-            <div>
-                <strong>Venta #{{ $sale->id }}</strong>
-                <span class="text-gray-600 text-sm">({{ $sale->created_at->format('d/m/Y H:i') }})</span>
-            </div>
-            <a href="{{ route('sales.show', $sale) }}" class="text-blue-600">
-                Ver Detalles
-            </a>
-        </div>
-        <p>Total: ${{ number_format($sale->total, 2) }}</p>
+<div class="space-y-6">
+    <div class="flex items-center justify-between">
+        <h2 class="text-2xl font-bold text-gray-900">Ventas</h2>
+        <a href="{{ route('sales.create') }}" class="rounded bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">
+            + Nueva Venta
+        </a>
     </div>
-@empty
-    <p>No hay ventas aún.</p>
-@endforelse
 
+    @forelse($sales as $sale)
+        <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+            <div class="mb-2 flex items-center justify-between">
+                <div>
+                    <p class="font-semibold text-gray-900">Venta #{{ $sale->id }}</p>
+                    <p class="text-xs text-gray-500">{{ $sale->created_at->format('d/m/Y H:i') }}</p>
+                    <p class="text-xs text-gray-500">Vendedor: {{ $sale->user->name ?? 'N/A' }}</p>
+                </div>
+                <a href="{{ route('sales.show', $sale) }}" class="text-sm font-semibold text-indigo-600">
+                    Ver Detalles
+                </a>
+            </div>
+            <div class="grid grid-cols-2 gap-3 text-sm md:grid-cols-4">
+                <p><span class="text-gray-500">Subtotal:</span> ${{ number_format($sale->subtotal ?? $sale->total, 2) }}</p>
+                <p><span class="text-gray-500">IVA:</span> ${{ number_format($sale->tax_total ?? 0, 2) }}</p>
+                <p><span class="text-gray-500">Total:</span> ${{ number_format($sale->total, 2) }}</p>
+                <p><span class="text-gray-500">Estado:</span> {{ ucfirst($sale->status) }}</p>
+            </div>
+        </div>
+    @empty
+        <p class="rounded border border-dashed border-gray-300 bg-white p-6 text-center text-gray-500">No hay ventas aún.</p>
+    @endforelse
+</div>
 @endsection

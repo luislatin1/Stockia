@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use App\Models\InventoryMovement;
 use App\Models\SaleItem;
 use App\Models\Warehouse;
+use App\Models\Company;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -16,7 +17,21 @@ class Sale extends Model
         'user_id',
         'warehouse_id',
         'status',
-        'total'
+        'subtotal',
+        'tax_total',
+        'total',
+        'payment_method',
+        'cash_received',
+        'change_amount',
+        'document_type',
+    ];
+
+    protected $casts = [
+        'subtotal' => 'decimal:2',
+        'tax_total' => 'decimal:2',
+        'total' => 'decimal:2',
+        'cash_received' => 'decimal:2',
+        'change_amount' => 'decimal:2',
     ];
 
     public function items()
@@ -27,6 +42,11 @@ class Sale extends Model
     public function warehouse()
     {
         return $this->belongsTo(Warehouse::class);
+    }
+
+    public function company()
+    {
+        return $this->belongsTo(Company::class);
     }
 
     public function user()
@@ -59,11 +79,6 @@ class Sale extends Model
         DB::transaction(function () {
 
             foreach ($this->items as $item) {
-
-                $product = $item->product;
-
-                $product->addStock($this->warehouse_id, $item->quantity);
-
                 InventoryMovement::create([
                     'company_id'   => $this->company_id,
                     'product_id'   => $item->product_id,

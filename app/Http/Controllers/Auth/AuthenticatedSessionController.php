@@ -27,6 +27,7 @@ class AuthenticatedSessionController extends Controller
         $request->authenticate();
 
         $request->session()->regenerate();
+        $request->session()->forget(['current_company_id', 'current_warehouse_id']);
 
         return redirect()->route('company.select');
     }
