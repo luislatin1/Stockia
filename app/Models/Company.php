@@ -17,10 +17,15 @@ class Company extends Model
     ];
 
     public function users()
+{
+    return $this->belongsToMany(User::class)
+        ->withPivot('role')
+        ->withTimestamps();
+}
+
+    public function warehouses()
     {
-        return $this->belongsToMany(User::class)
-                    ->withPivot('role')
-                    ->withTimestamps();
+        return $this->hasMany(Warehouse::class);
     }
 
     public function currency()

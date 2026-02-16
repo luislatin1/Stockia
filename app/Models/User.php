@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use App\Models\Company;
+use App\Models\CompanyUser;
 
 class User extends Authenticatable
 {
@@ -50,9 +51,14 @@ class User extends Authenticatable
     }
 
     public function companies()
+{
+    return $this->belongsToMany(Company::class)
+        ->withPivot('role')
+        ->withTimestamps();
+}
+
+    public function companyAccess()
     {
-        return $this->belongsToMany(Company::class)
-                    ->withPivot('role')
-                    ->withTimestamps();
+        return $this->hasMany(CompanyUser::class);
     }
 }

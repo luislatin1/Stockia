@@ -7,6 +7,10 @@ use App\Http\Controllers\InventoryMovementController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\CompanySelectionController;
+use App\Http\Controllers\WarehouseSelectionController;
+use App\Http\Controllers\RoleController;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -54,6 +58,26 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('/inventory-movements', [InventoryMovementController::class, 'index'])
     ->name('inventory_movements.index');
+
+    Route::get('/select-company', [CompanySelectionController::class, 'index'])
+    ->name('company.select');
+
+    Route::post('/select-company', [CompanySelectionController::class, 'store']);
+
+    Route::get('/select-warehouse', [WarehouseSelectionController::class, 'index'])
+    ->name('warehouse.select');
+
+    Route::post('/select-warehouse', [WarehouseSelectionController::class, 'store']);
+
+    Route::middleware(['role:Admin,SuperAdmin'])->group(function () {
+    Route::resource('products', ProductController::class);
+    });
+
+    Route::middleware(['role:Vendedor,Admin,SuperAdmin'])->group(function () {
+        Route::resource('sales', SaleController::class);
+    });
+
+
     
 });
 

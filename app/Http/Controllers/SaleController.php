@@ -14,6 +14,14 @@ class SaleController extends Controller
 {
     public function index()
     {
+        $companyId = session('current_company_id');
+        $warehouseId = session('current_warehouse_id');
+            $sales = Sale::where('company_id', $companyId)
+                ->where('warehouse_id', $warehouseId)
+                ->latest()
+                ->get();
+
+        
         $sales = Sale::latest()->get();
 
         return view('sales.index', compact('sales'));
@@ -45,7 +53,10 @@ class SaleController extends Controller
 
     public function store(Request $request)
     {
-        $warehouseId = session('current_warehouse_id') ?? 1;
+        $companyId = session('current_company_id');
+        $warehouseId = session('current_warehouse_id');
+
+    
 
         DB::transaction(function () use ($request, $warehouseId) {
 

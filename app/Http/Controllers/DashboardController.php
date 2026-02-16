@@ -7,35 +7,47 @@ use Illuminate\Http\Request;
 use App\Models\Sale;
 use App\Models\Product;
 use Carbon\Carbon;
+use App\Models\SaleItem;
+use Illuminate\Support\Facades\DB;
+
 
 class DashboardController extends Controller
 {
     public function index()
 {
     $companyId = session('current_company_id');
-    $warehouseId = 1; // luego lo hacemos dinámico
+    $warehouseId = session('current_warehouse_id');
 
-    $todaySales = Sale::where('company_id', $companyId)
-        ->whereDate('created_at', now())
-        ->sum('total');
+        $todaySales = Sale::where('status', 'completed')
+            ->whereDate('created_at', today())
+            ->sum('total');
 
-    $monthSales = Sale::where('company_id', $companyId)
-        ->whereMonth('created_at', now()->month)
-        ->sum('total');
+        $monthSales = Sale::where('status', 'completed')
+            ->whereMonth('created_at', now()->month)
+            ->whereYear('created_at', now()->year)
+            ->sum('total');
 
-    $totalSales = Sale::where('company_id', $companyId)
-        ->sum('total');
+        $totalSalesCount = Sale::where('status', 'completed')->count();
 
-    // 🔴 STOCK BAJO (comparando columnas pivot)
-    $lowStock = Product::where('company_id', $companyId)
-        ->whereHas('warehouses', function ($q) use ($warehouseId) {
-            $q->where('warehouse_id', $warehouseId)
-              ->whereColumn('product_warehouse.stock', '<=', 'product_warehouse.min_stock');
-        })
-        ->with(['warehouses' => function ($q) use ($warehouseId) {
-            $q->where('warehouse_id', $warehouseId);
-        }])
-        ->get();
+        $averageTicket = Sale::where('status', 'completed')
+            ->avg('total');
+
+        $topProducts = SaleItem::select('product_id', DB::raw('SUM(quantity) as total_sold'))
+            ->with('product')
+            ->groupBy('product_id')
+            ->orderByDesc('total_sold')
+            ->limit(5)
+            ->get();
+
+    $last30Days = Sale::select(
+        DB::raw('DATE(created_at) as date'),
+        DB::raw('SUM(total) as total')
+    )
+    ->where('status', 'completed')
+    ->where('created_at', '>=', Carbon::now()->subDays(30))
+    ->groupBy('date')
+    ->orderBy('date')
+    ->get();
 
     // ⚫ SIN STOCK
     $outOfStock = Product::where('company_id', $companyId)
@@ -53,13 +65,37 @@ class DashboardController extends Controller
         ->take(5)
         ->get();
 
+    $lowStockProducts = Product::lowStock($warehouseId)->count();
+
+    $dates = [];
+    $totals = [];
+
+    $last30Days = Sale::select(
+            DB::raw('DATE(created_at) as date'),
+            DB::raw('SUM(total) as total')
+        )
+            ->where('status', 'completed')
+            ->where('created_at', '>=', now()->subDays(30))
+            ->groupBy('date')
+            ->orderBy('date')
+            ->get();
+
+            $dates = $last30Days->pluck('date')->toArray();
+            $totals = $last30Days->pluck('total')
+            ->map(fn($v) => (float) $v)
+            ->toArray();
+
     return view('dashboard.index', compact(
-        'todaySales',
-        'monthSales',
-        'totalSales',
-        'lowStock',
-        'outOfStock',
-        'latestSales'
+            'todaySales',
+            'monthSales',
+            'totalSalesCount',
+            'averageTicket',
+            'topProducts',
+            'lowStockProducts',
+            'outOfStock',
+            'latestSales',
+            'dates',
+            'totals'
     ));
 }
 

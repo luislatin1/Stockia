@@ -14,11 +14,15 @@ class EnsureCompanySelected
      * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      */
     public function handle($request, Closure $next)
-{
-    if (!session()->has('current_company_id')) {
-        abort(403, 'No company selected.');
-    }
+    {
+        if (!session()->has('current_company_id')) {
+            return redirect()->route('company.select');
+        }
 
-    return $next($request);
-}
+        if (!session()->has('current_warehouse_id')) {
+            return redirect()->route('warehouse.select');
+        }
+
+        return $next($request);
+    }
 }

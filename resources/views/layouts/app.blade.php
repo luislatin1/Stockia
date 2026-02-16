@@ -6,6 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
+@yield('scripts')
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 <body class="bg-gray-100">
 
 <div class="flex min-h-screen">
@@ -116,7 +118,10 @@ function active($route) {
         <header class="bg-white shadow p-4 flex justify-between items-center">
             <h1 class="text-xl font-semibold">@yield('title')</h1>
             <div class="text-sm text-gray-600">
-                Usuario Admin
+                Usuario Activo: {{ auth()->user()->name }} 
+                <br> 
+                Almacen: {{$warehouseId = session('current_warehouse_id');}} |
+                ID Usuario: {{ auth()->user()->id }} | ID Empresa: {{ session('current_company_id') }}
             </div>
         </header>
 

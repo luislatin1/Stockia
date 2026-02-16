@@ -10,9 +10,8 @@ use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use App\Models\Warehouse;
 
-session([
-    'current_warehouse_id' => 1
-]);
+$companyId = session('current_company_id');
+$warehouseId = session('current_warehouse_id');
 
 class ProductController extends Controller
 {

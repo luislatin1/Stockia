@@ -51,34 +51,34 @@ class Sale extends Model
     }
 
     public function cancel(): void
-{
-    if ($this->status !== 'completed') {
-        throw new \Exception("Solo ventas completadas pueden cancelarse.");
-    }
-
-    DB::transaction(function () {
-
-        foreach ($this->items as $item) {
-
-            $product = $item->product;
-
-            $product->addStock($this->warehouse_id, $item->quantity);
-
-            InventoryMovement::create([
-                'company_id'   => $this->company_id,
-                'product_id'   => $item->product_id,
-                'warehouse_id' => $this->warehouse_id,
-                'type'         => 'in',
-                'quantity'     => $item->quantity,
-                'reference_type' => 'sale_cancelled',
-                'reference_id'   => $this->id,
-                'user_id'      => auth()->id(),
-            ]);
+    {
+        if ($this->status !== 'completed') {
+            throw new \Exception("Solo ventas completadas pueden cancelarse.");
         }
 
-        $this->update([
-            'status' => 'cancelled'
-        ]);
-    });
-}
+        DB::transaction(function () {
+
+            foreach ($this->items as $item) {
+
+                $product = $item->product;
+
+                $product->addStock($this->warehouse_id, $item->quantity);
+
+                InventoryMovement::create([
+                    'company_id'   => $this->company_id,
+                    'product_id'   => $item->product_id,
+                    'warehouse_id' => $this->warehouse_id,
+                    'type'         => 'in',
+                    'quantity'     => $item->quantity,
+                    'reference_type' => 'sale_cancelled',
+                    'reference_id'   => $this->id,
+                    'user_id'      => auth()->id(),
+                ]);
+            }
+
+            $this->update([
+                'status' => 'cancelled'
+            ]);
+        });
+    }
 }
