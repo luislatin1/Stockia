@@ -1,15 +1,13 @@
 <?php
 
 use App\Http\Controllers\ProductController;
-use App\Http\Controllers\SaleController;
-use App\Http\Controllers\InventoryMovementController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\CompanySelectionController;
 use App\Http\Controllers\WarehouseSelectionController;
 use App\Http\Controllers\CompanyController;
-use App\Http\Controllers\WarehouseController;
+use App\Http\Controllers\ModuleController;
 
 
 /*
@@ -43,9 +41,6 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index'])
             ->name('dashboard');
 
-        Route::get('/inventory-movements', [InventoryMovementController::class, 'index'])
-            ->name('inventory_movements.index');
-
         Route::middleware(['role:Admin,SuperAdmin'])->group(function () {
             Route::get('products/{product}/adjust', [ProductController::class, 'adjust'])
                 ->name('products.adjust');
@@ -62,20 +57,15 @@ Route::middleware(['auth'])->group(function () {
                 ->name('users.role.update');
             Route::get('/companies', [CompanyController::class, 'index'])->name('companies.index');
             Route::post('/companies', [CompanyController::class, 'store'])->name('companies.store');
-            Route::get('/warehouses', [WarehouseController::class, 'index'])->name('warehouses.index');
-            Route::post('/warehouses', [WarehouseController::class, 'store'])->name('warehouses.store');
         });
 
-        Route::middleware(['role:Vendedor,Admin,SuperAdmin'])->group(function () {
-            Route::resource('sales', SaleController::class)
-                ->only(['index','create','store', 'show', 'edit', 'update', 'destroy']);
-            Route::post('sales/{sale}/cancel', [SaleController::class, 'cancel'])
-                ->name('sales.cancel');
-            Route::get('sales/{sale}/ticket', [SaleController::class, 'ticket'])
-                ->name('sales.ticket');
-            Route::get('sales/{sale}/invoice', [SaleController::class, 'invoice'])
-                ->name('sales.invoice');
+        Route::middleware(['role:SuperAdmin'])->prefix('settings')->name('settings.')->group(function () {
+            Route::get('/modules', [ModuleController::class, 'index'])->name('modules.index');
+            Route::get('/modules/wizard', [ModuleController::class, 'wizard'])->name('modules.wizard');
+            Route::post('/modules/install', [ModuleController::class, 'install'])->name('modules.install');
+            Route::patch('/modules/{module}/toggle', [ModuleController::class, 'toggle'])->name('modules.toggle');
         });
+
     });
 });
 

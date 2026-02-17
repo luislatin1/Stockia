@@ -36,15 +36,19 @@ function active($route) {
     {{-- COMERCIAL --}}
     <p class="text-gray-400 uppercase text-xs mt-6">Comercial</p>
 
+    @if (Route::has('sales.index'))
     <a href="{{ route('sales.index') }}"
        class="block px-3 py-2 rounded hover:bg-gray-800 {{ active('sales.*') }}">
         🧾 Ventas
     </a>
+    @endif
 
+    @if (Route::has('sales.create'))
     <a href="{{ route('sales.create') }}"
        class="block px-3 py-2 rounded hover:bg-gray-800 {{ active('sales.create') }}">
         ➕ Nueva Venta
     </a>
+    @endif
 
     {{-- INVENTARIO --}}
     <p class="text-gray-400 uppercase text-xs mt-6">Inventario</p>
@@ -59,15 +63,19 @@ function active($route) {
         🏷 Categorías
     </a>
 
+    @if (Route::has('inventory_movements.index'))
     <a href="{{ route('inventory_movements.index') }}"
        class="block px-3 py-2 rounded hover:bg-gray-800 {{ active('inventory_movements.*') }}">
         🔄 Movimientos
     </a>
+    @endif
 
+    @if (Route::has('warehouses.index'))
     <a href="{{ route('warehouses.index') }}"
        class="block px-3 py-2 rounded hover:bg-gray-800 {{ active('warehouses.*') }}">
         🏬 Bodegas
     </a>
+    @endif
 
     {{-- ADMINISTRACIÓN --}}
     <p class="text-gray-400 uppercase text-xs mt-6">Administración</p>
@@ -86,6 +94,14 @@ function active($route) {
        class="block px-3 py-2 rounded hover:bg-gray-800 {{ active('currencies.*') }}">
         💱 Monedas
     </a>
+    @if(currentRole() === 'SuperAdmin')
+    <p class="text-gray-400 uppercase text-xs mt-6">Configuración</p>
+
+    <a href="{{ route('settings.modules.index') }}"
+       class="block px-3 py-2 rounded hover:bg-gray-800 {{ active('settings.modules.*') }}">
+        ⚙️ Panel de Control
+    </a>
+    @endif
 
     {{-- SISTEMA --}}
     <p class="text-gray-400 uppercase text-xs mt-6">Sistema</p>
