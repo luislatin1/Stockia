@@ -34,6 +34,16 @@ This project now supports a modular monolith structure under `app/Modules`.
 4. Put module routes in:
    - `app/Modules/<ModuleName>/Routes/web.php`
 
+## Installing external plugins (ZIP + CLI)
+
+1. Export plugin as ZIP from its repository.
+2. In target project, run:
+   - `php artisan modules:install-zip path\to\plugin.zip`
+3. Then:
+   - `composer update vendor/package-name`
+   - `php artisan migrate`
+4. Activate the module in **Configuración > Panel de Control**.
+
 ## Suggested next step
 
 Move actual sales business logic from `App\Http\Controllers\SaleController`

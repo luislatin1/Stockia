@@ -8,6 +8,7 @@ use App\Http\Controllers\CompanySelectionController;
 use App\Http\Controllers\WarehouseSelectionController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\ModuleController;
+use App\Http\Controllers\SetupWizardController;
 
 
 /*
@@ -27,6 +28,12 @@ Route::get('/', function () {
 */
 
 Route::middleware(['auth'])->group(function () {
+    Route::get('/setup', [SetupWizardController::class, 'step1'])->name('setup.step1');
+    Route::post('/setup/step1', [SetupWizardController::class, 'storeStep1'])->name('setup.step1.store');
+    Route::get('/setup/step2', [SetupWizardController::class, 'step2'])->name('setup.step2');
+    Route::post('/setup/step2', [SetupWizardController::class, 'storeStep2'])->name('setup.step2.store');
+    Route::get('/setup/done', [SetupWizardController::class, 'done'])->name('setup.done');
+
     Route::get('/select-company', [CompanySelectionController::class, 'index'])
     ->name('company.select');
 
@@ -64,6 +71,7 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/modules/wizard', [ModuleController::class, 'wizard'])->name('modules.wizard');
             Route::post('/modules/install', [ModuleController::class, 'install'])->name('modules.install');
             Route::patch('/modules/{module}/toggle', [ModuleController::class, 'toggle'])->name('modules.toggle');
+            Route::post('/modules/upload', [ModuleController::class, 'upload'])->name('modules.upload');
         });
 
     });

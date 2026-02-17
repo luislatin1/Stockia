@@ -21,6 +21,12 @@ class EnsureCompanySelected
         $userId = (int) optional($request->user())->id;
 
         if (! $companyId || ! $userId) {
+            if ($userId) {
+                $hasCompany = \App\Models\CompanyUser::where('user_id', $userId)->exists();
+                if (! $hasCompany) {
+                    return redirect()->route('setup.step1');
+                }
+            }
             return redirect()->route('company.select');
         }
 

@@ -50,6 +50,13 @@ function active($route) {
     </a>
     @endif
 
+    @if (Route::has('ptvpos.index'))
+    <a href="{{ route('ptvpos.index') }}"
+       class="block px-3 py-2 rounded hover:bg-gray-800 {{ active('ptvpos.*') }}">
+        🧾 PTV-POS
+    </a>
+    @endif
+
     {{-- INVENTARIO --}}
     <p class="text-gray-400 uppercase text-xs mt-6">Inventario</p>
 

@@ -11,6 +11,7 @@ class Module extends Model
         'name',
         'description',
         'version',
+        'provider',
         'enabled',
         'installed_at',
     ];
@@ -20,4 +21,3 @@ class Module extends Model
         'installed_at' => 'datetime',
     ];
 }
-
