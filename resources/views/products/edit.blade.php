@@ -18,6 +18,28 @@
                class="w-full border p-2 rounded">
     </div>
 
+    <div class="mb-4">
+        <label>SKU</label>
+        <input type="text"
+               name="sku"
+               value="{{ old('sku', $product->sku) }}"
+               class="w-full border p-2 rounded">
+        @error('sku')
+            <p class="text-red-500 text-sm">{{ $message }}</p>
+        @enderror
+    </div>
+
+    <div class="mb-4">
+        <label>Código de barras</label>
+        <input type="text"
+               name="barcode"
+               value="{{ old('barcode', $product->barcode) }}"
+               class="w-full border p-2 rounded">
+        @error('barcode')
+            <p class="text-red-500 text-sm">{{ $message }}</p>
+        @enderror
+    </div>
+
     <label class="block text-sm mb-2">Stock mínimo</label>
     <input type="number"
            name="min_stock"

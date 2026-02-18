@@ -8,6 +8,7 @@ use App\Models\Product;
 use App\Models\Warehouse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Symfony\Component\HttpFoundation\Response;
 
 class ProductController extends Controller
@@ -44,11 +45,20 @@ class ProductController extends Controller
     public function index(Request $request)
     {
         [$companyId, $warehouseId] = $this->currentContext();
+        $search = trim((string) $request->query('q', ''));
 
         $query = Product::with(['warehouses' => function ($query) use ($warehouseId) {
             $query->where('warehouse_id', $warehouseId);
         }])
         ->where('company_id', $companyId);
+
+        if ($search !== '') {
+            $query->where(function ($innerQuery) use ($search) {
+                $innerQuery->where('name', 'like', '%' . $search . '%')
+                    ->orWhere('barcode', $search)
+                    ->orWhere('sku', $search);
+            });
+        }
 
         if ($request->low_stock) {
             $query->whereHas('warehouses', function ($q) use ($warehouseId) {
@@ -59,7 +69,7 @@ class ProductController extends Controller
 
         $products = $query->get();
 
-        return view('products.index', compact('products'));
+        return view('products.index', compact('products', 'search'));
     }
 
     public function create()
@@ -77,6 +87,18 @@ class ProductController extends Controller
 
         $request->validate([
             'name' => 'required|string|max:255',
+            'sku' => [
+                'nullable',
+                'string',
+                'max:100',
+                Rule::unique('products', 'sku')->where(fn ($query) => $query->where('company_id', $companyId)),
+            ],
+            'barcode' => [
+                'nullable',
+                'string',
+                'max:255',
+                Rule::unique('products', 'barcode')->where(fn ($query) => $query->where('company_id', $companyId)),
+            ],
             'price' => 'required|numeric|min:0',
             'stock' => 'nullable|integer|min:0',
             'description' => 'nullable|string|max:255',
@@ -89,6 +111,8 @@ class ProductController extends Controller
             $product = Product::create([
                 'company_id' => $companyId,
                 'name' => $request->name,
+                'sku' => $request->filled('sku') ? trim((string) $request->sku) : null,
+                'barcode' => $request->filled('barcode') ? trim((string) $request->barcode) : null,
                 'price' => $request->price,
                 'description' => $request->description,
             ]);
@@ -137,6 +161,22 @@ class ProductController extends Controller
 
         $request->validate([
             'name' => 'required|string|max:255',
+            'sku' => [
+                'nullable',
+                'string',
+                'max:100',
+                Rule::unique('products', 'sku')
+                    ->where(fn ($query) => $query->where('company_id', $companyId))
+                    ->ignore($product->id),
+            ],
+            'barcode' => [
+                'nullable',
+                'string',
+                'max:255',
+                Rule::unique('products', 'barcode')
+                    ->where(fn ($query) => $query->where('company_id', $companyId))
+                    ->ignore($product->id),
+            ],
             'price' => 'required|numeric|min:0',
             'description' => 'nullable|string|max:255',
             'min_stock' => 'nullable|integer|min:0',
@@ -145,6 +185,8 @@ class ProductController extends Controller
         DB::transaction(function () use ($request, $product, $warehouseId, $companyId) {
             $product->update([
                 'name' => $request->name,
+                'sku' => $request->filled('sku') ? trim((string) $request->sku) : null,
+                'barcode' => $request->filled('barcode') ? trim((string) $request->barcode) : null,
                 'price' => $request->price,
                 'description' => $request->description,
             ]);

@@ -17,9 +17,25 @@
             <p class="text-red-500 text-sm">{{ $message }}</p>
         @enderror
     </div>
+    <div class="mb-3">
+        <label>SKU</label>
+        <input type="text" name="sku" class="border p-2 w-full"
+               value="{{ old('sku') }}" placeholder="SKU interno">
+        @error('sku')
+            <p class="text-red-500 text-sm">{{ $message }}</p>
+        @enderror
+    </div>
+    <div class="mb-3">
+        <label>Código de barras</label>
+        <input type="text" name="barcode" class="border p-2 w-full"
+               value="{{ old('barcode') }}" placeholder="Escanea o escribe el código">
+        @error('barcode')
+            <p class="text-red-500 text-sm">{{ $message }}</p>
+        @enderror
+    </div>
 <label class="block text-sm mb-2">Stock mínimo</label>
 <input type="number" name="min_stock"
-       value="{{ old('min_stock', $product->min_stock ?? 0) }}"
+       value="{{ old('min_stock', 0) }}"
        class="border p-2 w-full mb-4">
     <div class="mb-3">
         <label>Precio</label>

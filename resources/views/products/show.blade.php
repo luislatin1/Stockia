@@ -6,6 +6,8 @@
 
 <div class="bg-white p-6 rounded shadow mb-6">
     <h2 class="text-xl font-bold mb-2">{{ $product->name }}</h2>
+    <p><strong>SKU:</strong> {{ $product->sku ?: '-' }}</p>
+    <p><strong>Código de barras:</strong> {{ $product->barcode ?: '-' }}</p>
     <p><strong>Precio:</strong> ${{ number_format($product->price, 2) }}</p>
     <p><strong>Stock actual:</strong> {{ $product->stock }}</p>
 </div>
@@ -22,6 +24,7 @@
                 <th class="px-4 py-2 text-left">Tipo</th>
                 <th class="px-4 py-2 text-left">Cantidad</th>
                 <th class="px-4 py-2 text-left">Referencia</th>
+                <th class="px-4 py-2 text-left">Comentario</th>
             </tr>
         </thead>
 
@@ -47,7 +50,11 @@
                 </td>
 
                 <td class="px-4 py-2 text-gray-500">
-                    {{ $movement->reference }}
+                    {{ $movement->reference_label }}
+                </td>
+
+                <td class="px-4 py-2 text-gray-500">
+                    {{ $movement->comment }}
                 </td>
             </tr>
             @endforeach

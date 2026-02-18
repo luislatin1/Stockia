@@ -71,4 +71,22 @@ public function user()
     return $this->belongsTo(User::class);
 }
 
+public function getReferenceLabelAttribute(): string
+{
+    if (! $this->reference_type) {
+        return '-';
+    }
+
+    if ($this->reference_id) {
+        return $this->reference_type . ' #' . $this->reference_id;
+    }
+
+    return $this->reference_type;
+}
+
+public function getCommentAttribute(): string
+{
+    return $this->reason ?: '-';
+}
+
 }

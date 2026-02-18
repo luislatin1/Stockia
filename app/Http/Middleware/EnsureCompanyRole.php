@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\CompanyUser;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -10,17 +11,21 @@ class EnsureCompanyRole
 {
     public function handle(Request $request, Closure $next, ...$roles): Response
     {
-        $company = currentCompany();
+        $companyId = (int) session('current_company_id');
         $user = $request->user();
 
-        if (! $user || ! $company) {
-            abort(403);
+        if (! $user || ! $companyId) {
+            return redirect()->route('company.select')
+                ->with('error', 'Debes seleccionar una empresa para continuar.');
         }
 
-        $role = currentRole();
+        $role = CompanyUser::where('company_id', $companyId)
+            ->where('user_id', $user->id)
+            ->value('role');
 
         if (! in_array($role, $roles)) {
-            abort(403);
+            return redirect()->route('dashboard')
+                ->with('error', 'No tienes permisos para acceder a este modulo.');
         }
 
         return $next($request);

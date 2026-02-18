@@ -8,6 +8,7 @@ use App\Http\Controllers\CompanySelectionController;
 use App\Http\Controllers\WarehouseSelectionController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\ModuleController;
+use App\Http\Controllers\CoreAdminController;
 use App\Http\Controllers\SetupWizardController;
 
 
@@ -49,6 +50,10 @@ Route::middleware(['auth'])->group(function () {
             ->name('dashboard');
 
         Route::middleware(['role:Admin,SuperAdmin'])->group(function () {
+            Route::get('/core/admin', [CoreAdminController::class, 'index'])->name('core.admin.index');
+            Route::patch('/core/admin/company', [CoreAdminController::class, 'updateCompany'])->name('core.admin.company.update');
+            Route::post('/core/admin/warehouses', [CoreAdminController::class, 'storeWarehouse'])->name('core.admin.warehouses.store');
+
             Route::get('products/{product}/adjust', [ProductController::class, 'adjust'])
                 ->name('products.adjust');
 

@@ -3,6 +3,7 @@
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use App\Services\PluginInstaller;
+use Illuminate\Support\Facades\File;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
@@ -30,3 +31,42 @@ Artisan::command('modules:install-zip {zip} {--key=} ', function () {
 
     return 0;
 })->purpose('Instala un plugin desde ZIP y prepara composer.json');
+
+Artisan::command('modules:export {module} {--dest=}', function () {
+    $module = $this->argument('module');
+    $dest = $this->option('dest') ?: base_path('ExportPlugins');
+    $sourceDir = base_path('packages' . DIRECTORY_SEPARATOR . $module);
+
+    if (! File::isDirectory($sourceDir)) {
+        $this->error("No existe el modulo en: {$sourceDir}");
+        return 1;
+    }
+
+    File::makeDirectory($dest, 0755, true, true);
+    $zipPath = rtrim($dest, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $module . '.zip';
+
+    $zip = new \ZipArchive();
+    if ($zip->open($zipPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== true) {
+        $this->error('No se pudo crear el ZIP.');
+        return 1;
+    }
+
+    $files = new \RecursiveIteratorIterator(
+        new \RecursiveDirectoryIterator($sourceDir, \FilesystemIterator::SKIP_DOTS),
+        \RecursiveIteratorIterator::LEAVES_ONLY
+    );
+
+    foreach ($files as $file) {
+        if (! $file->isFile()) {
+            continue;
+        }
+        $filePath = $file->getRealPath();
+        $relativePath = substr($filePath, strlen($sourceDir) + 1);
+        $zip->addFile($filePath, $relativePath);
+    }
+
+    $zip->close();
+
+    $this->info("Plugin exportado en: {$zipPath}");
+    return 0;
+})->purpose('Exporta un plugin a ZIP en la carpeta indicada');

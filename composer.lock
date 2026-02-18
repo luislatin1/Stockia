@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "bdc6d92507d397adf1c269ed49ec424d",
+    "content-hash": "cd1f348288d0f8149c7936361023648f",
     "packages": [
         {
             "name": "brick/math",
@@ -3291,6 +3291,44 @@
                 "source": "https://github.com/ramsey/uuid/tree/4.9.2"
             },
             "time": "2025-12-14T04:43:48+00:00"
+        },
+        {
+            "name": "stockia/ptv-pos",
+            "version": "0.1.0",
+            "dist": {
+                "type": "path",
+                "url": "packages/ptv-pos",
+                "reference": "df8ea09d1a49fd22634355490eb183e8be7dced1"
+            },
+            "require": {
+                "illuminate/database": "^12.0",
+                "illuminate/routing": "^12.0",
+                "illuminate/support": "^12.0",
+                "php": "^8.2"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Stockia\\PTVPos\\Providers\\PTVPosServiceProvider"
+                    ]
+                },
+                "stockia": {
+                    "module_key": "ptv-pos"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Stockia\\PTVPos\\": "src/"
+                }
+            },
+            "license": [
+                "proprietary"
+            ],
+            "description": "PTV-POS module for Stockia",
+            "transport-options": {
+                "relative": true
+            }
         },
         {
             "name": "symfony/clock",

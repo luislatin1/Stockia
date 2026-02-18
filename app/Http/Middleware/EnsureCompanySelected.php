@@ -20,6 +20,10 @@ class EnsureCompanySelected
         $warehouseId = (int) session('current_warehouse_id');
         $userId = (int) optional($request->user())->id;
 
+        if ($request->isMethod('get')) {
+            session(['url.intended' => $request->fullUrl()]);
+        }
+
         if (! $companyId || ! $userId) {
             if ($userId) {
                 $hasCompany = \App\Models\CompanyUser::where('user_id', $userId)->exists();
@@ -27,7 +31,8 @@ class EnsureCompanySelected
                     return redirect()->route('setup.step1');
                 }
             }
-            return redirect()->route('company.select');
+            return redirect()->route('company.select')
+                ->with('error', 'Debes seleccionar una empresa para continuar.');
         }
 
         $companyUser = CompanyUser::where('company_id', $companyId)
@@ -36,11 +41,13 @@ class EnsureCompanySelected
 
         if (! $companyUser) {
             session()->forget(['current_company_id', 'current_warehouse_id']);
-            return redirect()->route('company.select');
+            return redirect()->route('company.select')
+                ->with('error', 'Tu usuario no tiene acceso a la empresa seleccionada.');
         }
 
         if (! $warehouseId) {
-            return redirect()->route('warehouse.select');
+            return redirect()->route('warehouse.select')
+                ->with('error', 'Debes seleccionar un almacen para continuar.');
         }
 
         $hasWarehouse = $companyUser->warehouses()
@@ -49,7 +56,8 @@ class EnsureCompanySelected
 
         if (! $hasWarehouse) {
             session()->forget('current_warehouse_id');
-            return redirect()->route('warehouse.select');
+            return redirect()->route('warehouse.select')
+                ->with('error', 'El almacen seleccionado no esta asignado a tu usuario.');
         }
 
         return $next($request);

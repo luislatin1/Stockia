@@ -15,6 +15,18 @@ class SetupWizardController extends Controller
     public function step1()
     {
         $currencies = Currency::orderBy('code')->get();
+
+        if ($currencies->isEmpty()) {
+            Currency::firstOrCreate(
+                ['code' => 'USD'],
+                ['name' => 'US Dollar', 'symbol' => '$', 'decimals' => 2]
+            );
+            Currency::firstOrCreate(
+                ['code' => 'CRC'],
+                ['name' => 'Colón', 'symbol' => '₡', 'decimals' => 2]
+            );
+            $currencies = Currency::orderBy('code')->get();
+        }
         return view('setup.step1', compact('currencies'));
     }
 
@@ -85,4 +97,3 @@ class SetupWizardController extends Controller
         return view('setup.done');
     }
 }
-

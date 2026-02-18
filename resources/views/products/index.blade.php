@@ -12,6 +12,18 @@
             + Nuevo Producto
         </a>
     </x-slot>
+<form method="GET" action="{{ route('products.index') }}" class="mb-4 flex flex-wrap items-end gap-2">
+    <div>
+        <label class="block text-xs text-gray-600 mb-1">Buscar (nombre, SKU o barras)</label>
+        <input type="text"
+               name="q"
+               value="{{ $search ?? '' }}"
+               class="border p-2 rounded w-72"
+               placeholder="Escanea o escribe y presiona Enter">
+    </div>
+    <button type="submit" class="bg-gray-800 text-white px-3 py-2 rounded text-sm">Buscar</button>
+    <a href="{{ route('products.index') }}" class="bg-gray-500 text-white px-3 py-2 rounded text-sm">Limpiar</a>
+</form>
 <div class="mb-4">
     <a href="{{ route('products.index', ['low_stock' => 1]) }}"
        class="bg-red-600 text-white px-4 py-2 rounded text-sm">
@@ -27,6 +39,8 @@
     <x-slot name="thead">
         <th class="p-3">ID</th>
         <th class="p-3">Nombre</th>
+        <th class="p-3">SKU</th>
+        <th class="p-3">Barras</th>
         <th class="p-3">Precio</th>
         <th class="p-3">Stock</th>
         <th class="p-3 text-right">Acciones</th>
@@ -36,6 +50,8 @@
 <tr class="hover:bg-gray-50">
     <td class="p-3">{{ $product->id }}</td>
     <td class="p-3">{{ $product->name }}</td>
+    <td class="p-3">{{ $product->sku ?: '-' }}</td>
+    <td class="p-3">{{ $product->barcode ?: '-' }}</td>
     <td class="p-3">${{ number_format($product->price, 2) }}</td>
     <td class="px-4 py-2 font-medium">
         @if($product->stock <= $product->min_stock)
@@ -74,7 +90,7 @@
 </tr>
 @empty
 <tr>
-    <td colspan="5" class="p-3 text-center">
+    <td colspan="7" class="p-3 text-center">
         No hay productos aún.
     </td>
 </tr>
