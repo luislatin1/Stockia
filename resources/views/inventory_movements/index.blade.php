@@ -13,16 +13,16 @@
     </div>
 
     @if($canFilterByWarehouse)
-        <form method="GET" action="{{ route('inventory_movements.index') }}" class="flex flex-wrap items-center gap-2">
+        <form method="GET" action="{{ route('inventory_movements.index') }}" class="flex flex-wrap items-center gap-4">
             <label for="warehouse_id" class="text-sm text-gray-600">Almacén</label>
-            <select id="warehouse_id" name="warehouse_id" class="rounded border border-gray-300 px-3 py-2 text-sm">
+            <select id="warehouse_id" name="warehouse_id" class="rounded border border-gray-300 px-5 py-2 text-sm">
                 @foreach($warehouses as $warehouse)
                     <option value="{{ $warehouse->id }}" {{ (int) $selectedWarehouseId === (int) $warehouse->id ? 'selected' : '' }}>
                         {{ $warehouse->name }}
                     </option>
                 @endforeach
             </select>
-            <select name="type" class="rounded border border-gray-300 px-3 py-2 text-sm">
+            <select name="type" class="rounded border border-gray-300 px-7 py-2 text-sm">
                 <option value="">Tipo: Todos</option>
                 <option value="in" {{ ($validated['type'] ?? '') === 'in' ? 'selected' : '' }}>Entradas</option>
                 <option value="out" {{ ($validated['type'] ?? '') === 'out' ? 'selected' : '' }}>Salidas</option>

@@ -41,6 +41,13 @@ class ModuleController extends Controller
             'dependencies' => ['sales', 'inventory'],
             'provider' => \Stockia\PTVPos\Providers\PTVPosServiceProvider::class,
         ],
+        'sales-quotes' => [
+            'name' => 'Sales Quotes',
+            'description' => 'Cotizaciones comerciales con estados y control por almacén.',
+            'version' => '0.1.0',
+            'dependencies' => ['sales', 'inventory'],
+            'provider' => \Stockia\SalesQuotes\Providers\SalesQuotesServiceProvider::class,
+        ],
     ];
 
     private function modulesTableReady(): bool

@@ -16,6 +16,7 @@ Route::middleware(['web', 'auth', 'company.selected', 'role:Vendedor,Admin,Super
         Route::post('/cash-movements', [PTVPosController::class, 'storeCashMovement'])->name('cash-movements.store');
         Route::post('/admin-auth', [PTVPosController::class, 'adminAuth'])->name('adminAuth');
         Route::get('/sales/{sale}/print', [PTVPosController::class, 'printSale'])->name('sales.print');
+        Route::get('/sales/{sale}/pdf', [PTVPosController::class, 'salePdf'])->name('sales.pdf');
         Route::post('/sales/{sale}/print/complete', [PTVPosController::class, 'completePrintedSale'])->name('sales.print.complete');
         Route::get('/open', [PTVPosController::class, 'open'])->name('open');
         Route::post('/open', [PTVPosController::class, 'storeOpen'])->name('open.store');

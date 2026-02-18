@@ -6,6 +6,28 @@
 <div class="max-w-lg space-y-4">
     <h2 class="text-2xl font-bold text-gray-900">Abrir Caja</h2>
 
+    @if(session('success'))
+        <div class="rounded border border-emerald-300 bg-emerald-50 p-3 text-sm text-emerald-800">
+            {{ session('success') }}
+        </div>
+    @endif
+
+    @if(session('error'))
+        <div class="rounded border border-red-300 bg-red-50 p-3 text-sm text-red-700">
+            {{ session('error') }}
+        </div>
+    @endif
+
+    @if($errors->any())
+        <div class="rounded border border-red-300 bg-red-50 p-3 text-sm text-red-700">
+            <ul class="list-disc pl-5">
+                @foreach($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
     @if($activeSession)
         <div class="rounded border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800">
             Ya tienes una caja abierta:
@@ -34,6 +56,9 @@
         <div>
             <label class="block text-sm font-medium text-gray-700">Efectivo inicial</label>
             <input type="number" step="0.01" min="0" name="opening_cash" value="{{ old('opening_cash') }}" class="w-full rounded border border-gray-300 px-3 py-2">
+            @error('opening_cash')
+                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+            @enderror
         </div>
         <button class="rounded bg-emerald-600 px-4 py-2 text-sm font-semibold text-white">Guardar</button>
     </form>

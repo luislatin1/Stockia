@@ -140,6 +140,23 @@ class PTVPosController extends Controller
         return $this->getActiveSession($companyId, $warehouseId, $userId) !== null;
     }
 
+    private function getOpenSessionsForWarehouse(int $companyId, int $warehouseId)
+    {
+        return DB::table('pos_sessions')
+            ->leftJoin('pos_registers', 'pos_registers.id', '=', 'pos_sessions.register_id')
+            ->leftJoin('users', 'users.id', '=', 'pos_sessions.user_id')
+            ->where('pos_sessions.company_id', $companyId)
+            ->where('pos_sessions.warehouse_id', $warehouseId)
+            ->whereNull('pos_sessions.closed_at')
+            ->orderByDesc('pos_sessions.id')
+            ->get([
+                'pos_sessions.*',
+                'pos_registers.name as register_name',
+                'pos_registers.code as register_code',
+                'users.name as user_name',
+            ]);
+    }
+
     public function index()
     {
         $companyId = (int) session('current_company_id');
@@ -531,6 +548,25 @@ class PTVPosController extends Controller
         return view('ptvpos::print-sale', compact('sale', 'template'));
     }
 
+    public function salePdf(int $sale)
+    {
+        $companyId = (int) session('current_company_id');
+        $warehouseId = (int) session('current_warehouse_id');
+        $sale = $this->findSaleInContext($sale, $companyId, $warehouseId);
+        $sale->load(['items.product', 'company', 'warehouse', 'user']);
+        $template = $this->getDocumentTemplate($companyId, (string) $sale->document_type);
+
+        if (! app()->bound('dompdf.wrapper')) {
+            return redirect()->route('ptvpos.sales.print', $sale->id)
+                ->with('error', 'PDF no disponible: instala barryvdh/laravel-dompdf en el CORE.');
+        }
+
+        $pdf = app('dompdf.wrapper');
+        $pdf->loadView('ptvpos::sale-pdf', compact('sale', 'template'));
+
+        return $pdf->stream('comprobante-venta-' . $sale->id . '.pdf');
+    }
+
     public function completePrintedSale(Request $request, int $sale): RedirectResponse
     {
         $validated = $request->validate([
@@ -671,11 +707,25 @@ class PTVPosController extends Controller
         $isAdminRole = in_array($role, ['Admin', 'SuperAdmin'], true);
 
         $activeSession = $this->getActiveSession($companyId, $warehouseId, $userId);
+        $openSessions = collect();
+        $selectedSessionId = null;
         $snapshot = null;
         $recentCashMovements = collect();
 
+        if ($isAdminRole) {
+            $openSessions = $this->getOpenSessionsForWarehouse($companyId, $warehouseId);
+            $requestedSessionId = (int) request()->query('target_session_id', old('target_session_id', 0));
+
+            if ($requestedSessionId > 0) {
+                $activeSession = $openSessions->firstWhere('id', $requestedSessionId) ?: $activeSession;
+            } elseif (! $activeSession && $openSessions->isNotEmpty()) {
+                $activeSession = $openSessions->first();
+            }
+        }
+
         if ($activeSession) {
-            $snapshot = $this->calculateSessionCashSnapshot($activeSession, $companyId, $warehouseId, $userId);
+            $selectedSessionId = (int) $activeSession->id;
+            $snapshot = $this->calculateSessionCashSnapshot($activeSession, $companyId, $warehouseId, (int) $activeSession->user_id);
             $recentCashMovements = DB::table('pos_cash_movements')
                 ->leftJoin('pos_sessions', 'pos_sessions.id', '=', 'pos_cash_movements.pos_session_id')
                 ->leftJoin('pos_registers', 'pos_registers.id', '=', 'pos_sessions.register_id')
@@ -706,7 +756,14 @@ class PTVPosController extends Controller
                 ]);
         }
 
-        return view('ptvpos::close', compact('activeSession', 'snapshot', 'recentCashMovements', 'isAdminRole'));
+        return view('ptvpos::close', compact(
+            'activeSession',
+            'snapshot',
+            'recentCashMovements',
+            'isAdminRole',
+            'openSessions',
+            'selectedSessionId',
+        ));
     }
 
     public function templates()
@@ -760,28 +817,52 @@ class PTVPosController extends Controller
         $request->validate([
             'closing_cash' => ['required', 'numeric', 'min:0'],
             'closing_note' => ['nullable', 'string', 'max:255'],
+            'target_session_id' => ['nullable', 'integer'],
         ]);
 
         $companyId = (int) session('current_company_id');
         $warehouseId = (int) session('current_warehouse_id');
         $userId = (int) auth()->id();
-        $activeSession = $this->getActiveSession($companyId, $warehouseId, $userId);
+        $role = function_exists('currentRole') ? currentRole() : null;
+        $isAdminRole = in_array($role, ['Admin', 'SuperAdmin'], true);
+        $requestedSessionId = (int) ($request->input('target_session_id') ?? 0);
 
-        if (! $activeSession) {
-            return back()->withErrors('No tienes una caja abierta para cerrar.');
+        $activeSession = null;
+
+        if ($isAdminRole && $requestedSessionId > 0) {
+            $activeSession = DB::table('pos_sessions')
+                ->leftJoin('pos_registers', 'pos_registers.id', '=', 'pos_sessions.register_id')
+                ->leftJoin('users', 'users.id', '=', 'pos_sessions.user_id')
+                ->where('pos_sessions.id', $requestedSessionId)
+                ->where('pos_sessions.company_id', $companyId)
+                ->where('pos_sessions.warehouse_id', $warehouseId)
+                ->whereNull('pos_sessions.closed_at')
+                ->first([
+                    'pos_sessions.*',
+                    'pos_registers.name as register_name',
+                    'pos_registers.code as register_code',
+                    'users.name as user_name',
+                ]);
+        } else {
+            $activeSession = $this->getActiveSession($companyId, $warehouseId, $userId);
         }
 
-        $snapshot = $this->calculateSessionCashSnapshot($activeSession, $companyId, $warehouseId, $userId);
+        if (! $activeSession) {
+            return back()->withErrors('No se encontro una caja abierta para cerrar con los datos indicados.')->withInput();
+        }
+
+        $snapshot = $this->calculateSessionCashSnapshot($activeSession, $companyId, $warehouseId, (int) $activeSession->user_id);
         $closingCash = round((float) $request->closing_cash, 2);
         $difference = round($closingCash - (float) $snapshot['expected_cash'], 2);
         $closingNote = trim((string) ($request->closing_note ?? ''));
 
         if ($difference !== 0.0 && $closingNote === '') {
-            return back()->withErrors('Debes ingresar una observacion cuando hay diferencia en caja.');
+            return back()->withErrors('Debes ingresar una observacion cuando hay diferencia en caja.')->withInput();
         }
 
         $updated = DB::table('pos_sessions')
             ->where('id', $activeSession->id)
+            ->whereNull('closed_at')
             ->update([
                 'closing_cash' => $closingCash,
                 'expected_cash' => $snapshot['expected_cash'],
@@ -792,10 +873,13 @@ class PTVPosController extends Controller
             ]);
 
         if (! $updated) {
-            return back()->withErrors('No tienes una caja abierta para cerrar.');
+            return back()->withErrors('La caja ya fue cerrada por otro proceso.')->withInput();
         }
 
+        $registerLabel = $activeSession->register_name ?? ('#' . $activeSession->register_id);
+        $userLabel = $activeSession->user_name ?? ('#' . $activeSession->user_id);
+
         return redirect()->route('ptvpos.index')
-            ->with('success', 'Caja cerrada. Esperado: $' . number_format($snapshot['expected_cash'], 2) . ', contado: $' . number_format($closingCash, 2) . ', diferencia: $' . number_format($difference, 2) . '.');
+            ->with('success', 'Caja cerrada (' . $registerLabel . ', usuario ' . $userLabel . '). Esperado: $' . number_format($snapshot['expected_cash'], 2) . ', contado: $' . number_format($closingCash, 2) . ', diferencia: $' . number_format($difference, 2) . '.');
     }
 }

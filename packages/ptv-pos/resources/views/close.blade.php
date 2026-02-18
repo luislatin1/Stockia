@@ -22,6 +22,13 @@
             <strong>{{ $activeSession->register_name ?? 'Sin nombre' }}</strong>
             ({{ $activeSession->register_code ?? 'N/A' }}),
             abierta el {{ \Carbon\Carbon::parse($activeSession->opened_at)->format('d/m/Y H:i') }}.
+            @if($isAdminRole ?? false)
+                @php
+                    $sessionOwner = $activeSession->user_name ?? ('#' . $activeSession->user_id);
+                @endphp
+                <br>
+                Usuario propietario: <strong>{{ $sessionOwner }}</strong>
+            @endif
         </div>
 
         <div class="rounded border border-gray-200 bg-white p-3 text-sm">
@@ -50,6 +57,18 @@
 
     <form method="POST" action="{{ route('ptvpos.close.store') }}" class="space-y-3">
         @csrf
+        @if(($isAdminRole ?? false) && ($openSessions ?? collect())->isNotEmpty())
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Sesion a cerrar (modo admin)</label>
+                <select name="target_session_id" class="w-full rounded border border-gray-300 px-3 py-2">
+                    @foreach(($openSessions ?? collect()) as $sessionOption)
+                        <option value="{{ $sessionOption->id }}" @selected((int) old('target_session_id', (int) ($selectedSessionId ?? 0)) === (int) $sessionOption->id)>
+                            #{{ $sessionOption->id }} | {{ $sessionOption->register_name ?? ('Caja #' . $sessionOption->register_id) }} | {{ $sessionOption->user_name ?? ('Usuario #' . $sessionOption->user_id) }} | {{ \Carbon\Carbon::parse($sessionOption->opened_at)->format('d/m/Y H:i') }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+        @endif
         <div>
             <label class="block text-sm font-medium text-gray-700">Efectivo contado</label>
             <input type="number" step="0.01" min="0" name="closing_cash" value="{{ old('closing_cash') }}" class="w-full rounded border border-gray-300 px-3 py-2">

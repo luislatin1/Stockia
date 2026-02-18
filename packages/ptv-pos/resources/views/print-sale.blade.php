@@ -121,7 +121,8 @@
 <body>
     <div class="toolbar">
         <p>Venta #{{ $sale->id }} pendiente de impresion.</p>
-        <button type="button" class="btn btn-print" onclick="window.print()">Imprimir / Guardar PDF</button>
+        <button type="button" class="btn btn-print" onclick="window.print()">Imprimir ahora</button>
+        <a href="{{ route('ptvpos.sales.pdf', $sale->id) }}" target="_blank" class="btn btn-print" style="text-decoration: none;">Abrir PDF</a>
         <form method="POST" action="{{ route('ptvpos.sales.print.complete', $sale->id) }}">
             @csrf
             <input type="hidden" name="printed_ack" value="1">
@@ -188,4 +189,11 @@ Caja/Almacen: {{ $sale->warehouse->name ?? ('#' . $sale->warehouse_id) }} | Caje
         </article>
     </div>
 </body>
+<script>
+    window.addEventListener('load', function () {
+        setTimeout(function () {
+            window.print();
+        }, 300);
+    });
+</script>
 </html>

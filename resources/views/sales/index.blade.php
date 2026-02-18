@@ -6,9 +6,17 @@
 <div class="space-y-6">
     <div class="flex items-center justify-between">
         <h2 class="text-2xl font-bold text-gray-900">Ventas</h2>
-        <a href="{{ route('sales.create') }}" class="rounded bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">
-            + Nueva Venta
-        </a>
+        <div class="flex items-center gap-2">
+            <a href="{{ route('sales.export.excel') }}" class="rounded border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-100">
+                Exportar Excel
+            </a>
+            <a href="{{ route('ptvpos.pos') }}" class="rounded bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">
+                Ir a Punto de Venta
+            </a>
+            <button type="button" disabled title="Deshabilitado: las ventas deben registrarse desde POS." class="cursor-not-allowed rounded border border-gray-300 bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-500">
+                + Nueva Venta (deshabilitado)
+            </button>
+        </div>
     </div>
 
     @forelse($sales as $sale)

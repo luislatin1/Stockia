@@ -43,6 +43,20 @@
     {{-- COMERCIAL --}}
     <p class="text-gray-400 uppercase text-xs mt-6">Comercial</p>
 
+    @if (Route::has('sales.index') && in_array(currentRole(), ['Vendedor', 'Admin', 'SuperAdmin'], true))
+    <a href="{{ route('sales.index') }}"
+       class="block px-3 py-2 rounded hover:bg-gray-800 {{ $isActive('sales.*') }}">
+        🧾 Ventas
+    </a>
+    @endif
+
+    @if (Route::has('salesquotes.index') && in_array(currentRole(), ['Vendedor', 'Admin', 'SuperAdmin'], true))
+    <a href="{{ route('salesquotes.index') }}"
+       class="block px-3 py-2 rounded hover:bg-gray-800 {{ $isActive('salesquotes.*') }}">
+        📑 Cotizaciones
+    </a>
+    @endif
+
     @if (Route::has('ptvpos.index') && in_array(currentRole(), ['Vendedor', 'Admin', 'SuperAdmin'], true))
     <a href="{{ route('ptvpos.index') }}"
        class="block px-3 py-2 rounded hover:bg-gray-800 {{ $isActive('ptvpos.index') }}">
