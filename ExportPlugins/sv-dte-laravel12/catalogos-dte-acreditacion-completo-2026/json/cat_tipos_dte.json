@@ -1,0 +1,30 @@
+[
+  {
+    "codigo": "01",
+    "descripcion": "Factura"
+  },
+  {
+    "codigo": "03",
+    "descripcion": "Comprobante de Crédito Fiscal"
+  },
+  {
+    "codigo": "05",
+    "descripcion": "Nota de Crédito"
+  },
+  {
+    "codigo": "06",
+    "descripcion": "Nota de Débito"
+  },
+  {
+    "codigo": "07",
+    "descripcion": "Comprobante de Retención"
+  },
+  {
+    "codigo": "08",
+    "descripcion": "Comprobante de Liquidación"
+  },
+  {
+    "codigo": "09",
+    "descripcion": "Documento Contable de Liquidación"
+  }
+]

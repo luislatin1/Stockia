@@ -40,6 +40,18 @@ class CoreAdminController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'legal_name' => ['nullable', 'string', 'max:255'],
             'tax_id' => ['nullable', 'string', 'max:255'],
+            'nit' => ['nullable', 'string', 'max:20'],
+            'nrc' => ['nullable', 'string', 'max:20'],
+            'nombre_razon_social' => ['nullable', 'string', 'max:255'],
+            'nombre_comercial' => ['nullable', 'string', 'max:255'],
+            'cod_actividad' => ['nullable', 'string', 'max:10'],
+            'desc_actividad' => ['nullable', 'string', 'max:255'],
+            'tipo_establecimiento' => ['nullable', 'string', 'max:2'],
+            'telefono' => ['nullable', 'string', 'max:30'],
+            'correo' => ['nullable', 'email', 'max:120'],
+            'departamento' => ['nullable', 'string', 'max:2'],
+            'municipio' => ['nullable', 'string', 'max:4'],
+            'direccion_complemento' => ['nullable', 'string', 'max:255'],
             'fiscal_address' => ['nullable', 'string', 'max:255'],
             'fiscal_email' => ['nullable', 'email', 'max:255'],
             'fiscal_phone' => ['nullable', 'string', 'max:50'],
@@ -49,6 +61,7 @@ class CoreAdminController extends Controller
             'system_name' => ['nullable', 'string', 'max:255'],
             'timezone' => ['required', 'string', 'max:255'],
             'currency_id' => ['required', 'exists:currencies,id'],
+            'estado' => ['nullable', 'string', 'max:20'],
             'logo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp,svg', 'max:2048'],
         ]);
 
@@ -60,6 +73,15 @@ class CoreAdminController extends Controller
 
                 $validated['logo_path'] = $request->file('logo')->store('companies/logos', 'public');
             }
+
+            $validated['nombre_razon_social'] = $validated['nombre_razon_social'] ?? ($validated['legal_name'] ?? $company->legal_name);
+            $validated['nombre_comercial'] = $validated['nombre_comercial'] ?? ($validated['name'] ?? $company->name);
+            $validated['tax_id'] = $validated['tax_id'] ?? ($validated['nit'] ?? $company->tax_id);
+            $validated['nit'] = $validated['nit'] ?? ($validated['tax_id'] ?? $company->nit);
+            $validated['fiscal_address'] = $validated['fiscal_address'] ?? ($validated['direccion_complemento'] ?? $company->fiscal_address);
+            $validated['fiscal_email'] = $validated['fiscal_email'] ?? ($validated['correo'] ?? $company->fiscal_email);
+            $validated['fiscal_phone'] = $validated['fiscal_phone'] ?? ($validated['telefono'] ?? $company->fiscal_phone);
+            $validated['estado'] = $validated['estado'] ?? ($company->estado ?: 'ACTIVO');
 
             $company->update($validated);
         });

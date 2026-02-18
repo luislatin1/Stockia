@@ -93,9 +93,24 @@
             <input type="hidden" name="admin_password" id="admin-password">
             <div>
                 <label class="block text-sm font-medium text-gray-700">Comprobante</label>
-                <select name="document_type" class="mt-1 w-full rounded border border-gray-300 px-3 py-2">
+                <select name="document_type" id="document-type" class="mt-1 w-full rounded border border-gray-300 px-3 py-2">
                     <option value="ticket" @selected(old('document_type', 'ticket') === 'ticket')>Ticket</option>
                     <option value="factura" @selected(old('document_type') === 'factura')>Factura</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Tipo DTE</label>
+                <input type="text" id="tipo-dte" name="tipo_dte" value="{{ old('tipo_dte') }}" placeholder="01, 03, 05..." class="mt-1 w-full rounded border border-gray-300 px-3 py-2">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Cliente (opcional)</label>
+                <select name="customer_id" class="mt-1 w-full rounded border border-gray-300 px-3 py-2">
+                    <option value="">Consumidor final</option>
+                    @foreach(($customers ?? collect()) as $customer)
+                        <option value="{{ $customer->id }}" @selected((string) old('customer_id') === (string) $customer->id)>
+                            {{ $customer->nombre }} ({{ $customer->tipo_documento }} {{ $customer->numero_documento }})
+                        </option>
+                    @endforeach
                 </select>
             </div>
             <div>
@@ -124,6 +139,8 @@
 <form id="stock-adjust-form" method="POST" action="{{ route('ptvpos.checkout') }}" class="hidden">
     @csrf
     <input type="hidden" name="document_type" value="{{ old('document_type', 'ticket') }}">
+    <input type="hidden" name="tipo_dte" value="{{ old('tipo_dte') }}">
+    <input type="hidden" name="customer_id" value="{{ old('customer_id') }}">
     <input type="hidden" name="cash_received" value="{{ old('cash_received', 0) }}">
     <input type="hidden" name="force_stock_adjustment" value="1">
     <input type="hidden" name="stock_adjustment_reason" id="stock-adjust-reason-field">
@@ -174,6 +191,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const adminPasswordField = document.getElementById('admin-password');
     const checkoutForm = document.getElementById('checkout-form');
     const cashReceivedInput = document.getElementById('cash-received');
+    const documentTypeInput = document.getElementById('document-type');
+    const tipoDteInput = document.getElementById('tipo-dte');
     const openStockAdjustBtn = document.getElementById('open-stock-adjust-modal');
     const stockAdjustModal = document.getElementById('stock-adjust-modal');
     const stockAdjustCancel = document.getElementById('stock-adjust-cancel');
@@ -425,6 +444,18 @@ document.addEventListener('DOMContentLoaded', () => {
             stockAdjustReasonField.value = reason;
             stockAdjustPasswordField.value = password;
             stockAdjustForm.submit();
+        });
+    }
+
+    if (documentTypeInput && tipoDteInput && !tipoDteInput.value) {
+        tipoDteInput.value = documentTypeInput.value === 'factura' ? '01' : '';
+    }
+
+    if (documentTypeInput && tipoDteInput) {
+        documentTypeInput.addEventListener('change', () => {
+            if (tipoDteInput.value.trim() === '' || tipoDteInput.value === '01') {
+                tipoDteInput.value = documentTypeInput.value === 'factura' ? '01' : '';
+            }
         });
     }
 

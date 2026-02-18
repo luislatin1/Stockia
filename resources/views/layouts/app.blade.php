@@ -12,6 +12,9 @@
 
 @php($uiCompany = currentCompany())
 @php($uiSystemName = $uiCompany?->system_name ?: 'Stockia POS')
+@php($dteModuleEnabled = \Illuminate\Support\Facades\Schema::hasTable('modules')
+    ? \App\Models\Module::where('key', 'dte-sv-mh')->where('enabled', true)->exists()
+    : false)
 
 <div class="flex min-h-screen">
 
@@ -117,6 +120,19 @@
     </a>
     @endif
 
+    @if ($dteModuleEnabled && Route::has('dte.admin.index') && in_array(currentRole(), ['Admin', 'SuperAdmin'], true))
+    <p class="text-gray-400 uppercase text-xs mt-6">Administración DTE</p>
+
+    <a href="{{ route('dte.admin.index') }}"
+       class="block px-3 py-2 rounded hover:bg-gray-800 {{ $isActive('dte.admin.*') }}">
+        🧩 Panel DTE
+    </a>
+    <a href="{{ route('dte.customers.index') }}"
+       class="block px-3 py-2 rounded hover:bg-gray-800 {{ $isActive('dte.customers.*') }}">
+        🧾 Clientes DTE
+    </a>
+    @endif
+
     {{-- ADMINISTRACIÓN --}}
     <p class="text-gray-400 uppercase text-xs mt-6">Administración</p>
 
@@ -186,6 +202,11 @@
             @if(session('error'))
     <div class="bg-red-100 text-red-700 p-3 rounded mb-4">
         {{ session('error') }}
+    </div>
+@endif
+            @if(session('warning'))
+    <div class="bg-amber-100 text-amber-800 p-3 rounded mb-4">
+        {{ session('warning') }}
     </div>
 @endif
             @yield('content')

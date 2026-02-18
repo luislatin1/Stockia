@@ -30,6 +30,17 @@
     </div>
 
     <div class="mb-4">
+        <label>Código DTE</label>
+        <input type="text"
+               name="codigo"
+               value="{{ old('codigo', $product->codigo) }}"
+               class="w-full border p-2 rounded">
+        @error('codigo')
+            <p class="text-red-500 text-sm">{{ $message }}</p>
+        @enderror
+    </div>
+
+    <div class="mb-4">
         <label>Código de barras</label>
         <input type="text"
                name="barcode"
@@ -53,6 +64,29 @@
                name="price"
                value="{{ old('price', $product->price) }}"
                class="w-full border p-2 rounded">
+    </div>
+
+    <div class="mb-4">
+        <label>Tipo item</label>
+        <select name="tipo_item" class="w-full border p-2 rounded">
+            <option value="1" @selected((string) old('tipo_item', $product->tipo_item ?? 1) === '1')>Bien</option>
+            <option value="2" @selected((string) old('tipo_item', $product->tipo_item ?? 1) === '2')>Servicio</option>
+        </select>
+    </div>
+
+    <div class="mb-4">
+        <label>Unidad de medida (CAT-014)</label>
+        <input type="number"
+               name="uni_medida"
+               value="{{ old('uni_medida', $product->uni_medida ?? 59) }}"
+               class="w-full border p-2 rounded">
+    </div>
+
+    <div class="mb-4">
+        <label class="inline-flex items-center gap-2">
+            <input type="checkbox" name="afecto_iva" value="1" {{ old('afecto_iva', $product->afecto_iva ?? true) ? 'checked' : '' }}>
+            <span>Afecto IVA 13%</span>
+        </label>
     </div>
 
     <button type="submit"

@@ -6,9 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Models\InventoryMovement;
 use App\Models\NonSellableProduct;
 use App\Models\CompanyUser;
+use App\Models\Customer;
 use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\Product;
+use App\Services\Dte\DteCalculationService;
+use App\Services\Dte\DteEmissionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Date;
@@ -18,8 +21,6 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class SaleController extends Controller
 {
-    private const IVA_RATE = 0.13;
-
     private function currentContext(): array
     {
         $companyId = (int) session('current_company_id');
@@ -170,7 +171,12 @@ class SaleController extends Controller
             }])
             ->get();
 
-        return view('sales.create', compact('products'));
+        $customers = Customer::where('company_id', $companyId)
+            ->orderBy('nombre')
+            ->limit(200)
+            ->get(['id', 'nombre', 'tipo_documento', 'numero_documento']);
+
+        return view('sales.create', compact('products', 'customers'));
     }
 
     public function show($id)
@@ -224,7 +230,22 @@ class SaleController extends Controller
             'products.*' => ['nullable', 'integer', 'min:0'],
             'cash_received' => ['required', 'numeric', 'min:0'],
             'document_type' => ['required', 'in:ticket,factura'],
+            'customer_id' => ['nullable', 'integer', 'exists:customers,id'],
+            'tipo_dte' => ['nullable', 'string', 'size:2'],
         ]);
+
+        if (! empty($validated['customer_id'])) {
+            $customer = Customer::where('id', (int) $validated['customer_id'])
+                ->where('company_id', $companyId)
+                ->first();
+            if (! $customer) {
+                return back()->withErrors('Cliente inválido para la empresa actual.');
+            }
+        }
+
+        if (($validated['tipo_dte'] ?? null) === '03' && empty($validated['customer_id'])) {
+            return back()->withErrors('Para CCF (03) debes seleccionar un cliente contribuyente.')->withInput();
+        }
 
         $productsPayload = $validated['products'] ?? [];
         $hasItems = collect($productsPayload)->contains(fn ($qty) => (int) $qty > 0);
@@ -256,7 +277,6 @@ class SaleController extends Controller
             ->keyBy('id');
 
         $lineItems = [];
-        $subtotal = 0.0;
 
         foreach ($productsPayload as $productId => $quantity) {
             $quantity = (int) $quantity;
@@ -272,19 +292,30 @@ class SaleController extends Controller
                 return back()->withErrors('Uno o más productos no fueron encontrados.');
             }
 
-            $lineSubtotal = round(((float) $product->price) * $quantity, 2);
-            $subtotal += $lineSubtotal;
-
             $lineItems[] = [
                 'product' => $product,
                 'quantity' => $quantity,
-                'price' => (float) $product->price,
-                'subtotal' => $lineSubtotal,
+                'unit_price' => (float) $product->price,
+                'discount' => 0,
+                'afecto_iva' => (bool) ($product->afecto_iva ?? true),
+                'category' => (bool) ($product->afecto_iva ?? true) ? 'gravada' : 'exenta',
+                'tipo_item' => (int) ($product->tipo_item ?? 1),
+                'uni_medida' => isset($product->uni_medida) ? (int) $product->uni_medida : null,
+                'product_id' => (int) $product->id,
             ];
         }
 
-        $taxTotal = round($subtotal * self::IVA_RATE, 2);
-        $grandTotal = round($subtotal + $taxTotal, 2);
+        $calculator = app(DteCalculationService::class);
+        $calc = $calculator->calculate($lineItems, [
+            'aplica_retencion_iva' => false,
+            'retencion_renta' => 0,
+        ]);
+        $totals = $calc['totals'];
+        $normalizedItems = $calc['items'];
+
+        $subtotal = (float) $totals['subtotal'];
+        $taxTotal = (float) $totals['iva'];
+        $grandTotal = (float) $totals['total'];
         $cashReceived = round((float) $validated['cash_received'], 2);
 
         if ($cashReceived < $grandTotal) {
@@ -293,38 +324,63 @@ class SaleController extends Controller
 
         $changeAmount = round($cashReceived - $grandTotal, 2);
 
-        DB::transaction(function () use (
-            $lineItems,
+        $saleId = DB::transaction(function () use (
+            $products,
+            $normalizedItems,
             $warehouseId,
             $companyId,
-            $subtotal,
-            $taxTotal,
-            $grandTotal,
+            $totals,
             $cashReceived,
             $changeAmount,
             $validated
         ) {
             $sale = Sale::create([
                 'company_id' => $companyId,
+                'customer_id' => $validated['customer_id'] ?? null,
                 'warehouse_id' => $warehouseId,
                 'user_id' => auth()->id(),
                 'status' => 'completed',
-                'subtotal' => $subtotal,
-                'tax_total' => $taxTotal,
-                'total' => $grandTotal,
+                'tipo_dte' => $validated['tipo_dte'] ?? $this->resolveTipoDte((string) $validated['document_type']),
+                'numero_interno' => null,
+                'gravadas' => $totals['gravadas'],
+                'exentas' => $totals['exentas'],
+                'no_sujetas' => $totals['no_sujetas'],
+                'iva' => $totals['iva'],
+                'retencion_iva' => $totals['retencion_iva'],
+                'retencion_renta' => $totals['retencion_renta'],
+                'descuento_total' => $totals['descuento_total'],
+                'subtotal' => $totals['subtotal'],
+                'tax_total' => $totals['iva'],
+                'total' => $totals['total'],
                 'payment_method' => 'cash',
                 'cash_received' => $cashReceived,
                 'change_amount' => $changeAmount,
                 'document_type' => $validated['document_type'],
             ]);
 
-            foreach ($lineItems as $lineItem) {
-                $product = $lineItem['product'];
+            $sale->update([
+                'numero_interno' => sprintf('V-%06d', (int) $sale->id),
+            ]);
+
+            foreach ($normalizedItems as $lineItem) {
+                $product = $products->get((int) $lineItem['product_id']);
+                if (! $product) {
+                    throw new \RuntimeException('Producto inválido en detalle de venta.');
+                }
                 SaleItem::create([
                     'sale_id' => $sale->id,
                     'product_id' => $product->id,
                     'quantity' => $lineItem['quantity'],
                     'price' => $lineItem['price'],
+                    'precio_unitario' => $lineItem['precio_unitario'],
+                    'descuento' => $lineItem['descuento'],
+                    'monto_gravado' => $lineItem['monto_gravado'],
+                    'monto_exento' => $lineItem['monto_exento'],
+                    'monto_no_sujeto' => $lineItem['monto_no_sujeto'],
+                    'iva_item' => $lineItem['iva_item'],
+                    'total_item' => $lineItem['total_item'],
+                    'tipo_item' => $lineItem['tipo_item'],
+                    'uni_medida' => $lineItem['uni_medida'],
                     'subtotal' => $lineItem['subtotal'],
                 ]);
 
@@ -339,10 +395,28 @@ class SaleController extends Controller
                     'user_id' => auth()->id(),
                 ]);
             }
+
+            return (int) $sale->id;
         });
 
-        return redirect()->route('sales.index')
+        $warning = null;
+        try {
+            $sale = Sale::find($saleId);
+            if ($sale) {
+                app(DteEmissionService::class)->emitForSale($sale);
+            }
+        } catch (\Throwable $e) {
+            $warning = 'Venta guardada, pero DTE no emitido: ' . $e->getMessage();
+        }
+
+        $redirect = redirect()->route('sales.index')
             ->with('success', 'Venta registrada correctamente');
+
+        if ($warning) {
+            $redirect->with('warning', $warning);
+        }
+
+        return $redirect;
     }
 
     public function ticket(Sale $sale)
@@ -598,5 +672,10 @@ class SaleController extends Controller
         return redirect()
             ->route('sales.index')
             ->with('success', 'Venta cancelada correctamente');
+    }
+
+    private function resolveTipoDte(string $documentType): ?string
+    {
+        return $documentType === 'factura' ? '01' : null;
     }
 }

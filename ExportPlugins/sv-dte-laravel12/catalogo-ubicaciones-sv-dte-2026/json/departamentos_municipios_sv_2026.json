@@ -1,0 +1,260 @@
+{
+  "departamentos": [
+    {
+      "codigo": "01",
+      "nombre": "Ahuachapán",
+      "municipios": [
+        {
+          "codigo": "01",
+          "nombre": "Ahuachapán Centro"
+        },
+        {
+          "codigo": "02",
+          "nombre": "Ahuachapán Norte"
+        },
+        {
+          "codigo": "03",
+          "nombre": "Ahuachapán Sur"
+        }
+      ]
+    },
+    {
+      "codigo": "02",
+      "nombre": "Santa Ana",
+      "municipios": [
+        {
+          "codigo": "01",
+          "nombre": "Santa Ana Centro"
+        },
+        {
+          "codigo": "02",
+          "nombre": "Santa Ana Norte"
+        },
+        {
+          "codigo": "03",
+          "nombre": "Santa Ana Este"
+        },
+        {
+          "codigo": "04",
+          "nombre": "Santa Ana Oeste"
+        }
+      ]
+    },
+    {
+      "codigo": "03",
+      "nombre": "Sonsonate",
+      "municipios": [
+        {
+          "codigo": "01",
+          "nombre": "Sonsonate Norte"
+        },
+        {
+          "codigo": "02",
+          "nombre": "Sonsonate Centro"
+        },
+        {
+          "codigo": "03",
+          "nombre": "Sonsonate Este"
+        },
+        {
+          "codigo": "04",
+          "nombre": "Sonsonate Oeste"
+        }
+      ]
+    },
+    {
+      "codigo": "04",
+      "nombre": "Chalatenango",
+      "municipios": [
+        {
+          "codigo": "01",
+          "nombre": "Chalatenango Norte"
+        },
+        {
+          "codigo": "02",
+          "nombre": "Chalatenango Centro"
+        },
+        {
+          "codigo": "03",
+          "nombre": "Chalatenango Sur"
+        }
+      ]
+    },
+    {
+      "codigo": "05",
+      "nombre": "La Libertad",
+      "municipios": [
+        {
+          "codigo": "01",
+          "nombre": "La Libertad Norte"
+        },
+        {
+          "codigo": "02",
+          "nombre": "La Libertad Centro"
+        },
+        {
+          "codigo": "03",
+          "nombre": "La Libertad Oeste"
+        },
+        {
+          "codigo": "04",
+          "nombre": "La Libertad Este"
+        },
+        {
+          "codigo": "05",
+          "nombre": "La Libertad Costa"
+        }
+      ]
+    },
+    {
+      "codigo": "06",
+      "nombre": "San Salvador",
+      "municipios": [
+        {
+          "codigo": "01",
+          "nombre": "San Salvador Centro"
+        },
+        {
+          "codigo": "02",
+          "nombre": "San Salvador Norte"
+        },
+        {
+          "codigo": "03",
+          "nombre": "San Salvador Oeste"
+        },
+        {
+          "codigo": "04",
+          "nombre": "San Salvador Este"
+        },
+        {
+          "codigo": "05",
+          "nombre": "San Salvador Sur"
+        }
+      ]
+    },
+    {
+      "codigo": "07",
+      "nombre": "Cuscatlán",
+      "municipios": [
+        {
+          "codigo": "01",
+          "nombre": "Cuscatlán Norte"
+        },
+        {
+          "codigo": "02",
+          "nombre": "Cuscatlán Sur"
+        }
+      ]
+    },
+    {
+      "codigo": "08",
+      "nombre": "La Paz",
+      "municipios": [
+        {
+          "codigo": "01",
+          "nombre": "La Paz Oeste"
+        },
+        {
+          "codigo": "02",
+          "nombre": "La Paz Centro"
+        },
+        {
+          "codigo": "03",
+          "nombre": "La Paz Este"
+        }
+      ]
+    },
+    {
+      "codigo": "09",
+      "nombre": "Cabañas",
+      "municipios": [
+        {
+          "codigo": "01",
+          "nombre": "Cabañas Este"
+        },
+        {
+          "codigo": "02",
+          "nombre": "Cabañas Oeste"
+        }
+      ]
+    },
+    {
+      "codigo": "10",
+      "nombre": "San Vicente",
+      "municipios": [
+        {
+          "codigo": "01",
+          "nombre": "San Vicente Norte"
+        },
+        {
+          "codigo": "02",
+          "nombre": "San Vicente Sur"
+        }
+      ]
+    },
+    {
+      "codigo": "11",
+      "nombre": "Usulután",
+      "municipios": [
+        {
+          "codigo": "01",
+          "nombre": "Usulután Norte"
+        },
+        {
+          "codigo": "02",
+          "nombre": "Usulután Este"
+        },
+        {
+          "codigo": "03",
+          "nombre": "Usulután Oeste"
+        }
+      ]
+    },
+    {
+      "codigo": "12",
+      "nombre": "San Miguel",
+      "municipios": [
+        {
+          "codigo": "01",
+          "nombre": "San Miguel Norte"
+        },
+        {
+          "codigo": "02",
+          "nombre": "San Miguel Centro"
+        },
+        {
+          "codigo": "03",
+          "nombre": "San Miguel Oeste"
+        }
+      ]
+    },
+    {
+      "codigo": "13",
+      "nombre": "Morazán",
+      "municipios": [
+        {
+          "codigo": "01",
+          "nombre": "Morazán Norte"
+        },
+        {
+          "codigo": "02",
+          "nombre": "Morazán Sur"
+        }
+      ]
+    },
+    {
+      "codigo": "14",
+      "nombre": "La Unión",
+      "municipios": [
+        {
+          "codigo": "01",
+          "nombre": "La Unión Norte"
+        },
+        {
+          "codigo": "02",
+          "nombre": "La Unión Sur"
+        }
+      ]
+    }
+  ]
+}

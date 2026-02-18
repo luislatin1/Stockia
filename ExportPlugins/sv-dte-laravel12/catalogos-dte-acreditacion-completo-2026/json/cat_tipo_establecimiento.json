@@ -1,0 +1,18 @@
+[
+  {
+    "codigo": "01",
+    "descripcion": "Casa Matriz"
+  },
+  {
+    "codigo": "02",
+    "descripcion": "Sucursal"
+  },
+  {
+    "codigo": "04",
+    "descripcion": "Bodega"
+  },
+  {
+    "codigo": "07",
+    "descripcion": "Otro"
+  }
+]

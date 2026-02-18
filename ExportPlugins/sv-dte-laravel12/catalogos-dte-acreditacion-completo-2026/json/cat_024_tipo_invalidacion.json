@@ -1,0 +1,18 @@
+[
+  {
+    "codigo": "1",
+    "descripcion": "Error en datos del receptor"
+  },
+  {
+    "codigo": "2",
+    "descripcion": "Error en montos"
+  },
+  {
+    "codigo": "3",
+    "descripcion": "Documento emitido por error"
+  },
+  {
+    "codigo": "4",
+    "descripcion": "Operación anulada"
+  }
+]

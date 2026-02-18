@@ -12,7 +12,9 @@ Route::middleware(['web', 'auth', 'company.selected', 'role:Vendedor,Admin,Super
         Route::get('/pos', [PTVPosController::class, 'pos'])->name('pos');
         Route::get('/cash-movements', [PTVPosController::class, 'cashMovements'])->name('cash-movements.index');
         Route::post('/scan', [PTVPosController::class, 'scan'])->name('scan');
-        Route::post('/checkout', [PTVPosController::class, 'checkout'])->name('checkout');
+        Route::post('/checkout', [PTVPosController::class, 'checkout'])
+            ->middleware('dte.document')
+            ->name('checkout');
         Route::post('/cash-movements', [PTVPosController::class, 'storeCashMovement'])->name('cash-movements.store');
         Route::post('/admin-auth', [PTVPosController::class, 'adminAuth'])->name('adminAuth');
         Route::get('/sales/{sale}/print', [PTVPosController::class, 'printSale'])->name('sales.print');

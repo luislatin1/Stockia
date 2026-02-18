@@ -15,6 +15,9 @@ use App\Models\SaleItem;
 use App\Models\InventoryMovement;
 use App\Models\CompanyUser;
 use App\Models\Company;
+use App\Models\Customer;
+use App\Services\Dte\DteCalculationService;
+use App\Services\Dte\DteEmissionService;
 
 class PTVPosController extends Controller
 {
@@ -240,13 +243,17 @@ class PTVPosController extends Controller
         }
 
         $snapshot = $this->calculateSessionCashSnapshot($activeSession, $companyId, $warehouseId, $userId);
+        $customers = Customer::where('company_id', $companyId)
+            ->orderBy('nombre')
+            ->limit(200)
+            ->get(['id', 'nombre', 'tipo_documento', 'numero_documento']);
         $recentCashMovements = DB::table('pos_cash_movements')
             ->where('pos_session_id', $activeSession->id)
             ->latest('id')
             ->limit(8)
             ->get();
 
-        return view('ptvpos::pos', compact('activeSession', 'snapshot', 'recentCashMovements'));
+        return view('ptvpos::pos', compact('activeSession', 'snapshot', 'recentCashMovements', 'customers'));
     }
 
     public function cashMovements(Request $request)
@@ -370,6 +377,8 @@ class PTVPosController extends Controller
             'items.*.price' => ['required', 'numeric', 'min:0'],
             'cash_received' => ['required', 'numeric', 'min:0'],
             'document_type' => ['required', 'in:ticket,factura'],
+            'customer_id' => ['nullable', 'integer', 'exists:customers,id'],
+            'tipo_dte' => ['nullable', 'string', 'size:2'],
             'admin_password' => ['nullable', 'string'],
             'force_stock_adjustment' => ['nullable', 'boolean'],
             'stock_adjustment_reason' => ['nullable', 'string', 'max:255'],
@@ -378,6 +387,19 @@ class PTVPosController extends Controller
         $companyId = (int) session('current_company_id');
         $warehouseId = (int) session('current_warehouse_id');
         $userId = (int) auth()->id();
+
+        if (! empty($data['customer_id'])) {
+            $customer = Customer::where('id', (int) $data['customer_id'])
+                ->where('company_id', $companyId)
+                ->first();
+            if (! $customer) {
+                return back()->withErrors('Cliente inválido para la empresa actual.')->withInput();
+            }
+        }
+
+        if (($data['tipo_dte'] ?? null) === '03' && empty($data['customer_id'])) {
+            return back()->withErrors('Para CCF (03) debes seleccionar un cliente contribuyente.')->withInput();
+        }
 
         if (! $this->hasOpenSession($companyId, $warehouseId, $userId)) {
             return redirect()->route('ptvpos.open')
@@ -421,8 +443,8 @@ class PTVPosController extends Controller
             ->whereIn('product_id', $productIds)
             ->pluck('stock', 'product_id');
 
-        $subtotal = 0.0;
         $shortages = [];
+        $lineItems = [];
         foreach ($items as $item) {
             if (! $products->has($item['product_id'])) {
                 return back()->withErrors('Producto invalido.')->withInput();
@@ -440,11 +462,27 @@ class PTVPosController extends Controller
                 ];
             }
 
-            $subtotal += $item['price'] * $item['quantity'];
+            $product = $products->get($item['product_id']);
+            $lineItems[] = [
+                'product_id' => (int) $item['product_id'],
+                'quantity' => (int) $item['quantity'],
+                'unit_price' => (float) $item['price'],
+                'discount' => 0,
+                'afecto_iva' => (bool) ($product->afecto_iva ?? true),
+                'category' => (bool) ($product->afecto_iva ?? true) ? 'gravada' : 'exenta',
+                'tipo_item' => (int) ($product->tipo_item ?? 1),
+                'uni_medida' => isset($product->uni_medida) ? (int) $product->uni_medida : null,
+            ];
         }
 
-        $taxTotal = round($subtotal * 0.13, 2);
-        $total = round($subtotal + $taxTotal, 2);
+        $calculator = app(DteCalculationService::class);
+        $calc = $calculator->calculate($lineItems, [
+            'aplica_retencion_iva' => false,
+            'retencion_renta' => 0,
+        ]);
+        $totals = $calc['totals'];
+        $normalizedItems = $calc['items'];
+        $total = (float) $totals['total'];
         $cashReceived = round((float) $data['cash_received'], 2);
 
         if ($cashReceived < $total) {
@@ -471,7 +509,7 @@ class PTVPosController extends Controller
         $changeAmount = round($cashReceived - $total, 2);
 
         try {
-            DB::transaction(function () use ($companyId, $warehouseId, $items, $products, $subtotal, $taxTotal, $total, $cashReceived, $changeAmount, $data, $shortages, $stockAdjustmentReason) {
+            $saleId = DB::transaction(function () use ($companyId, $warehouseId, $products, $totals, $normalizedItems, $total, $cashReceived, $changeAmount, $data, $shortages, $stockAdjustmentReason) {
                 if (! empty($shortages)) {
                     foreach ($shortages as $shortage) {
                         InventoryMovement::create([
@@ -490,26 +528,52 @@ class PTVPosController extends Controller
 
                 $sale = Sale::create([
                     'company_id' => $companyId,
+                    'customer_id' => $data['customer_id'] ?? null,
                     'warehouse_id' => $warehouseId,
                     'user_id' => auth()->id(),
                     'status' => 'pending_print',
-                    'subtotal' => $subtotal,
-                    'tax_total' => $taxTotal,
-                    'total' => $total,
+                    'tipo_dte' => $data['tipo_dte'] ?? $this->resolveTipoDte((string) $data['document_type']),
+                    'numero_interno' => null,
+                    'gravadas' => $totals['gravadas'],
+                    'exentas' => $totals['exentas'],
+                    'no_sujetas' => $totals['no_sujetas'],
+                    'iva' => $totals['iva'],
+                    'retencion_iva' => $totals['retencion_iva'],
+                    'retencion_renta' => $totals['retencion_renta'],
+                    'descuento_total' => $totals['descuento_total'],
+                    'subtotal' => $totals['subtotal'],
+                    'tax_total' => $totals['iva'],
+                    'total' => $totals['total'],
                     'payment_method' => 'cash',
                     'cash_received' => $cashReceived,
                     'change_amount' => $changeAmount,
                     'document_type' => $data['document_type'],
                 ]);
 
-                foreach ($items as $item) {
-                    $product = $products->get($item['product_id']);
+                $sale->update([
+                    'numero_interno' => sprintf('V-%06d', (int) $sale->id),
+                ]);
+
+                foreach ($normalizedItems as $item) {
+                    $product = $products->get((int) $item['product_id']);
+                    if (! $product) {
+                        throw new \RuntimeException('Producto inválido en detalle POS.');
+                    }
                     SaleItem::create([
                         'sale_id' => $sale->id,
                         'product_id' => $product->id,
                         'quantity' => $item['quantity'],
                         'price' => $item['price'],
-                        'subtotal' => $item['price'] * $item['quantity'],
+                        'precio_unitario' => $item['precio_unitario'],
+                        'descuento' => $item['descuento'],
+                        'monto_gravado' => $item['monto_gravado'],
+                        'monto_exento' => $item['monto_exento'],
+                        'monto_no_sujeto' => $item['monto_no_sujeto'],
+                        'iva_item' => $item['iva_item'],
+                        'total_item' => $item['total_item'],
+                        'tipo_item' => $item['tipo_item'],
+                        'uni_medida' => $item['uni_medida'],
+                        'subtotal' => $item['subtotal'],
                     ]);
 
                     InventoryMovement::create([
@@ -523,9 +587,22 @@ class PTVPosController extends Controller
                         'user_id' => auth()->id(),
                     ]);
                 }
+
+                return (int) $sale->id;
             });
+
         } catch (Throwable $e) {
             return back()->withErrors('No fue posible completar la venta: ' . $e->getMessage())->withInput();
+        }
+
+        $warning = null;
+        try {
+            $sale = Sale::find($saleId);
+            if ($sale) {
+                app(DteEmissionService::class)->emitForSale($sale);
+            }
+        } catch (Throwable $e) {
+            $warning = 'Venta registrada, pero DTE no emitido: ' . $e->getMessage();
         }
 
         $pendingPrintSale = $this->getPendingPrintSale($companyId, $warehouseId, $userId);
@@ -533,8 +610,14 @@ class PTVPosController extends Controller
             return redirect()->route('ptvpos.pos')->with('error', 'No se encontro la venta para impresion.');
         }
 
-        return redirect()->route('ptvpos.sales.print', $pendingPrintSale->id)
+        $redirect = redirect()->route('ptvpos.sales.print', $pendingPrintSale->id)
             ->with('success', 'Venta registrada. Imprime el comprobante para finalizar.');
+
+        if ($warning) {
+            $redirect->with('warning', $warning);
+        }
+
+        return $redirect;
     }
 
     public function printSale(int $sale)
@@ -881,5 +964,10 @@ class PTVPosController extends Controller
 
         return redirect()->route('ptvpos.index')
             ->with('success', 'Caja cerrada (' . $registerLabel . ', usuario ' . $userLabel . '). Esperado: $' . number_format($snapshot['expected_cash'], 2) . ', contado: $' . number_format($closingCash, 2) . ', diferencia: $' . number_format($difference, 2) . '.');
+    }
+
+    private function resolveTipoDte(string $documentType): ?string
+    {
+        return $documentType === 'factura' ? '01' : null;
     }
 }

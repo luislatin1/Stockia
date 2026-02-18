@@ -3,6 +3,7 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use App\Http\Middleware\ValidarDocumentoDte;
 use App\Http\Middleware\SetCurrentCompany;
 use App\Http\Middleware\EnsureCompanySelected;
 
@@ -22,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'role' => \App\Http\Middleware\EnsureCompanyRole::class,
             'company.selected' => EnsureCompanySelected::class,
+            'dte.document' => ValidarDocumentoDte::class,
         ]);
 
     

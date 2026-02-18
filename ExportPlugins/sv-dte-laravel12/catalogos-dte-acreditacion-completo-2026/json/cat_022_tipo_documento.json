@@ -1,0 +1,22 @@
+[
+  {
+    "codigo": "13",
+    "descripcion": "DUI"
+  },
+  {
+    "codigo": "36",
+    "descripcion": "NIT"
+  },
+  {
+    "codigo": "03",
+    "descripcion": "Pasaporte"
+  },
+  {
+    "codigo": "02",
+    "descripcion": "Carné de Residente"
+  },
+  {
+    "codigo": "37",
+    "descripcion": "Documento extranjero"
+  }
+]

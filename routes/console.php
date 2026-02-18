@@ -3,6 +3,7 @@
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use App\Services\PluginInstaller;
+use App\Services\Dte\DteEmissionService;
 use Illuminate\Support\Facades\File;
 
 Artisan::command('inspire', function () {
@@ -70,3 +71,13 @@ Artisan::command('modules:export {module} {--dest=}', function () {
     $this->info("Plugin exportado en: {$zipPath}");
     return 0;
 })->purpose('Exporta un plugin a ZIP en la carpeta indicada');
+
+Artisan::command('dte:reenviar-contingencia {--company_id=}', function () {
+    $companyId = $this->option('company_id');
+    $companyId = $companyId !== null ? (int) $companyId : null;
+
+    $processed = app(DteEmissionService::class)->resendContingency($companyId);
+
+    $this->info("DTE reenviados desde contingencia: {$processed}");
+    return 0;
+})->purpose('Reenvía DTE en estado CONTINGENCIA usando el flujo configurado');

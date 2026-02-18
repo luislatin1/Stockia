@@ -48,6 +48,13 @@ class ModuleController extends Controller
             'dependencies' => ['sales', 'inventory'],
             'provider' => \Stockia\SalesQuotes\Providers\SalesQuotesServiceProvider::class,
         ],
+        'dte-sv-mh' => [
+            'name' => 'DTE SV MH',
+            'description' => 'Emisión de DTE para El Salvador con integración MH y modo simulado.',
+            'version' => '0.1.0',
+            'dependencies' => ['sales'],
+            'provider' => \TuEmpresa\SvDte\DteServiceProvider::class,
+        ],
     ];
 
     private function modulesTableReady(): bool

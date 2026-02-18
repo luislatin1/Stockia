@@ -1,0 +1,22 @@
+[
+  {
+    "codigo": "20",
+    "descripcion": "IVA 13%"
+  },
+  {
+    "codigo": "C3",
+    "descripcion": "IVA Retenido 1%"
+  },
+  {
+    "codigo": "D1",
+    "descripcion": "Renta Retenida"
+  },
+  {
+    "codigo": "A8",
+    "descripcion": "No Sujeto"
+  },
+  {
+    "codigo": "A9",
+    "descripcion": "Exento"
+  }
+]

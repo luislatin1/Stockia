@@ -14,9 +14,19 @@ class Sale extends Model
 {
     protected $fillable = [
         'company_id',
+        'customer_id',
         'user_id',
         'warehouse_id',
         'status',
+        'tipo_dte',
+        'numero_interno',
+        'gravadas',
+        'exentas',
+        'no_sujetas',
+        'iva',
+        'retencion_iva',
+        'retencion_renta',
+        'descuento_total',
         'subtotal',
         'tax_total',
         'total',
@@ -27,6 +37,13 @@ class Sale extends Model
     ];
 
     protected $casts = [
+        'gravadas' => 'decimal:2',
+        'exentas' => 'decimal:2',
+        'no_sujetas' => 'decimal:2',
+        'iva' => 'decimal:2',
+        'retencion_iva' => 'decimal:2',
+        'retencion_renta' => 'decimal:2',
+        'descuento_total' => 'decimal:2',
         'subtotal' => 'decimal:2',
         'tax_total' => 'decimal:2',
         'total' => 'decimal:2',
@@ -47,6 +64,11 @@ class Sale extends Model
     public function company()
     {
         return $this->belongsTo(Company::class);
+    }
+
+    public function customer()
+    {
+        return $this->belongsTo(Customer::class);
     }
 
     public function user()

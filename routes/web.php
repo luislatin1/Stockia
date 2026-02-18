@@ -10,6 +10,8 @@ use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\ModuleController;
 use App\Http\Controllers\CoreAdminController;
 use App\Http\Controllers\SetupWizardController;
+use App\Http\Controllers\DteAdminController;
+use App\Http\Controllers\DteCustomerController;
 
 
 /*
@@ -53,6 +55,12 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/core/admin', [CoreAdminController::class, 'index'])->name('core.admin.index');
             Route::patch('/core/admin/company', [CoreAdminController::class, 'updateCompany'])->name('core.admin.company.update');
             Route::post('/core/admin/warehouses', [CoreAdminController::class, 'storeWarehouse'])->name('core.admin.warehouses.store');
+
+            Route::prefix('dte')->name('dte.')->group(function () {
+                Route::get('/admin', [DteAdminController::class, 'index'])->name('admin.index');
+                Route::patch('/admin/settings', [DteAdminController::class, 'updateSettings'])->name('admin.settings.update');
+                Route::resource('customers', DteCustomerController::class);
+            });
 
             Route::get('products/{product}/adjust', [ProductController::class, 'adjust'])
                 ->name('products.adjust');

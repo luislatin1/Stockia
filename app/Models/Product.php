@@ -16,10 +16,18 @@ class Product extends Model
     protected $fillable = [
         'company_id',
         'name',
+        'codigo',
         'sku',
         'barcode',
+        'tipo_item',
+        'uni_medida',
+        'afecto_iva',
         'price',
         'description',
+    ];
+
+    protected $casts = [
+        'afecto_iva' => 'boolean',
     ];
 
     /*

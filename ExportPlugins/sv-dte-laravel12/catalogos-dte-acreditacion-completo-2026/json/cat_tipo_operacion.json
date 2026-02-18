@@ -1,0 +1,10 @@
+[
+  {
+    "codigo": "1",
+    "descripcion": "Transmisión Normal"
+  },
+  {
+    "codigo": "2",
+    "descripcion": "Transmisión por Contingencia"
+  }
+]

@@ -14,7 +14,8 @@
         "laravel/framework": "^12.0",
         "laravel/tinker": "^2.10.1",
         "stockia/ptv-pos": "^0.1.0",
-        "stockia/sales-quotes": "^0.1.0"
+        "stockia/sales-quotes": "^0.1.0",
+        "tuempresa/sv-dte": "^0.1.0"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
@@ -90,6 +91,10 @@
         {
             "type": "path",
             "url": "packages/sales-quotes"
+        },
+        {
+            "type": "path",
+            "url": "ExportPlugins/sv-dte-laravel12"
         }
     ],
     "config": {

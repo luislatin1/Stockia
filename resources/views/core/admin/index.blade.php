@@ -50,6 +50,41 @@
                     </div>
 
                     <div>
+                        <label for="nit" class="mb-1 block text-sm font-medium text-gray-700">NIT (DTE)</label>
+                        <input id="nit" name="nit" type="text" value="{{ old('nit', $company?->nit) }}" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                    </div>
+
+                    <div>
+                        <label for="nrc" class="mb-1 block text-sm font-medium text-gray-700">NRC</label>
+                        <input id="nrc" name="nrc" type="text" value="{{ old('nrc', $company?->nrc) }}" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                    </div>
+
+                    <div>
+                        <label for="nombre_razon_social" class="mb-1 block text-sm font-medium text-gray-700">Nombre/Razón social DTE</label>
+                        <input id="nombre_razon_social" name="nombre_razon_social" type="text" value="{{ old('nombre_razon_social', $company?->nombre_razon_social) }}" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                    </div>
+
+                    <div>
+                        <label for="nombre_comercial" class="mb-1 block text-sm font-medium text-gray-700">Nombre comercial DTE</label>
+                        <input id="nombre_comercial" name="nombre_comercial" type="text" value="{{ old('nombre_comercial', $company?->nombre_comercial) }}" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                    </div>
+
+                    <div>
+                        <label for="cod_actividad" class="mb-1 block text-sm font-medium text-gray-700">Código actividad</label>
+                        <input id="cod_actividad" name="cod_actividad" type="text" value="{{ old('cod_actividad', $company?->cod_actividad) }}" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                    </div>
+
+                    <div>
+                        <label for="desc_actividad" class="mb-1 block text-sm font-medium text-gray-700">Descripción actividad</label>
+                        <input id="desc_actividad" name="desc_actividad" type="text" value="{{ old('desc_actividad', $company?->desc_actividad) }}" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                    </div>
+
+                    <div>
+                        <label for="tipo_establecimiento" class="mb-1 block text-sm font-medium text-gray-700">Tipo establecimiento</label>
+                        <input id="tipo_establecimiento" name="tipo_establecimiento" type="text" value="{{ old('tipo_establecimiento', $company?->tipo_establecimiento) }}" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                    </div>
+
+                    <div>
                         <label for="fiscal_email" class="mb-1 block text-sm font-medium text-gray-700">Email fiscal</label>
                         <input id="fiscal_email" name="fiscal_email" type="email" value="{{ old('fiscal_email', $company?->fiscal_email) }}" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
                     </div>
@@ -62,6 +97,31 @@
                     <div class="md:col-span-2">
                         <label for="fiscal_address" class="mb-1 block text-sm font-medium text-gray-700">Dirección fiscal</label>
                         <input id="fiscal_address" name="fiscal_address" type="text" value="{{ old('fiscal_address', $company?->fiscal_address) }}" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                    </div>
+
+                    <div class="md:col-span-2">
+                        <label for="direccion_complemento" class="mb-1 block text-sm font-medium text-gray-700">Dirección complemento DTE</label>
+                        <input id="direccion_complemento" name="direccion_complemento" type="text" value="{{ old('direccion_complemento', $company?->direccion_complemento) }}" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                    </div>
+
+                    <div>
+                        <label for="correo" class="mb-1 block text-sm font-medium text-gray-700">Correo DTE</label>
+                        <input id="correo" name="correo" type="email" value="{{ old('correo', $company?->correo) }}" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                    </div>
+
+                    <div>
+                        <label for="telefono" class="mb-1 block text-sm font-medium text-gray-700">Teléfono DTE</label>
+                        <input id="telefono" name="telefono" type="text" value="{{ old('telefono', $company?->telefono) }}" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                    </div>
+
+                    <div>
+                        <label for="departamento" class="mb-1 block text-sm font-medium text-gray-700">Departamento</label>
+                        <input id="departamento" name="departamento" type="text" value="{{ old('departamento', $company?->departamento) }}" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                    </div>
+
+                    <div>
+                        <label for="municipio" class="mb-1 block text-sm font-medium text-gray-700">Municipio</label>
+                        <input id="municipio" name="municipio" type="text" value="{{ old('municipio', $company?->municipio) }}" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
                     </div>
 
                     <div>
@@ -88,6 +148,14 @@
                     <div>
                         <label for="timezone" class="mb-1 block text-sm font-medium text-gray-700">Zona horaria</label>
                         <input id="timezone" name="timezone" type="text" value="{{ old('timezone', $company?->timezone) }}" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                    </div>
+
+                    <div>
+                        <label for="estado" class="mb-1 block text-sm font-medium text-gray-700">Estado emisor</label>
+                        <select id="estado" name="estado" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                            <option value="ACTIVO" @selected(old('estado', $company?->estado) === 'ACTIVO')>ACTIVO</option>
+                            <option value="INACTIVO" @selected(old('estado', $company?->estado) === 'INACTIVO')>INACTIVO</option>
+                        </select>
                     </div>
 
                     <div>

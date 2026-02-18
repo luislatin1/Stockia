@@ -95,9 +95,26 @@
 
                 <div>
                     <label class="mb-1 block text-sm font-medium text-gray-700">Comprobante</label>
-                    <select name="document_type" class="w-full rounded border border-gray-300 px-3 py-2">
+                    <select id="document_type" name="document_type" class="w-full rounded border border-gray-300 px-3 py-2">
                         <option value="ticket" {{ old('document_type', 'ticket') === 'ticket' ? 'selected' : '' }}>Ticket</option>
                         <option value="factura" {{ old('document_type') === 'factura' ? 'selected' : '' }}>Factura</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="mb-1 block text-sm font-medium text-gray-700">Tipo DTE</label>
+                    <input id="tipo_dte" type="text" name="tipo_dte" value="{{ old('tipo_dte') }}" placeholder="01, 03, 05..." class="w-full rounded border border-gray-300 px-3 py-2">
+                </div>
+
+                <div>
+                    <label class="mb-1 block text-sm font-medium text-gray-700">Cliente (opcional)</label>
+                    <select name="customer_id" class="w-full rounded border border-gray-300 px-3 py-2">
+                        <option value="">Consumidor final</option>
+                        @foreach ($customers as $customer)
+                            <option value="{{ $customer->id }}" @selected((string) old('customer_id') === (string) $customer->id)>
+                                {{ $customer->nombre }} ({{ $customer->tipo_documento }} {{ $customer->numero_documento }})
+                            </option>
+                        @endforeach
                     </select>
                 </div>
 
@@ -118,6 +135,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const subtotalEl = document.getElementById('subtotal');
     const taxEl = document.getElementById('tax');
     const totalEl = document.getElementById('total');
+    const documentTypeEl = document.getElementById('document_type');
+    const tipoDteEl = document.getElementById('tipo_dte');
 
     function recalc() {
         let subtotal = 0;
@@ -147,8 +166,19 @@ document.addEventListener('DOMContentLoaded', function () {
         input.addEventListener('input', recalc);
     });
 
+    if (documentTypeEl && tipoDteEl && !tipoDteEl.value) {
+        tipoDteEl.value = documentTypeEl.value === 'factura' ? '01' : '';
+    }
+
+    if (documentTypeEl && tipoDteEl) {
+        documentTypeEl.addEventListener('change', () => {
+            if (tipoDteEl.value.trim() === '' || tipoDteEl.value === '01') {
+                tipoDteEl.value = documentTypeEl.value === 'factura' ? '01' : '';
+            }
+        });
+    }
+
     recalc();
 });
 </script>
 @endsection
-

@@ -55,6 +55,7 @@ class ProductController extends Controller
         if ($search !== '') {
             $query->where(function ($innerQuery) use ($search) {
                 $innerQuery->where('name', 'like', '%' . $search . '%')
+                    ->orWhere('codigo', $search)
                     ->orWhere('barcode', $search)
                     ->orWhere('sku', $search);
             });
@@ -93,6 +94,12 @@ class ProductController extends Controller
                 'max:100',
                 Rule::unique('products', 'sku')->where(fn ($query) => $query->where('company_id', $companyId)),
             ],
+            'codigo' => [
+                'nullable',
+                'string',
+                'max:50',
+                Rule::unique('products', 'codigo')->where(fn ($query) => $query->where('company_id', $companyId)),
+            ],
             'barcode' => [
                 'nullable',
                 'string',
@@ -102,6 +109,9 @@ class ProductController extends Controller
             'price' => 'required|numeric|min:0',
             'stock' => 'nullable|integer|min:0',
             'description' => 'nullable|string|max:255',
+            'tipo_item' => 'nullable|integer|in:1,2',
+            'uni_medida' => 'nullable|integer|min:1',
+            'afecto_iva' => 'nullable|boolean',
             'min_stock' => 'nullable|integer|min:0',
         ]);
 
@@ -111,8 +121,12 @@ class ProductController extends Controller
             $product = Product::create([
                 'company_id' => $companyId,
                 'name' => $request->name,
+                'codigo' => $request->filled('codigo') ? trim((string) $request->codigo) : null,
                 'sku' => $request->filled('sku') ? trim((string) $request->sku) : null,
                 'barcode' => $request->filled('barcode') ? trim((string) $request->barcode) : null,
+                'tipo_item' => (int) ($request->tipo_item ?? 1),
+                'uni_medida' => $request->filled('uni_medida') ? (int) $request->uni_medida : null,
+                'afecto_iva' => $request->boolean('afecto_iva', true),
                 'price' => $request->price,
                 'description' => $request->description,
             ]);
@@ -169,6 +183,14 @@ class ProductController extends Controller
                     ->where(fn ($query) => $query->where('company_id', $companyId))
                     ->ignore($product->id),
             ],
+            'codigo' => [
+                'nullable',
+                'string',
+                'max:50',
+                Rule::unique('products', 'codigo')
+                    ->where(fn ($query) => $query->where('company_id', $companyId))
+                    ->ignore($product->id),
+            ],
             'barcode' => [
                 'nullable',
                 'string',
@@ -179,14 +201,21 @@ class ProductController extends Controller
             ],
             'price' => 'required|numeric|min:0',
             'description' => 'nullable|string|max:255',
+            'tipo_item' => 'nullable|integer|in:1,2',
+            'uni_medida' => 'nullable|integer|min:1',
+            'afecto_iva' => 'nullable|boolean',
             'min_stock' => 'nullable|integer|min:0',
         ]);
 
         DB::transaction(function () use ($request, $product, $warehouseId, $companyId) {
             $product->update([
                 'name' => $request->name,
+                'codigo' => $request->filled('codigo') ? trim((string) $request->codigo) : null,
                 'sku' => $request->filled('sku') ? trim((string) $request->sku) : null,
                 'barcode' => $request->filled('barcode') ? trim((string) $request->barcode) : null,
+                'tipo_item' => (int) ($request->tipo_item ?? 1),
+                'uni_medida' => $request->filled('uni_medida') ? (int) $request->uni_medida : null,
+                'afecto_iva' => $request->boolean('afecto_iva', true),
                 'price' => $request->price,
                 'description' => $request->description,
             ]);

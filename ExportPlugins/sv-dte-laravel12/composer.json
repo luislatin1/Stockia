@@ -1,0 +1,18 @@
+{
+    "name": "tuempresa/sv-dte",
+    "description": "Modulo de Facturación Electrónica El Salvador",
+    "type": "library",
+    "version": "0.1.0",
+    "autoload": {
+        "psr-4": {
+            "TuEmpresa\\SvDte\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "TuEmpresa\\SvDte\\DteServiceProvider"
+            ]
+        }
+    }
+}

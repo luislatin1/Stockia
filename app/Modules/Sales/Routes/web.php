@@ -8,7 +8,11 @@ Route::middleware(['auth', 'company.selected', 'role:Vendedor,Admin,SuperAdmin']
         ->name('sales.export.excel');
 
     Route::resource('sales', SaleController::class)
-        ->only(['index','create','store', 'show', 'edit', 'update', 'destroy']);
+        ->only(['index','create', 'show', 'edit', 'update', 'destroy']);
+
+    Route::post('sales', [SaleController::class, 'store'])
+        ->middleware('dte.document')
+        ->name('sales.store');
 
     Route::get('sales/{sale}/ticket', [SaleController::class, 'ticket'])
         ->name('sales.ticket');

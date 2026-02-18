@@ -1,0 +1,23 @@
+{
+  "departamentos": [
+    {
+      "codigo": "01",
+      "nombre": "Ahuachapán",
+      "municipios": [
+        { "codigo": "01", "nombre": "Ahuachapán Centro" },
+        { "codigo": "02", "nombre": "Ahuachapán Norte" },
+        { "codigo": "03", "nombre": "Ahuachapán Sur" }
+      ]
+    },
+    {
+      "codigo": "02",
+      "nombre": "Santa Ana",
+      "municipios": [
+        { "codigo": "01", "nombre": "Santa Ana Centro" },
+        { "codigo": "02", "nombre": "Santa Ana Norte" },
+        { "codigo": "03", "nombre": "Santa Ana Este" },
+        { "codigo": "04", "nombre": "Santa Ana Oeste" }
+      ]
+    }
+  ]
+}

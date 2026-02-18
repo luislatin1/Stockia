@@ -36,12 +36,44 @@ class SetupWizardController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'legal_name' => ['nullable', 'string', 'max:255'],
             'tax_id' => ['nullable', 'string', 'max:255'],
+            'nit' => ['nullable', 'string', 'max:20'],
+            'nrc' => ['nullable', 'string', 'max:20'],
+            'cod_actividad' => ['nullable', 'string', 'max:10'],
+            'desc_actividad' => ['nullable', 'string', 'max:255'],
+            'tipo_establecimiento' => ['nullable', 'string', 'max:2'],
+            'telefono' => ['nullable', 'string', 'max:30'],
+            'correo' => ['nullable', 'email', 'max:120'],
+            'departamento' => ['nullable', 'string', 'max:2'],
+            'municipio' => ['nullable', 'string', 'max:4'],
+            'direccion_complemento' => ['nullable', 'string', 'max:255'],
             'currency_id' => ['required', 'exists:currencies,id'],
             'timezone' => ['required', 'string', 'max:255'],
         ]);
 
         DB::transaction(function () use ($validated) {
-            $company = Company::create($validated);
+            $company = Company::create([
+                'name' => $validated['name'],
+                'legal_name' => $validated['legal_name'] ?? null,
+                'tax_id' => $validated['tax_id'] ?? ($validated['nit'] ?? null),
+                'nit' => $validated['nit'] ?? ($validated['tax_id'] ?? null),
+                'nrc' => $validated['nrc'] ?? null,
+                'nombre_razon_social' => $validated['legal_name'] ?? $validated['name'],
+                'nombre_comercial' => $validated['name'],
+                'cod_actividad' => $validated['cod_actividad'] ?? null,
+                'desc_actividad' => $validated['desc_actividad'] ?? null,
+                'tipo_establecimiento' => $validated['tipo_establecimiento'] ?? null,
+                'telefono' => $validated['telefono'] ?? null,
+                'correo' => $validated['correo'] ?? null,
+                'departamento' => $validated['departamento'] ?? null,
+                'municipio' => $validated['municipio'] ?? null,
+                'direccion_complemento' => $validated['direccion_complemento'] ?? null,
+                'fiscal_address' => $validated['direccion_complemento'] ?? null,
+                'fiscal_email' => $validated['correo'] ?? null,
+                'fiscal_phone' => $validated['telefono'] ?? null,
+                'estado' => 'ACTIVO',
+                'currency_id' => $validated['currency_id'],
+                'timezone' => $validated['timezone'],
+            ]);
             auth()->user()->companies()->syncWithoutDetaching([
                 $company->id => ['role' => 'SuperAdmin'],
             ]);

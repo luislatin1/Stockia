@@ -1,0 +1,10 @@
+[
+  {
+    "codigo": "1",
+    "descripcion": "Modelo Normal"
+  },
+  {
+    "codigo": "2",
+    "descripcion": "Modelo Contingencia"
+  }
+]

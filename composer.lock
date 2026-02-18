@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "99b5245f55de95f8d5386a5f736642d8",
+    "content-hash": "23e7e36e67a3ddb8e5a934ef4575c48c",
     "packages": [
         {
             "name": "barryvdh/laravel-dompdf",
@@ -6439,6 +6439,32 @@
                 "source": "https://github.com/tijsverkoyen/CssToInlineStyles/tree/v2.4.0"
             },
             "time": "2025-12-02T11:56:42+00:00"
+        },
+        {
+            "name": "tuempresa/sv-dte",
+            "version": "0.1.0",
+            "dist": {
+                "type": "path",
+                "url": "ExportPlugins/sv-dte-laravel12",
+                "reference": "ddd9df97b477d7e2ac54a10e1ba34ffea52e0c6b"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "TuEmpresa\\SvDte\\DteServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "TuEmpresa\\SvDte\\": "src/"
+                }
+            },
+            "description": "Modulo de Facturación Electrónica El Salvador",
+            "transport-options": {
+                "relative": true
+            }
         },
         {
             "name": "vlucas/phpdotenv",

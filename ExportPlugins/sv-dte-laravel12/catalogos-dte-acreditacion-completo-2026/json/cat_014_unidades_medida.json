@@ -1,0 +1,34 @@
+[
+  {
+    "codigo": "59",
+    "descripcion": "Unidad"
+  },
+  {
+    "codigo": "58",
+    "descripcion": "Kilogramo"
+  },
+  {
+    "codigo": "54",
+    "descripcion": "Litro"
+  },
+  {
+    "codigo": "36",
+    "descripcion": "Metro"
+  },
+  {
+    "codigo": "35",
+    "descripcion": "Metro cuadrado"
+  },
+  {
+    "codigo": "33",
+    "descripcion": "Caja"
+  },
+  {
+    "codigo": "34",
+    "descripcion": "Docena"
+  },
+  {
+    "codigo": "99",
+    "descripcion": "Servicio"
+  }
+]
