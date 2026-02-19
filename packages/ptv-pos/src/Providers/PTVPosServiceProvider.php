@@ -10,7 +10,7 @@ class PTVPosServiceProvider extends ServiceProvider
 {
     public function boot(): void
     {
-        if (Schema::hasTable('modules')) {
+        if ($this->modulesTableReady()) {
             $module = DB::table('modules')->where('key', 'ptv-pos')->first();
 
             if ($module && ! (bool) $module->enabled) {
@@ -22,5 +22,13 @@ class PTVPosServiceProvider extends ServiceProvider
         $this->loadViewsFrom(__DIR__ . '/../../resources/views', 'ptvpos');
         $this->loadMigrationsFrom(__DIR__ . '/../../database/migrations');
     }
-}
 
+    private function modulesTableReady(): bool
+    {
+        try {
+            return Schema::hasTable('modules');
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+}

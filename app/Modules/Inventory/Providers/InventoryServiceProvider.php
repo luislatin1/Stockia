@@ -10,7 +10,7 @@ class InventoryServiceProvider extends ModuleServiceProvider
 {
     public function boot(): void
     {
-        if (Schema::hasTable('modules')) {
+        if ($this->modulesTableReady()) {
             $module = DB::table('modules')->where('key', 'inventory')->first();
 
             if ($module && ! (bool) $module->enabled) {
@@ -19,6 +19,15 @@ class InventoryServiceProvider extends ModuleServiceProvider
         }
 
         parent::boot();
+    }
+
+    private function modulesTableReady(): bool
+    {
+        try {
+            return Schema::hasTable('modules');
+        } catch (\Throwable) {
+            return false;
+        }
     }
 
     protected function routes(): array
