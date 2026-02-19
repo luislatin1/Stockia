@@ -2,8 +2,61 @@
 
 @section('title', 'Administración Central')
 
+@section('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const department = document.getElementById('departamento');
+    const municipality = document.getElementById('municipio');
+
+    if (!department || !municipality) {
+        return;
+    }
+
+    const filterMunicipalities = () => {
+        const selectedDepartment = department.value;
+        let hasVisible = false;
+
+        Array.from(municipality.options).forEach((option) => {
+            if (option.value === '') {
+                option.hidden = false;
+                return;
+            }
+
+            const optionDepartment = option.getAttribute('data-departamento');
+            const visible = selectedDepartment !== '' && optionDepartment === selectedDepartment;
+            option.hidden = !visible;
+            if (visible) {
+                hasVisible = true;
+            }
+        });
+
+        const selectedOption = municipality.options[municipality.selectedIndex];
+        if (selectedOption && selectedOption.value !== '' && selectedOption.hidden) {
+            municipality.value = '';
+        }
+
+        municipality.disabled = selectedDepartment === '' || !hasVisible;
+    };
+
+    department.addEventListener('change', filterMunicipalities);
+    filterMunicipalities();
+});
+</script>
+@endsection
+
 @section('content')
 <div class="space-y-6">
+    @php
+        $selectedDepartment = (string) old('departamento', $company?->departamento ?? '');
+        $selectedDepartment = $selectedDepartment === '' ? '' : str_pad($selectedDepartment, 2, '0', STR_PAD_LEFT);
+        $selectedMunicipalityRaw = (string) old('municipio', $company?->municipio ?? '');
+        $selectedMunicipality = $selectedMunicipalityRaw === ''
+            ? ''
+            : (strlen($selectedMunicipalityRaw) > 2
+                ? substr($selectedMunicipalityRaw, -2)
+                : str_pad($selectedMunicipalityRaw, 2, '0', STR_PAD_LEFT));
+    @endphp
+
     <div>
         <h1 class="text-2xl font-bold text-gray-900">Administración Central (CORE)</h1>
         <p class="text-sm text-gray-500">Gestiona empresa, datos fiscales, branding del sistema y almacenes desde un solo lugar.</p>
@@ -81,7 +134,14 @@
 
                     <div>
                         <label for="tipo_establecimiento" class="mb-1 block text-sm font-medium text-gray-700">Tipo establecimiento</label>
-                        <input id="tipo_establecimiento" name="tipo_establecimiento" type="text" value="{{ old('tipo_establecimiento', $company?->tipo_establecimiento) }}" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                        <select id="tipo_establecimiento" name="tipo_establecimiento" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                            <option value="">Selecciona tipo</option>
+                            @foreach ($establishmentTypes as $type)
+                                <option value="{{ $type->codigo }}" @selected((string) old('tipo_establecimiento', $company?->tipo_establecimiento) === (string) $type->codigo)>
+                                    {{ $type->codigo }} - {{ $type->descripcion }}
+                                </option>
+                            @endforeach
+                        </select>
                     </div>
 
                     <div>
@@ -116,12 +176,30 @@
 
                     <div>
                         <label for="departamento" class="mb-1 block text-sm font-medium text-gray-700">Departamento</label>
-                        <input id="departamento" name="departamento" type="text" value="{{ old('departamento', $company?->departamento) }}" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                        <select id="departamento" name="departamento" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                            <option value="">Selecciona departamento</option>
+                            @foreach ($departments as $department)
+                                <option value="{{ $department->codigo }}" @selected($selectedDepartment === (string) $department->codigo)>
+                                    {{ $department->codigo }} - {{ $department->nombre }}
+                                </option>
+                            @endforeach
+                        </select>
                     </div>
 
                     <div>
                         <label for="municipio" class="mb-1 block text-sm font-medium text-gray-700">Municipio</label>
-                        <input id="municipio" name="municipio" type="text" value="{{ old('municipio', $company?->municipio) }}" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                        <select id="municipio" name="municipio" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                            <option value="">Selecciona municipio</option>
+                            @foreach ($municipalities as $municipality)
+                                <option
+                                    value="{{ $municipality->codigo_local }}"
+                                    data-departamento="{{ $municipality->departamento_codigo }}"
+                                    @selected($selectedMunicipality === (string) $municipality->codigo_local)
+                                >
+                                    {{ $municipality->codigo_local }} - {{ $municipality->nombre }}
+                                </option>
+                            @endforeach
+                        </select>
                     </div>
 
                     <div>
