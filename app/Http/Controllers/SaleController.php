@@ -7,6 +7,7 @@ use App\Models\InventoryMovement;
 use App\Models\NonSellableProduct;
 use App\Models\CompanyUser;
 use App\Models\Customer;
+use App\Models\Dte;
 use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\Product;
@@ -184,7 +185,7 @@ class SaleController extends Controller
         [$companyId, $warehouseId] = $this->currentContext();
         $sale = $this->findSaleInContext((int) $id, $companyId, $warehouseId);
         $this->ensureSaleAccess($sale, $companyId, $warehouseId);
-        $sale->load(['items.product', 'company', 'warehouse', 'user']);
+        $sale->load(['items.product', 'company', 'warehouse', 'user', 'customer']);
 
         $adjustments = DB::table('sale_adjustments')
             ->leftJoin('users', 'users.id', '=', 'sale_adjustments.processed_by_user_id')
@@ -460,16 +461,18 @@ class SaleController extends Controller
         $this->ensureSaleAccess($sale, $companyId, $warehouseId);
 
         $sale->load(['items.product', 'company', 'warehouse', 'user']);
+        $dteData = $this->buildDteTemplateData($sale);
 
         return $this->streamSalePdf(
-            'sales.pdf-invoice',
+            'sales.pdf-dte',
             $sale,
             'factura-venta-' . $sale->id . '.pdf',
-            route('sales.invoice', $sale)
+            route('sales.invoice', $sale),
+            ['dteData' => $dteData]
         );
     }
 
-    private function streamSalePdf(string $view, Sale $sale, string $filename, string $fallbackRoute)
+    private function streamSalePdf(string $view, Sale $sale, string $filename, string $fallbackRoute, array $viewData = [])
     {
         if (! app()->bound('dompdf.wrapper')) {
             return redirect($fallbackRoute)
@@ -477,9 +480,182 @@ class SaleController extends Controller
         }
 
         $pdf = app('dompdf.wrapper');
-        $pdf->loadView($view, compact('sale'));
+        if (method_exists($pdf, 'setOption')) {
+            $pdf->setOption(['isRemoteEnabled' => true]);
+        }
+
+        $pdf->loadView($view, array_merge(['sale' => $sale], $viewData));
 
         return $pdf->stream($filename);
+    }
+
+    private function buildDteTemplateData(Sale $sale): array
+    {
+        $dte = Dte::where('sale_id', $sale->id)->latest('id')->first();
+        $payload = is_array($dte?->json_original) ? $dte->json_original : [];
+        $identificacion = is_array($payload['identificacion'] ?? null) ? $payload['identificacion'] : [];
+        $emisor = is_array($payload['emisor'] ?? null) ? $payload['emisor'] : [];
+        $receptor = is_array($payload['receptor'] ?? null) ? $payload['receptor'] : [];
+        $resumen = is_array($payload['resumen'] ?? null) ? $payload['resumen'] : [];
+
+        $detalle = $payload['cuerpoDocumento'] ?? [];
+        if (! is_array($detalle) || $detalle === []) {
+            $detalle = $sale->items->values()->map(function ($item, $index) {
+                return [
+                    'numItem' => $index + 1,
+                    'cantidad' => (float) ($item->quantity ?? 0),
+                    'uniMedida' => (string) ($item->uni_medida ?? '59'),
+                    'descripcion' => (string) ($item->product->name ?? 'ITEM'),
+                    'precioUni' => (float) ($item->precio_unitario ?? $item->price ?? 0),
+                    'montoDescu' => (float) ($item->descuento ?? 0),
+                    'ventaGravada' => (float) ($item->monto_gravado ?? $item->subtotal ?? 0),
+                    'ventaExenta' => (float) ($item->monto_exento ?? 0),
+                    'ventaNoSuj' => (float) ($item->monto_no_sujeto ?? 0),
+                ];
+            })->all();
+        }
+
+        $tipoDte = (string) ($identificacion['tipoDte'] ?? $sale->tipo_dte ?? $dte?->tipo_dte ?? '');
+        $numeroControl = (string) ($identificacion['numeroControl'] ?? $dte?->numero_control ?? 'N/D');
+        $codigoGeneracion = (string) ($identificacion['codigoGeneracion'] ?? $dte?->codigo_generacion ?? 'N/D');
+        $selloRecepcion = (string) ($dte?->sello_recepcion ?? 'N/D');
+        $fechaEmision = (string) ($identificacion['fecEmi'] ?? optional($sale->created_at)->format('Y-m-d'));
+        $horaEmision = (string) ($identificacion['horEmi'] ?? optional($sale->created_at)->format('H:i:s'));
+        $ambienteCode = (string) ($identificacion['ambiente'] ?? '00');
+        $ambienteLabel = $this->mapAmbienteLabel($ambienteCode);
+        $condicionOperacion = (string) ($resumen['condicionOperacion'] ?? $this->resolveCondicionOperacion($sale));
+        $condicionLabel = $this->mapCondicionOperacionLabel($condicionOperacion);
+
+        $qrPublicUrl = $this->buildMhPublicQrUrl($ambienteCode, $codigoGeneracion, $fechaEmision);
+        $qrImageUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=' . rawurlencode($qrPublicUrl);
+
+        $referencias = $payload['documentoRelacionado'] ?? $payload['documentosRelacionados'] ?? [];
+        if (is_array($referencias) && array_key_exists('tipoDocumento', $referencias)) {
+            $referencias = [$referencias];
+        }
+        if (! is_array($referencias)) {
+            $referencias = [];
+        }
+
+        $motivo = (string) (
+            $payload['motivo'] ?? $payload['motivoNota'] ?? $payload['extension']['observaciones'] ?? ''
+        );
+
+        return [
+            'tipo_dte' => $tipoDte,
+            'tipo_dte_label' => $this->mapTipoDteLabel($tipoDte),
+            'numero_control' => $numeroControl,
+            'codigo_generacion' => $codigoGeneracion,
+            'sello_recepcion' => $selloRecepcion,
+            'fecha_emision' => $fechaEmision,
+            'hora_emision' => $horaEmision,
+            'ambiente_code' => $ambienteCode,
+            'ambiente_label' => $ambienteLabel,
+            'condicion_operacion' => $condicionOperacion,
+            'condicion_operacion_label' => $condicionLabel,
+            'emisor' => $this->buildEmisorData($sale, $emisor),
+            'receptor' => $this->buildReceptorData($sale, $receptor),
+            'detalle' => $detalle,
+            'resumen' => $this->buildResumenData($sale, $resumen),
+            'referencias' => $referencias,
+            'motivo' => $motivo,
+            'firma_digital' => (string) ($dte?->json_firmado['firmaSimulada'] ?? ''),
+            'periodo_fiscal' => (string) ($payload['periodoTributario'] ?? $payload['periodoFiscal'] ?? ''),
+            'qr_public_url' => $qrPublicUrl,
+            'qr_image_url' => $qrImageUrl,
+        ];
+    }
+
+    private function buildEmisorData(Sale $sale, array $emisor): array
+    {
+        return [
+            'nombre' => (string) ($emisor['nombre'] ?? $sale->company->nombre_razon_social ?? $sale->company->legal_name ?? $sale->company->name ?? 'N/D'),
+            'nit' => (string) ($emisor['nit'] ?? $sale->company->nit ?? $sale->company->tax_id ?? 'N/D'),
+            'nrc' => (string) ($emisor['nrc'] ?? $sale->company->nrc ?? 'N/D'),
+            'codActividad' => (string) ($emisor['codActividad'] ?? $sale->company->cod_actividad ?? 'N/D'),
+            'descActividad' => (string) ($emisor['descActividad'] ?? $sale->company->desc_actividad ?? 'N/D'),
+            'direccion' => (string) ($emisor['direccion']['complemento'] ?? $sale->company->direccion_complemento ?? $sale->company->fiscal_address ?? 'N/D'),
+            'telefono' => (string) ($emisor['telefono'] ?? $sale->company->telefono ?? $sale->company->fiscal_phone ?? 'N/D'),
+            'correo' => (string) ($emisor['correo'] ?? $sale->company->correo ?? $sale->company->fiscal_email ?? 'N/D'),
+        ];
+    }
+
+    private function buildReceptorData(Sale $sale, array $receptor): array
+    {
+        return [
+            'nombre' => (string) ($receptor['nombre'] ?? $sale->customer->nombre ?? 'Consumidor Final'),
+            'tipoDocumento' => (string) ($receptor['tipoDocumento'] ?? $sale->customer->tipo_documento ?? 'N/D'),
+            'numDocumento' => (string) ($receptor['numDocumento'] ?? $sale->customer->numero_documento ?? 'N/D'),
+            'nrc' => (string) ($receptor['nrc'] ?? $sale->customer->nrc ?? 'N/D'),
+            'direccion' => (string) ($receptor['direccion']['complemento'] ?? $sale->customer->direccion ?? 'N/D'),
+            'telefono' => (string) ($receptor['telefono'] ?? $sale->customer->telefono ?? 'N/D'),
+            'correo' => (string) ($receptor['correo'] ?? $sale->customer->correo ?? 'N/D'),
+        ];
+    }
+
+    private function buildResumenData(Sale $sale, array $resumen): array
+    {
+        $tributos = is_array($resumen['tributos'] ?? null) ? $resumen['tributos'] : [];
+        $ivaTributo = is_array($tributos[0] ?? null) ? (float) ($tributos[0]['valor'] ?? 0) : 0.0;
+
+        return [
+            'subTotal' => (float) ($resumen['subTotal'] ?? $sale->subtotal ?? 0),
+            'totalDescu' => (float) ($resumen['totalDescu'] ?? $sale->descuento_total ?? 0),
+            'totalNoSuj' => (float) ($resumen['totalNoSuj'] ?? $sale->no_sujetas ?? 0),
+            'totalExenta' => (float) ($resumen['totalExenta'] ?? $sale->exentas ?? 0),
+            'totalGravada' => (float) ($resumen['totalGravada'] ?? $sale->gravadas ?? 0),
+            'iva' => (float) ($ivaTributo ?: $sale->iva ?: $sale->tax_total ?: 0),
+            'ivaRete1' => (float) ($resumen['ivaRete1'] ?? $sale->retencion_iva ?? 0),
+            'reteRenta' => (float) ($resumen['reteRenta'] ?? $sale->retencion_renta ?? 0),
+            'montoTotalOperacion' => (float) ($resumen['montoTotalOperacion'] ?? $sale->total ?? 0),
+            'totalPagar' => (float) ($resumen['totalPagar'] ?? $sale->total ?? 0),
+            'condicionOperacion' => (string) ($resumen['condicionOperacion'] ?? $this->resolveCondicionOperacion($sale)),
+        ];
+    }
+
+    private function buildMhPublicQrUrl(string $ambiente, string $codigoGeneracion, string $fechaEmision): string
+    {
+        return 'https://admin.factura.gob.sv/consultaPublica?ambiente='
+            . rawurlencode($ambiente)
+            . '&codGen=' . rawurlencode($codigoGeneracion)
+            . '&fechaEmi=' . rawurlencode($fechaEmision);
+    }
+
+    private function resolveCondicionOperacion(Sale $sale): string
+    {
+        return ((string) ($sale->payment_method ?? 'cash')) === 'cash' ? '1' : '2';
+    }
+
+    private function mapCondicionOperacionLabel(string $condicion): string
+    {
+        return match ($condicion) {
+            '1' => 'Contado',
+            '2' => 'Crédito',
+            '3' => 'Otro',
+            default => 'N/D',
+        };
+    }
+
+    private function mapAmbienteLabel(string $ambiente): string
+    {
+        return match ($ambiente) {
+            '01' => 'Producción',
+            '00' => 'Pruebas',
+            default => 'N/D',
+        };
+    }
+
+    private function mapTipoDteLabel(string $tipoDte): string
+    {
+        return match ($tipoDte) {
+            '01' => 'FACTURA ELECTRÓNICA',
+            '03' => 'COMPROBANTE DE CRÉDITO FISCAL ELECTRÓNICO',
+            '05' => 'NOTA DE CRÉDITO ELECTRÓNICA',
+            '06' => 'NOTA DE DÉBITO ELECTRÓNICA',
+            '07' => 'COMPROBANTE DE RETENCIÓN ELECTRÓNICO',
+            '08' => 'COMPROBANTE DE LIQUIDACIÓN ELECTRÓNICO',
+            default => 'DOCUMENTO TRIBUTARIO ELECTRÓNICO',
+        };
     }
 
     public function adminAdjustment(Sale $sale)
