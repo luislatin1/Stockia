@@ -1,29 +1,26 @@
-<div class="bg-white shadow rounded-lg overflow-hidden">
+<div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
 
-    {{-- Header (botón crear, filtros, etc) --}}
     @isset($header)
-        <div class="p-4 border-b bg-gray-50 flex justify-between items-center">
+        <div class="px-4 py-3 border-b border-gray-200 bg-gray-50 flex items-center justify-between gap-3 flex-wrap">
             {{ $header }}
         </div>
     @endisset
 
     <div class="overflow-x-auto">
         <table class="w-full text-sm text-left">
-            <thead class="bg-gray-100 text-gray-600 uppercase text-xs">
-                <tr>
+            <thead class="bg-gray-50 border-b border-gray-200">
+                <tr class="text-[11px] font-semibold uppercase tracking-wider text-gray-500">
                     {{ $thead }}
                 </tr>
             </thead>
-
-            <tbody class="divide-y">
+            <tbody class="divide-y divide-gray-100">
                 {{ $slot }}
             </tbody>
         </table>
     </div>
 
-    {{-- Footer (paginación futura) --}}
     @isset($footer)
-        <div class="p-4 border-t bg-gray-50">
+        <div class="px-4 py-3 border-t border-gray-200 bg-gray-50">
             {{ $footer }}
         </div>
     @endisset

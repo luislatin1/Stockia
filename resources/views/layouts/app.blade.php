@@ -2,74 +2,118 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>POS System</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>{{ config('app.name', 'Stockia') }} — @yield('title', 'Panel')</title>
+    <link href="https://fonts.bunny.net/css?family=figtree:400,500,600,700&display=swap" rel="stylesheet">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @yield('head')
 </head>
-@yield('scripts')
-<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
-<body class="bg-gray-100">
 
-@php($uiCompany = currentCompany())
-@php($uiSystemName = $uiCompany?->system_name ?: 'Stockia POS')
-@php($dteModuleEnabled = \Illuminate\Support\Facades\Schema::hasTable('modules')
-    ? \App\Models\Module::where('key', 'dte-sv-mh')->where('enabled', true)->exists()
-    : false)
+@php
+    $uiCompany   = currentCompany();
+    $uiSystemName = $uiCompany?->system_name ?: 'Stockia POS';
+    $uiWarehouse  = session('current_warehouse_id')
+        ? \App\Models\Warehouse::find(session('current_warehouse_id'))
+        : null;
+    $dteModuleEnabled = \Illuminate\Support\Facades\Schema::hasTable('modules')
+        ? \App\Models\Module::where('key', 'dte-sv-mh')->where('enabled', true)->exists()
+        : false;
+@endphp
+
+<body class="bg-gray-100 font-sans antialiased text-gray-700">
 
 <div class="flex min-h-screen">
 
-    <!-- SIDEBAR -->
-    <aside class="w-64 bg-gray-900 text-gray-200 flex flex-col">
-        <div class="p-4 text-xl font-bold border-b border-gray-700">
-            <div class="flex items-center gap-3">
-                @if ($uiCompany?->logo_path)
-                    <img src="{{ Storage::disk('public')->url($uiCompany->logo_path) }}" alt="Logo empresa" class="h-10 w-10 rounded bg-white object-contain p-1">
-                @endif
-                <div class="leading-tight">
-                    <div class="text-xs uppercase tracking-wide text-gray-400">Sistema</div>
-                    <div>{{ $uiSystemName }}</div>
+    {{-- ── SIDEBAR ─────────────────────────────────────────────────── --}}
+    <aside class="w-64 bg-gray-900 text-gray-200 flex flex-col shrink-0">
+
+        {{-- Wordmark --}}
+        <div class="px-4 py-4 border-b border-gray-800 flex items-center gap-3">
+            @if ($uiCompany?->logo_path)
+                <img
+                    src="{{ Storage::disk('public')->url($uiCompany->logo_path) }}"
+                    alt="Logo"
+                    class="h-9 w-9 rounded-lg bg-white object-contain p-1 shrink-0"
+                >
+            @else
+                <div class="h-9 w-9 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold text-base shrink-0 select-none">
+                    S
                 </div>
+            @endif
+            <div class="min-w-0">
+                <p class="text-[10px] uppercase tracking-widest text-gray-500 leading-none mb-0.5">Sistema</p>
+                <p class="text-sm font-semibold text-white truncate leading-tight">{{ $uiSystemName }}</p>
             </div>
         </div>
-@include('layouts.partials.sidebar', ['dteModuleEnabled' => $dteModuleEnabled])
 
+        {{-- Nav --}}
+        @include('layouts.partials.sidebar', ['dteModuleEnabled' => $dteModuleEnabled])
 
-        <div class="p-4 border-t border-gray-700 text-xs text-gray-400">
-            {{ $uiSystemName }}
+        {{-- Footer --}}
+        <div class="px-4 py-3 border-t border-gray-800 text-[11px] text-gray-600 leading-tight">
+            Stockia &copy; {{ date('Y') }}
         </div>
     </aside>
 
-    <!-- CONTENT -->
-    <div class="flex-1 flex flex-col">
+    {{-- ── MAIN AREA ───────────────────────────────────────────────── --}}
+    <div class="flex-1 flex flex-col min-w-0">
 
-        <!-- TOP BAR -->
-        <header class="bg-white shadow p-4 flex justify-between items-center">
-            <h1 class="text-xl font-semibold">@yield('title')</h1>
-            <div class="text-sm text-gray-600">
-                Usuario Activo: {{ auth()->user()->name }} 
-                <br> 
-                Almacen: {{$warehouseId = session('current_warehouse_id');}} |
-                ID Usuario: {{ auth()->user()->id }} | ID Empresa: {{ session('current_company_id') }}
+        {{-- Topbar --}}
+        <header class="bg-white border-b border-gray-200 shadow-sm px-6 py-3 flex items-center justify-between gap-4 shrink-0">
+            <h1 class="text-xl font-semibold text-gray-900 truncate">@yield('title')</h1>
+
+            <div class="flex items-center gap-3 shrink-0">
+                @yield('topbar-actions')
+                <div class="text-right text-sm leading-snug">
+                    <p class="font-medium text-gray-800">{{ auth()->user()->name }}</p>
+                    <p class="text-xs text-gray-500">
+                        @if ($uiWarehouse)
+                            {{ $uiWarehouse->name }}
+                            @if ($uiCompany) · {{ $uiCompany->name }} @endif
+                        @elseif ($uiCompany)
+                            {{ $uiCompany->name }}
+                        @endif
+                    </p>
+                </div>
+                <div class="h-8 w-8 rounded-full bg-indigo-100 text-indigo-700 font-semibold text-sm flex items-center justify-center select-none uppercase">
+                    {{ substr(auth()->user()->name, 0, 1) }}
+                </div>
             </div>
         </header>
 
-        <!-- MAIN CONTENT -->
-        <main class="p-6 flex-1">
-            @if(session('success'))
-    <div class="bg-green-100 text-green-700 p-3 rounded mb-4">
-        {{ session('success') }}
-    </div>
-@endif
-            @if(session('error'))
-    <div class="bg-red-100 text-red-700 p-3 rounded mb-4">
-        {{ session('error') }}
-    </div>
-@endif
-            @if(session('warning'))
-    <div class="bg-amber-100 text-amber-800 p-3 rounded mb-4">
-        {{ session('warning') }}
-    </div>
-@endif
+        {{-- Flash alerts --}}
+        @if (session('success') || session('error') || session('warning') || session('info'))
+            <div class="px-6 pt-4 space-y-2">
+                @if (session('success'))
+                    <div class="flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+                        <span class="mt-0.5 shrink-0">✅</span>
+                        <span>{{ session('success') }}</span>
+                    </div>
+                @endif
+                @if (session('error'))
+                    <div class="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+                        <span class="mt-0.5 shrink-0">❌</span>
+                        <span>{{ session('error') }}</span>
+                    </div>
+                @endif
+                @if (session('warning'))
+                    <div class="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                        <span class="mt-0.5 shrink-0">⚠️</span>
+                        <span>{{ session('warning') }}</span>
+                    </div>
+                @endif
+                @if (session('info'))
+                    <div class="flex items-start gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+                        <span class="mt-0.5 shrink-0">ℹ️</span>
+                        <span>{{ session('info') }}</span>
+                    </div>
+                @endif
+            </div>
+        @endif
+
+        {{-- Main content --}}
+        <main class="flex-1 p-6">
             @yield('content')
         </main>
 
@@ -77,5 +121,6 @@
 
 </div>
 
+@yield('scripts')
 </body>
 </html>

@@ -1,3 +1,113 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  /* ── Stockia Design Tokens ─────────────────────────────────────── */
+  :root {
+    /* Neutral */
+    --gray-50:  #f9fafb;
+    --gray-100: #f3f4f6;
+    --gray-200: #e5e7eb;
+    --gray-300: #d1d5db;
+    --gray-400: #9ca3af;
+    --gray-500: #6b7280;
+    --gray-600: #4b5563;
+    --gray-700: #374151;
+    --gray-800: #1f2937;
+    --gray-900: #111827;
+
+    /* Primary — indigo */
+    --indigo-50:  #eef2ff;
+    --indigo-100: #e0e7ff;
+    --indigo-500: #6366f1;
+    --indigo-600: #4f46e5;
+    --indigo-700: #4338ca;
+
+    /* Success — emerald */
+    --emerald-50:  #ecfdf5;
+    --emerald-100: #d1fae5;
+    --emerald-500: #10b981;
+    --emerald-600: #059669;
+    --emerald-700: #047857;
+
+    /* Warning — amber */
+    --amber-50:  #fffbeb;
+    --amber-100: #fef3c7;
+    --amber-500: #f59e0b;
+    --amber-600: #d97706;
+    --amber-800: #92400e;
+
+    /* Danger — red */
+    --red-50:  #fef2f2;
+    --red-100: #fee2e2;
+    --red-500: #ef4444;
+    --red-600: #dc2626;
+    --red-700: #b91c1c;
+
+    /* Info — blue */
+    --blue-50:  #eff6ff;
+    --blue-100: #dbeafe;
+    --blue-600: #2563eb;
+    --blue-700: #1d4ed8;
+
+    /* Semantic aliases */
+    --surface-app:     var(--gray-100);
+    --surface-card:    #ffffff;
+    --surface-sunken:  var(--gray-50);
+    --surface-sidebar: var(--gray-900);
+
+    --text-strong: var(--gray-900);
+    --text-body:   var(--gray-700);
+    --text-muted:  var(--gray-500);
+    --text-ondark: var(--gray-200);
+
+    --border-subtle: var(--gray-200);
+    --border-input:  var(--gray-300);
+
+    --primary:       var(--indigo-600);
+    --primary-hover: var(--indigo-700);
+    --primary-ring:  var(--indigo-500);
+
+    --success:         var(--emerald-600);
+    --success-soft:    var(--emerald-50);
+    --success-soft-fg: var(--emerald-700);
+    --warning:         var(--amber-600);
+    --warning-soft:    var(--amber-100);
+    --warning-soft-fg: var(--amber-800);
+    --danger:          var(--red-600);
+    --danger-soft:     var(--red-50);
+    --danger-soft-fg:  var(--red-700);
+
+    /* Typography */
+    --font-sans: 'Figtree', ui-sans-serif, system-ui, -apple-system, sans-serif;
+    --text-xs:   0.75rem;
+    --text-sm:   0.875rem;
+    --text-base: 1rem;
+    --text-lg:   1.125rem;
+    --text-xl:   1.25rem;
+    --text-2xl:  1.5rem;
+    --weight-normal:   400;
+    --weight-medium:   500;
+    --weight-semibold: 600;
+    --weight-bold:     700;
+
+    /* Spacing */
+    --pad-card:    1rem;
+    --pad-page:    1.5rem;
+    --gap-grid:    1rem;
+    --gap-section: 1.5rem;
+    --sidebar-width: 16rem;
+
+    /* Effects */
+    --radius-sm:  0.25rem;
+    --radius-md:  0.375rem;
+    --radius-lg:  0.5rem;
+    --radius-xl:  0.75rem;
+    --shadow-xs:  0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-sm:  0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+    --shadow-md:  0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --duration:   200ms;
+    --ease:       cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
