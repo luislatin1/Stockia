@@ -289,7 +289,7 @@ class DteEmissionService
                 'correo' => $company->correo ?: $company->fiscal_email,
                 'direccion' => [
                     'departamento' => $company->departamento,
-                    'municipio' => $company->municipio,
+                    'municipio' => $this->normalizeMunicipioCode($company->municipio),
                     'complemento' => $company->direccion_complemento ?: $company->fiscal_address,
                 ],
             ],

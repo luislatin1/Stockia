@@ -9,6 +9,7 @@ use App\Models\Warehouse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class SetupWizardController extends Controller
 {
@@ -27,7 +28,24 @@ class SetupWizardController extends Controller
             );
             $currencies = Currency::orderBy('code')->get();
         }
-        return view('setup.step1', compact('currencies'));
+
+        $actividades = Schema::hasTable('dte_cat_actividades_economicas')
+            ? DB::table('dte_cat_actividades_economicas')->where('activo', true)->orderBy('codigo')->get()
+            : collect();
+
+        $tiposEstablecimiento = Schema::hasTable('dte_cat_tipo_establecimiento')
+            ? DB::table('dte_cat_tipo_establecimiento')->where('activo', true)->orderBy('codigo')->get()
+            : collect();
+
+        $departamentos = Schema::hasTable('dte_departamentos')
+            ? DB::table('dte_departamentos')->where('activo', true)->orderBy('nombre')->get()
+            : collect();
+
+        $municipios = Schema::hasTable('dte_municipios')
+            ? DB::table('dte_municipios')->where('activo', true)->orderBy('nombre')->get()
+            : collect();
+
+        return view('setup.step1', compact('currencies', 'actividades', 'tiposEstablecimiento', 'departamentos', 'municipios'));
     }
 
     public function storeStep1(Request $request): RedirectResponse
@@ -38,19 +56,26 @@ class SetupWizardController extends Controller
             'tax_id' => ['nullable', 'string', 'max:255'],
             'nit' => ['nullable', 'string', 'max:20'],
             'nrc' => ['nullable', 'string', 'max:20'],
-            'cod_actividad' => ['nullable', 'string', 'max:10'],
-            'desc_actividad' => ['nullable', 'string', 'max:255'],
-            'tipo_establecimiento' => ['nullable', 'string', 'max:2'],
+            'cod_actividad' => ['nullable', 'string', 'max:6', 'exists:dte_cat_actividades_economicas,codigo'],
+            'tipo_establecimiento' => ['nullable', 'string', 'max:2', 'exists:dte_cat_tipo_establecimiento,codigo'],
             'telefono' => ['nullable', 'string', 'max:30'],
             'correo' => ['nullable', 'email', 'max:120'],
-            'departamento' => ['nullable', 'string', 'max:2'],
-            'municipio' => ['nullable', 'string', 'max:4'],
+            'departamento' => ['nullable', 'string', 'size:2', 'exists:dte_departamentos,codigo'],
+            'municipio' => ['nullable', 'string', 'size:4', 'exists:dte_municipios,codigo'],
             'direccion_complemento' => ['nullable', 'string', 'max:255'],
             'currency_id' => ['required', 'exists:currencies,id'],
             'timezone' => ['required', 'string', 'max:255'],
         ]);
 
         DB::transaction(function () use ($validated) {
+            $descActividad = null;
+            if (! empty($validated['cod_actividad'])) {
+                $actividad = DB::table('dte_cat_actividades_economicas')
+                    ->where('codigo', $validated['cod_actividad'])
+                    ->first();
+                $descActividad = $actividad?->descripcion;
+            }
+
             $company = Company::create([
                 'name' => $validated['name'],
                 'legal_name' => $validated['legal_name'] ?? null,
@@ -60,7 +85,7 @@ class SetupWizardController extends Controller
                 'nombre_razon_social' => $validated['legal_name'] ?? $validated['name'],
                 'nombre_comercial' => $validated['name'],
                 'cod_actividad' => $validated['cod_actividad'] ?? null,
-                'desc_actividad' => $validated['desc_actividad'] ?? null,
+                'desc_actividad' => $descActividad,
                 'tipo_establecimiento' => $validated['tipo_establecimiento'] ?? null,
                 'telefono' => $validated['telefono'] ?? null,
                 'correo' => $validated['correo'] ?? null,

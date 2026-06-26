@@ -27,6 +27,7 @@ class DteCatalogSeeder extends Seeder
             'cat_tipo_item.json' => ['table' => 'dte_cat_tipo_item', 'numeric_code' => false],
             'cat_tipo_establecimiento.json' => ['table' => 'dte_cat_tipo_establecimiento', 'numeric_code' => false],
             'cat_tributos.json' => ['table' => 'dte_tributos', 'numeric_code' => false],
+            'cat_actividades_economicas.json' => ['table' => 'dte_cat_actividades_economicas', 'numeric_code' => false, 'no_pad' => true],
         ];
 
         foreach ($catalogMap as $fileName => $cfg) {
@@ -51,7 +52,7 @@ class DteCatalogSeeder extends Seeder
                 $codigoRaw = (string) ($item['codigo'] ?? '');
                 $codigo = $cfg['numeric_code']
                     ? (int) $codigoRaw
-                    : str_pad($codigoRaw, 2, '0', STR_PAD_LEFT);
+                    : (($cfg['no_pad'] ?? false) ? $codigoRaw : str_pad($codigoRaw, 2, '0', STR_PAD_LEFT));
 
                 $row = [
                     'codigo' => $codigo,

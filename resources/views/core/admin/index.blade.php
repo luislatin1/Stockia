@@ -50,11 +50,16 @@ document.addEventListener('DOMContentLoaded', function () {
         $selectedDepartment = (string) old('departamento', $company?->departamento ?? '');
         $selectedDepartment = $selectedDepartment === '' ? '' : str_pad($selectedDepartment, 2, '0', STR_PAD_LEFT);
         $selectedMunicipalityRaw = (string) old('municipio', $company?->municipio ?? '');
-        $selectedMunicipality = $selectedMunicipalityRaw === ''
-            ? ''
-            : (strlen($selectedMunicipalityRaw) > 2
-                ? substr($selectedMunicipalityRaw, -2)
-                : str_pad($selectedMunicipalityRaw, 2, '0', STR_PAD_LEFT));
+        // Normalize to full 4-char code for unique matching across departments
+        if ($selectedMunicipalityRaw === '') {
+            $selectedMunicipality = '';
+        } elseif (strlen($selectedMunicipalityRaw) === 4) {
+            $selectedMunicipality = $selectedMunicipalityRaw;
+        } elseif (strlen($selectedMunicipalityRaw) === 2 && $selectedDepartment !== '') {
+            $selectedMunicipality = $selectedDepartment . $selectedMunicipalityRaw;
+        } else {
+            $selectedMunicipality = '';
+        }
     @endphp
 
     <div>
@@ -192,9 +197,9 @@ document.addEventListener('DOMContentLoaded', function () {
                             <option value="">Selecciona municipio</option>
                             @foreach ($municipalities as $municipality)
                                 <option
-                                    value="{{ $municipality->codigo_local }}"
+                                    value="{{ $municipality->codigo }}"
                                     data-departamento="{{ $municipality->departamento_codigo }}"
-                                    @selected($selectedMunicipality === (string) $municipality->codigo_local)
+                                    @selected($selectedMunicipality === (string) $municipality->codigo)
                                 >
                                     {{ $municipality->codigo_local }} - {{ $municipality->nombre }}
                                 </option>

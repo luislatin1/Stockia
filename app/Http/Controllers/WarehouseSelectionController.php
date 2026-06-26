@@ -71,7 +71,8 @@ class WarehouseSelectionController extends Controller
                 'current_warehouse_id' => $warehouses->first()->id,
             ]);
 
-            return redirect()->intended(route('dashboard'));
+            return redirect()->intended(route('dashboard'))
+                ->with('warning', 'Solo tienes un almacén disponible: ' . $warehouses->first()->name . '.');
         }
 
         return view('auth.select-warehouse', compact('warehouses'));

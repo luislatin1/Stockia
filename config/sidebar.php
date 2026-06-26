@@ -180,13 +180,13 @@ return [
             'items' => [
                 [
                     'icon' => '🔁',
-                    'label' => 'Cambiar Almacen',
+                    'label' => 'Cambiar Almacén',
                     'route' => 'warehouse.select',
                     'active' => ['warehouse.select'],
                 ],
                 [
                     'icon' => '🚪',
-                    'label' => 'Cerrar Sesion',
+                    'label' => 'Cerrar Sesión',
                     'type' => 'logout',
                 ],
             ],

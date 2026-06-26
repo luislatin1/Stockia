@@ -13,7 +13,7 @@ class PTVPosServiceProvider extends ServiceProvider
         if ($this->modulesTableReady()) {
             $module = DB::table('modules')->where('key', 'ptv-pos')->first();
 
-            if ($module && ! (bool) $module->enabled) {
+            if (! $module || ! (bool) $module->enabled) {
                 return;
             }
         }

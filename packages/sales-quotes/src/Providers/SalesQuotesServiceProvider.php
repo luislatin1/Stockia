@@ -13,7 +13,7 @@ class SalesQuotesServiceProvider extends ServiceProvider
         if (Schema::hasTable('modules')) {
             $module = DB::table('modules')->where('key', 'sales-quotes')->first();
 
-            if ($module && ! (bool) $module->enabled) {
+            if (! $module || ! (bool) $module->enabled) {
                 return;
             }
         }

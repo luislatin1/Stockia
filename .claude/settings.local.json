@@ -26,7 +26,17 @@
       "PowerShell(Start-Process \"C:\\\\laragonOld\\\\laragon.exe\")",
       "PowerShell(Get-Process | Where-Object { $_.Name -match \"nginx|apache|httpd\" } | Select-Object Name, Id)",
       "Bash(ls /mnt/c/laragonOld/)",
-      "Read(//mnt/c/**)"
+      "Read(//mnt/c/**)",
+      "Bash(xargs -I {} basename {})",
+      "Bash(dnf module *)",
+      "Bash(dnf search *)",
+      "Bash(php --version)",
+      "Bash(php -m)",
+      "Bash(dnf install *)",
+      "Bash(sudo dnf install -y mariadb-server)",
+      "Bash(sudo mysql -u root -e \"SELECT user, host, plugin FROM mysql.user WHERE user='root';\")",
+      "Bash(python3 -c ' *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8000/setup)"
     ]
   }
 }

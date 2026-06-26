@@ -18,11 +18,13 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             CurrencySeeder::class,
-            CompanySeeder::class,
-            UserSeeder::class,
             DteCatalogSeeder::class,
-            //CompanyUserSeeder::class,
-            InitialWarehouseSeeder::class,
         ]);
+
+        // Seeders de desarrollo — solo para entornos locales:
+        // CompanySeeder::class
+        // UserSeeder::class
+        // InitialWarehouseSeeder::class
+        // ModulesSeeder::class  ← usar solo si necesitas bypass del wizard de módulos
     }
 }

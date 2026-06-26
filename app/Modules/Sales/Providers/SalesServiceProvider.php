@@ -13,7 +13,7 @@ class SalesServiceProvider extends ModuleServiceProvider
         if ($this->modulesTableReady()) {
             $module = DB::table('modules')->where('key', 'sales')->first();
 
-            if ($module && ! (bool) $module->enabled) {
+            if (! $module || ! (bool) $module->enabled) {
                 return;
             }
         }

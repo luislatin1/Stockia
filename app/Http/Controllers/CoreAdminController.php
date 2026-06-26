@@ -74,7 +74,7 @@ class CoreAdminController extends Controller
             'telefono' => ['nullable', 'string', 'max:30'],
             'correo' => ['nullable', 'email', 'max:120'],
             'departamento' => $departmentRules,
-            'municipio' => ['nullable', 'string', 'size:2'],
+            'municipio' => ['nullable', 'string', 'size:4'],
             'direccion_complemento' => ['nullable', 'string', 'max:255'],
             'fiscal_address' => ['nullable', 'string', 'max:255'],
             'fiscal_email' => ['nullable', 'email', 'max:255'],
@@ -198,11 +198,9 @@ class CoreAdminController extends Controller
             return true;
         }
 
-        $fullCode = $departmentCode . $municipalityCode;
-
         return DB::table('dte_municipios')
             ->where('departamento_codigo', $departmentCode)
-            ->where('codigo', $fullCode)
+            ->where('codigo', $municipalityCode)
             ->exists();
     }
 
