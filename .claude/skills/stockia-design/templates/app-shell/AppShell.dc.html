@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<!-- @template name="Stockia App Shell" description="Dark sidebar + top bar + content area — the standard Stockia POS screen scaffold." -->
+<helmet>
+  <script src="./ds-base.js"></script>
+  <style>
+    html, body { margin: 0; height: 100%; }
+    body { background: #f3f4f6; font-family: 'Figtree', system-ui, sans-serif; color: #374151; }
+  </style>
+</helmet>
+
+<div style="display:flex; height:100vh; overflow:hidden;">
+
+  <x-import component-from-global-scope="StockiaDesignSystem_235f53.Sidebar" dc-props="{{ sidebarProps }}" hint-size="256px,100%"></x-import>
+
+  <div style="flex:1; display:flex; flex-direction:column; min-width:0;">
+
+    <x-import component-from-global-scope="StockiaDesignSystem_235f53.Topbar" dc-props="{{ topbarProps }}" hint-size="100%,64px"></x-import>
+
+    <main style="flex:1; overflow-y:auto; padding:24px;">
+
+      <h2 style="margin:0 0 16px; font-size:24px; font-weight:700; color:#111827;">Productos</h2>
+
+      <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:16px; margin-bottom:24px;">
+        <x-import component-from-global-scope="StockiaDesignSystem_235f53.StatCard" label="Productos activos" value="248" hint-size="100%,96px"></x-import>
+        <x-import component-from-global-scope="StockiaDesignSystem_235f53.StatCard" label="Stock bajo" value="7" tone="danger" icon="⚠️" hint-size="100%,96px"></x-import>
+        <x-import component-from-global-scope="StockiaDesignSystem_235f53.StatCard" label="Valor inventario" value="$12,480.00" tone="primary" hint-size="100%,96px"></x-import>
+        <x-import component-from-global-scope="StockiaDesignSystem_235f53.StatCard" label="Categorías" value="14" hint-size="100%,96px"></x-import>
+      </div>
+
+      <div style="background:#fff; border:1px solid #e5e7eb; border-radius:12px; box-shadow:0 1px 3px 0 rgb(0 0 0 / 0.1); padding:16px;">
+        <p style="margin:0; font-size:14px; color:#6b7280;">Reemplaza esta tarjeta con el contenido de tu pantalla — una tabla de productos, un formulario o un panel de POS.</p>
+      </div>
+
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { activeRoute: 'products' };
+
+  renderVals() {
+    const sections = [
+      { label: 'Gestión', items: [{ icon: '📊', label: 'Dashboard', route: 'dashboard' }] },
+      { label: 'Comercial', items: [
+        { icon: '💹', label: 'Resumen POS', route: 'summary' },
+        { icon: '🛒', label: 'Punto de Venta', route: 'pos' },
+        { icon: '🗃️', label: 'Ventas', route: 'sales' },
+      ]},
+      { label: 'Inventario', items: [
+        { icon: '📦', label: 'Productos', route: 'products' },
+        { icon: '🏷', label: 'Categorías', route: 'categories' },
+        { icon: '🔄', label: 'Movimientos', route: 'movements' },
+      ]},
+      { label: 'Administración', items: [
+        { icon: '👤', label: 'Usuarios', route: 'users' },
+        { icon: '💱', label: 'Monedas', route: 'currencies' },
+      ]},
+    ];
+
+    return {
+      sidebarProps: {
+        systemName: 'Stockia POS',
+        sections,
+        activeRoute: this.state.activeRoute,
+        onNavigate: (item) => this.setState({ activeRoute: item.route }),
+      },
+      topbarProps: {
+        title: 'Productos',
+        user: 'María López',
+        warehouse: 'Central',
+        company: 'Acme S.A.',
+      },
+    };
+  }
+}
+</script>
+</body>
+</html>

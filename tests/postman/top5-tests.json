@@ -1,0 +1,240 @@
+{
+  "info": {
+    "name": "Stockia - Top 5 Tests Críticos",
+    "description": "Los 5 tests más importantes: autenticación, dashboard, productos y ventas.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8080" },
+    { "key": "csrf_token", "value": "" },
+    { "key": "email", "value": "admin@stockia.local" },
+    { "key": "password", "value": "admin123" }
+  ],
+  "item": [
+    {
+      "name": "1. Obtener CSRF Token (GET /login)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{base_url}}/login"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Página de login retorna 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Content-Type es HTML', function () {",
+              "    pm.expect(pm.response.headers.get('Content-Type')).to.include('text/html');",
+              "});",
+              "",
+              "const html = pm.response.text();",
+              "const match = html.match(/name=[\"']_token[\"'][^>]*value=[\"']([^\"']+)[\"']/);",
+              "",
+              "pm.test('CSRF token presente en el formulario', function () {",
+              "    pm.expect(match).to.not.be.null;",
+              "    pm.expect(match[1]).to.not.be.empty;",
+              "});",
+              "",
+              "if (match && match[1]) {",
+              "    pm.collectionVariables.set('csrf_token', match[1]);",
+              "    console.log('✓ CSRF token guardado: ' + match[1].substring(0, 30) + '...');",
+              "}",
+              "",
+              "pm.test('Tiempo de respuesta menor a 2 segundos', function () {",
+              "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Login Web (POST /login)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/x-www-form-urlencoded" },
+          { "key": "Accept", "value": "text/html,application/xhtml+xml" }
+        ],
+        "body": {
+          "mode": "urlencoded",
+          "urlencoded": [
+            { "key": "_token", "value": "{{csrf_token}}" },
+            { "key": "email",  "value": "{{email}}" },
+            { "key": "password", "value": "{{password}}" }
+          ]
+        },
+        "url": "{{base_url}}/login"
+      },
+      "protocolProfileBehavior": {
+        "followRedirects": false
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login retorna redirección 302', function () {",
+              "    pm.response.to.have.status(302);",
+              "});",
+              "",
+              "pm.test('Redirección válida post-login (dashboard o select-company)', function () {",
+              "    const location = pm.response.headers.get('Location') || '';",
+              "    pm.expect(location).to.satisfy(function(l) {",
+              "        return l.includes('dashboard') || l.includes('select-company');",
+              "    });",
+              "});",
+              "",
+              "pm.test('Cookie de sesión establecida', function () {",
+              "    const cookies = pm.response.headers.get('Set-Cookie') || '';",
+              "    pm.expect(cookies).to.not.be.empty;",
+              "});",
+              "",
+              "pm.test('Tiempo de respuesta menor a 3 segundos', function () {",
+              "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+              "});",
+              "",
+              "console.log('→ Location: ' + (pm.response.headers.get('Location') || 'N/A'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Dashboard Principal (GET /dashboard)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{base_url}}/dashboard"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Dashboard retorna 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Página contiene contenido del dashboard', function () {",
+              "    const html = pm.response.text().toLowerCase();",
+              "    pm.expect(html).to.satisfy(function(h) {",
+              "        return h.includes('dashboard') || h.includes('venta') || h.includes('inventario') || h.includes('producto');",
+              "    });",
+              "});",
+              "",
+              "pm.test('Sin errores de servidor en el HTML', function () {",
+              "    const html = pm.response.text().toLowerCase();",
+              "    pm.expect(html).to.not.include('whoops');",
+              "    pm.expect(html).to.not.include('500 internal');",
+              "});",
+              "",
+              "pm.test('Tiempo de respuesta menor a 3 segundos', function () {",
+              "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+              "});",
+              "",
+              "// Actualizar CSRF para siguientes requests",
+              "const html = pm.response.text();",
+              "const match = html.match(/name=[\"']_token[\"'][^>]*value=[\"']([^\"']+)[\"']/);",
+              "if (match && match[1]) {",
+              "    pm.collectionVariables.set('csrf_token', match[1]);",
+              "    console.log('✓ CSRF actualizado desde dashboard');",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Listar Productos (GET /products)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{base_url}}/products"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Lista de productos retorna 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Página contiene sección de productos', function () {",
+              "    const html = pm.response.text().toLowerCase();",
+              "    pm.expect(html).to.satisfy(function(h) {",
+              "        return h.includes('producto') || h.includes('product');",
+              "    });",
+              "});",
+              "",
+              "pm.test('Sin errores de servidor', function () {",
+              "    const html = pm.response.text().toLowerCase();",
+              "    pm.expect(html).to.not.include('whoops');",
+              "    pm.expect(html).to.not.include('error');",
+              "});",
+              "",
+              "pm.test('Tiempo de respuesta menor a 3 segundos', function () {",
+              "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+              "});",
+              "",
+              "// Contar productos en la tabla si los hay",
+              "const html = pm.response.text();",
+              "const rows = (html.match(/<tr/g) || []).length;",
+              "console.log('✓ Filas en tabla: ' + rows);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Listar Ventas (GET /sales)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{base_url}}/sales"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Lista de ventas retorna 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Página contiene sección de ventas', function () {",
+              "    const html = pm.response.text().toLowerCase();",
+              "    pm.expect(html).to.satisfy(function(h) {",
+              "        return h.includes('venta') || h.includes('sale');",
+              "    });",
+              "});",
+              "",
+              "pm.test('Sin errores de servidor', function () {",
+              "    const html = pm.response.text().toLowerCase();",
+              "    pm.expect(html).to.not.include('whoops');",
+              "});",
+              "",
+              "pm.test('Tiempo de respuesta menor a 3 segundos', function () {",
+              "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+              "});",
+              "",
+              "const html = pm.response.text();",
+              "const rows = (html.match(/<tr/g) || []).length;",
+              "console.log('✓ Filas en tabla de ventas: ' + rows);"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

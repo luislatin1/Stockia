@@ -1,0 +1,45 @@
+<!-- @dsCard group="Colors" viewport="700x180" name="Semantic" subtitle="Emerald · Amber · Red · Blue — meaning across POS & inventory" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { margin: 0; padding: 18px; background: var(--surface-card); font-family: var(--font-sans); }
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .col .pair { display: flex; gap: 4px; }
+  .chip { height: 44px; flex: 1; border-radius: var(--radius-sm); }
+  .soft { height: 20px; border-radius: var(--radius-sm); margin-top: 4px; display:flex; align-items:center; padding:0 8px; font-size:10px; font-weight:var(--weight-semibold); }
+  .name { margin-top: 6px; font-size: var(--text-xs); font-weight: var(--weight-semibold); color: var(--text-strong); }
+  .use { font-size: 10px; color: var(--text-muted); }
+</style>
+</head>
+<body>
+<div class="grid">
+  <div class="col">
+    <div class="pair"><div class="chip" style="background:var(--emerald-600)"></div></div>
+    <div class="soft" style="background:var(--success-soft);color:var(--success-soft-fg)">Abierta</div>
+    <div class="name">Emerald · success</div>
+    <div class="use">Cobrar · caja abierta · efectivo</div>
+  </div>
+  <div class="col">
+    <div class="pair"><div class="chip" style="background:var(--amber-600)"></div></div>
+    <div class="soft" style="background:var(--warning-soft);color:var(--warning-soft-fg)">Cerrada</div>
+    <div class="name">Amber · warning</div>
+    <div class="use">Caja cerrada · ajustes · avisos</div>
+  </div>
+  <div class="col">
+    <div class="pair"><div class="chip" style="background:var(--red-600)"></div></div>
+    <div class="soft" style="background:var(--danger-soft);color:var(--danger-soft-fg)">Stock bajo</div>
+    <div class="name">Red · danger</div>
+    <div class="use">Eliminar · stock bajo · errores</div>
+  </div>
+  <div class="col">
+    <div class="pair"><div class="chip" style="background:var(--blue-600)"></div></div>
+    <div class="soft" style="background:var(--blue-50);color:var(--blue-700)">Enlace</div>
+    <div class="name">Blue · info</div>
+    <div class="use">Enlaces · acción secundaria</div>
+  </div>
+</div>
+</body>
+</html>

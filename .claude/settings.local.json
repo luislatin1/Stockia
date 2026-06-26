@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Name)",
+      "mcp__claude_ai_Postman__getAuthenticatedUser",
+      "mcp__claude_ai_Postman__getWorkspaces",
+      "mcp__claude_ai_Postman__createCollection",
+      "Bash(npx newman *)",
+      "Bash(php artisan *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8000)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://stockia.test)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:80)",
+      "mcp__claude_ai_Postman__getCollection",
+      "Bash(curl -s -w \"\\\\nHTTP:%{http_code} URL:%{url_effective}\" http://stockia.test/)",
+      "Bash(curl -s -w \"\\\\nHTTP:%{http_code}\" http://localhost/Stockia/public/)",
+      "Bash(curl -s -w \"\\\\nHTTP:%{http_code}\" http://stockia.test/public/)",
+      "Bash(curl -s -o /dev/null -w \"HTTP:%{http_code}\" http://localhost/login)",
+      "Bash(curl -s -o /dev/null -w \"HTTP:%{http_code}\" http://localhost/Stockia/login)",
+      "Bash(curl -s -o /dev/null -w \"HTTP:%{http_code}\" \"http://localhost/Stockia/public/login\")",
+      "Bash(curl -s -o /dev/null -w \"HTTP:%{http_code}\" http://localhost:8080/login)",
+      "Read(//mnt/c/laragonOld/www/**)",
+      "Bash(rm -rf node_modules package-lock.json)",
+      "PowerShell(Get-Process | Where-Object { $_.Name -match \"nginx|apache|httpd|php\" } | Select-Object Name, Id, CPU | Format-Table -AutoSize)",
+      "PowerShell(Get-Process | Where-Object { $_.Name -match \"laragon\" } | Select-Object Name, Id)",
+      "PowerShell(Start-Process \"C:\\\\laragonOld\\\\laragon.exe\")",
+      "PowerShell(Get-Process | Where-Object { $_.Name -match \"nginx|apache|httpd\" } | Select-Object Name, Id)",
+      "Bash(ls /mnt/c/laragonOld/)",
+      "Read(//mnt/c/**)"
+    ]
+  }
+}

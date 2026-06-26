@@ -1,0 +1,73 @@
+<!-- @dsCard group="Stockia POS" viewport="1280x720" name="Stockia POS — App" subtitle="Login → Resumen → Punto de Venta → Productos (interactive)" -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stockia POS</title>
+<link rel="stylesheet" href="../../styles.css">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body { background: var(--surface-app); font-family: var(--font-sans); color: var(--text-body); }
+  #root { height: 100vh; }
+  .app { display: flex; height: 100vh; overflow: hidden; }
+  .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .content { flex: 1; overflow-y: auto; padding: var(--pad-page); }
+  .placeholder { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--text-muted); gap: 8px; }
+  .placeholder .ico { font-size: 40px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="data.js"></script>
+<script type="text/babel" src="LoginScreen.jsx"></script>
+<script type="text/babel" src="PosScreen.jsx"></script>
+<script type="text/babel" src="ProductsScreen.jsx"></script>
+<script type="text/babel" src="SummaryScreen.jsx"></script>
+<script type="text/babel">
+  const { Sidebar, Topbar } = window.StockiaDesignSystem_235f53;
+  const titles = { summary: 'Resumen POS', pos: 'Punto de Venta', products: 'Productos' };
+
+  function App() {
+    const [authed, setAuthed] = React.useState(false);
+    const [route, setRoute] = React.useState('pos');
+    const [sales, setSales] = React.useState([]);
+
+    if (!authed) return <window.LoginScreen onLogin={() => setAuthed(true)} />;
+
+    function nav(item) {
+      if (item.route === 'logout') { setAuthed(false); return; }
+      setRoute(item.route);
+    }
+
+    let screen;
+    if (route === 'pos') screen = <window.PosScreen onSale={(t) => setSales(s => [...s, t])} />;
+    else if (route === 'products') screen = <window.ProductsScreen />;
+    else if (route === 'summary') screen = <window.SummaryScreen salesToday={sales} />;
+    else screen = (
+      <div className="placeholder">
+        <div className="ico">{(window.StockiaKit.sections.flatMap(s => s.items).find(i => i.route === route) || {}).icon || '📄'}</div>
+        <p>Esta sección no está incluida en el UI kit de demostración.</p>
+      </div>
+    );
+
+    return (
+      <div className="app">
+        <Sidebar systemName="Stockia POS" sections={window.StockiaKit.sections} activeRoute={route} onNavigate={nav} />
+        <div className="main">
+          <Topbar title={titles[route] || 'Stockia'} user="María López" warehouse="Central" company="Acme S.A." />
+          <div className="content">{screen}</div>
+        </div>
+      </div>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

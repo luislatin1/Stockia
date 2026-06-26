@@ -1,0 +1,154 @@
+{
+  "info": {
+    "name": "Stockia - Flujo Completo de Sesión",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url",     "value": "http://localhost:8080" },
+    { "key": "csrf_token",   "value": "" },
+    { "key": "email",        "value": "admin@stockia.local" },
+    { "key": "password",     "value": "admin123" },
+    { "key": "company_id",   "value": "1" },
+    { "key": "warehouse_id", "value": "1" }
+  ],
+  "item": [
+    {
+      "name": "1. Obtener CSRF Token (GET /login)",
+      "request": { "method": "GET", "header": [], "url": "{{base_url}}/login" },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('GET /login → 200', () => pm.response.to.have.status(200));",
+        "const match = pm.response.text().match(/name=[\"']_token[\"'][^>]*value=[\"']([^\"']+)[\"']/);",
+        "pm.test('CSRF token encontrado', () => pm.expect(match).to.not.be.null);",
+        "if (match) { pm.collectionVariables.set('csrf_token', match[1]); console.log('Token: ' + match[1].substring(0,20)+'...'); }"
+      ]}}]
+    },
+    {
+      "name": "2. Login Web (POST /login)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/x-www-form-urlencoded" }],
+        "body": { "mode": "urlencoded", "urlencoded": [
+          { "key": "_token",   "value": "{{csrf_token}}" },
+          { "key": "email",    "value": "{{email}}" },
+          { "key": "password", "value": "{{password}}" }
+        ]},
+        "url": "{{base_url}}/login"
+      },
+      "protocolProfileBehavior": { "followRedirects": false },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('POST /login → 302', () => pm.response.to.have.status(302));",
+        "const loc = pm.response.headers.get('Location') || '';",
+        "pm.test('Cookie de sesión creada', () => pm.expect(pm.response.headers.get('Set-Cookie') || '').to.not.be.empty);",
+        "console.log('→ Redirige a: ' + loc);"
+      ]}}]
+    },
+    {
+      "name": "3. Refrescar CSRF (GET /select-company)",
+      "description": "Obtiene el token CSRF fresco que Laravel genera tras el login.",
+      "request": { "method": "GET", "header": [], "url": "{{base_url}}/select-company" },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('GET /select-company → 200', () => pm.response.to.have.status(200));",
+        "const match = pm.response.text().match(/name=[\"']_token[\"'][^>]*value=[\"']([^\"']+)[\"']/);",
+        "pm.test('Nuevo CSRF token encontrado', () => pm.expect(match).to.not.be.null);",
+        "if (match) { pm.collectionVariables.set('csrf_token', match[1]); console.log('Token refrescado: ' + match[1].substring(0,20)+'...'); }"
+      ]}}]
+    },
+    {
+      "name": "4. Seleccionar Empresa (POST /select-company)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/x-www-form-urlencoded" }],
+        "body": { "mode": "urlencoded", "urlencoded": [
+          { "key": "_token",     "value": "{{csrf_token}}" },
+          { "key": "company_id", "value": "{{company_id}}" }
+        ]},
+        "url": "{{base_url}}/select-company"
+      },
+      "protocolProfileBehavior": { "followRedirects": false },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('POST /select-company → 302', () => pm.response.to.have.status(302));",
+        "const loc = pm.response.headers.get('Location') || '';",
+        "pm.test('Redirige a warehouse o dashboard', () => {",
+        "    pm.expect(loc).to.satisfy(l => l.includes('select-warehouse') || l.includes('dashboard'));",
+        "});",
+        "console.log('→ Redirige a: ' + loc);"
+      ]}}]
+    },
+    {
+      "name": "5. Refrescar CSRF (GET /select-warehouse)",
+      "description": "Obtiene CSRF fresco antes de seleccionar bodega.",
+      "request": { "method": "GET", "header": [], "url": "{{base_url}}/select-warehouse" },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('GET /select-warehouse → 200 o 302', () => {",
+        "    pm.expect(pm.response.code).to.be.oneOf([200, 302]);",
+        "});",
+        "if (pm.response.code === 200) {",
+        "    const match = pm.response.text().match(/name=[\"']_token[\"'][^>]*value=[\"']([^\"']+)[\"']/);",
+        "    if (match) { pm.collectionVariables.set('csrf_token', match[1]); console.log('Token refrescado: ' + match[1].substring(0,20)+'...'); }",
+        "} else {",
+        "    console.log('Auto-seleccionó bodega (solo 1 disponible) → redirige directo');",
+        "}"
+      ]}}]
+    },
+    {
+      "name": "6. Seleccionar Bodega (POST /select-warehouse)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/x-www-form-urlencoded" }],
+        "body": { "mode": "urlencoded", "urlencoded": [
+          { "key": "_token",       "value": "{{csrf_token}}" },
+          { "key": "warehouse_id", "value": "{{warehouse_id}}" }
+        ]},
+        "url": "{{base_url}}/select-warehouse"
+      },
+      "protocolProfileBehavior": { "followRedirects": false },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('POST /select-warehouse → 302', () => pm.response.to.have.status(302));",
+        "const loc = pm.response.headers.get('Location') || '';",
+        "pm.test('Redirige al dashboard', () => pm.expect(loc).to.include('dashboard'));",
+        "console.log('→ Redirige a: ' + loc);"
+      ]}}]
+    },
+    {
+      "name": "7. Dashboard (sesión completa)",
+      "request": { "method": "GET", "header": [], "url": "{{base_url}}/dashboard" },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('GET /dashboard → 200', () => pm.response.to.have.status(200));",
+        "pm.test('Sin excepciones en la página', () => {",
+        "    const html = pm.response.text().toLowerCase();",
+        "    pm.expect(html).to.not.include('whoops, looks like something went wrong');",
+        "    pm.expect(html).to.not.include('internal server error');",
+        "});",
+        "pm.test('Tiempo de respuesta < 3s', () => pm.expect(pm.response.responseTime).to.be.below(3000));",
+        "console.log('Dashboard OK — ' + pm.response.text().length + ' bytes');"
+      ]}}]
+    },
+    {
+      "name": "8. Listar Productos",
+      "request": { "method": "GET", "header": [], "url": "{{base_url}}/products" },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('GET /products → 200', () => pm.response.to.have.status(200));",
+        "const rows = (pm.response.text().match(/<tr/g) || []).length;",
+        "pm.test('Hay productos en la tabla', () => pm.expect(rows).to.be.above(0));",
+        "console.log('Productos (filas): ' + rows);"
+      ]}}]
+    },
+    {
+      "name": "9. Listar Ventas",
+      "request": { "method": "GET", "header": [], "url": "{{base_url}}/sales" },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('GET /sales → 200', () => pm.response.to.have.status(200));",
+        "const rows = (pm.response.text().match(/<tr/g) || []).length;",
+        "console.log('Ventas (filas): ' + rows);"
+      ]}}]
+    },
+    {
+      "name": "10. Movimientos de Inventario",
+      "request": { "method": "GET", "header": [], "url": "{{base_url}}/inventory-movements" },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('GET /inventory-movements → 200', () => pm.response.to.have.status(200));",
+        "console.log('Inventario OK — ' + pm.response.text().length + ' bytes');"
+      ]}}]
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+<!-- @dsCard group="Spacing" viewport="700x200" name="Radii & shadows" subtitle="rounded-xl cards, soft shadow-sm elevation" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { margin: 0; padding: 20px; background: var(--surface-app); font-family: var(--font-sans); }
+  .row { display: flex; gap: 18px; flex-wrap: wrap; }
+  .box { width: 96px; height: 60px; background: var(--surface-card); border: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: center; font-size: 11px; color: var(--text-muted); font-family: var(--font-mono); }
+  .lab { margin-top: 6px; font-size: 11px; color: var(--text-strong); }
+  .grp { }
+</style>
+</head>
+<body>
+<div class="row">
+  <div class="grp"><div class="box" style="border-radius:var(--radius-sm)">sm</div><div class="lab">4px · inputs</div></div>
+  <div class="grp"><div class="box" style="border-radius:var(--radius-md)">md</div><div class="lab">6px · buttons</div></div>
+  <div class="grp"><div class="box" style="border-radius:var(--radius-lg)">lg</div><div class="lab">8px · tables/modal</div></div>
+  <div class="grp"><div class="box" style="border-radius:var(--radius-xl)">xl</div><div class="lab">12px · cards</div></div>
+  <div class="grp"><div class="box" style="border-radius:var(--radius-xl);box-shadow:var(--shadow-sm);border:none">sm</div><div class="lab">shadow-sm</div></div>
+  <div class="grp"><div class="box" style="border-radius:var(--radius-xl);box-shadow:var(--shadow-md);border:none">md</div><div class="lab">shadow-md</div></div>
+  <div class="grp"><div class="box" style="border-radius:var(--radius-lg);box-shadow:var(--shadow-xl);border:none">xl</div><div class="lab">shadow-xl · modal</div></div>
+</div>
+</body>
+</html>
