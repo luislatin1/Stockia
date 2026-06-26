@@ -36,7 +36,12 @@
       "Bash(sudo dnf install -y mariadb-server)",
       "Bash(sudo mysql -u root -e \"SELECT user, host, plugin FROM mysql.user WHERE user='root';\")",
       "Bash(python3 -c ' *)",
-      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8000/setup)"
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8000/setup)",
+      "Bash(npm run *)",
+      "Bash(git -C /home/luisl/Stockia config user.email \"luislatin@corpelefante.com\")",
+      "Bash(git -C /home/luisl/Stockia config user.name \"Luis Latin\")",
+      "Bash(git -C /home/luisl/Stockia config user.email)",
+      "Bash(git -C /home/luisl/Stockia config user.name)"
     ]
   }
 }

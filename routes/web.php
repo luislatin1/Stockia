@@ -21,7 +21,9 @@ use App\Http\Controllers\DteCustomerController;
 */
 
 Route::get('/', function () {
-    return view('welcome');
+    return auth()->check()
+        ? redirect()->route('dashboard')
+        : redirect()->route('login');
 });
 
 /*
