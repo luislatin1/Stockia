@@ -81,13 +81,13 @@ class PTVPosController extends Controller
     private function calculateSessionCashSnapshot(object $session, int $companyId, int $warehouseId, int $userId): array
     {
         $openedAt = $session->opened_at;
-        $closedAt = $session->closed_at ?: now();
+        $closedAt = $session->closed_at ?: now('UTC');
 
         $salesTotal = (float) Sale::query()
             ->where('company_id', $companyId)
             ->where('warehouse_id', $warehouseId)
             ->where('user_id', $userId)
-            ->where('status', 'completed')
+            ->whereIn('status', ['completed', 'pending_print'])
             ->where('created_at', '>=', $openedAt)
             ->where('created_at', '<=', $closedAt)
             ->sum('total');
@@ -172,7 +172,7 @@ class PTVPosController extends Controller
             ->where('company_id', $companyId)
             ->where('warehouse_id', $warehouseId)
             ->where('user_id', $userId)
-            ->where('status', 'completed')
+            ->whereIn('status', ['completed', 'pending_print'])
             ->where('created_at', '>=', $todayStart);
 
         $salesCount = (clone $salesBase)->count();
@@ -185,7 +185,7 @@ class PTVPosController extends Controller
             ->where('sales.company_id', $companyId)
             ->where('sales.warehouse_id', $warehouseId)
             ->where('sales.user_id', $userId)
-            ->where('sales.status', 'completed')
+            ->whereIn('sales.status', ['completed', 'pending_print'])
             ->where('sales.created_at', '>=', $todayStart)
             ->sum('sale_items.quantity');
 
@@ -195,7 +195,7 @@ class PTVPosController extends Controller
             ->where('sales.company_id', $companyId)
             ->where('sales.warehouse_id', $warehouseId)
             ->where('sales.user_id', $userId)
-            ->where('sales.status', 'completed')
+            ->whereIn('sales.status', ['completed', 'pending_print'])
             ->where('sales.created_at', '>=', $todayStart)
             ->groupBy('sale_items.product_id', 'products.name')
             ->orderByDesc(DB::raw('SUM(sale_items.quantity)'))

@@ -70,7 +70,49 @@ class ProductController extends Controller
 
         $products = $query->get();
 
-        return view('products.index', compact('products', 'search'));
+        $allProducts = Product::with(['warehouses' => function ($q) use ($warehouseId) {
+            $q->where('warehouse_id', $warehouseId);
+        }])->where('company_id', $companyId)->get();
+
+        $stats = [
+            'total'           => $allProducts->count(),
+            'low_stock'       => $allProducts->filter(fn ($p) => $p->stock > 0 && $p->stock <= $p->min_stock)->count(),
+            'out_of_stock'    => $allProducts->filter(fn ($p) => $p->stock === 0)->count(),
+            'inventory_value' => $allProducts->sum(fn ($p) => $p->price * $p->stock),
+        ];
+
+        return view('products.index', compact('products', 'search', 'stats'));
+    }
+
+    public function checkUnique(Request $request): \Illuminate\Http\JsonResponse
+    {
+        [$companyId] = $this->currentContext();
+
+        $field = (string) $request->query('field', '');
+        $value = trim((string) $request->query('value', ''));
+        $productId = $request->query('product_id');
+
+        $allowed = ['sku', 'codigo', 'barcode'];
+        if (! in_array($field, $allowed, true) || $value === '') {
+            return response()->json(['available' => true]);
+        }
+
+        $query = DB::table('products')
+            ->where('company_id', $companyId)
+            ->where($field, $value);
+
+        if ($productId) {
+            $query->where('id', '!=', (int) $productId);
+        }
+
+        $exists = $query->exists();
+
+        $labels = ['sku' => 'SKU', 'codigo' => 'Código DTE', 'barcode' => 'Código de barras'];
+
+        return response()->json([
+            'available' => ! $exists,
+            'message'   => $exists ? 'El ' . $labels[$field] . ' ya está registrado en esta empresa.' : '',
+        ]);
     }
 
     public function create()

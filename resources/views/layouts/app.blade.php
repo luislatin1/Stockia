@@ -51,8 +51,12 @@
         @include('layouts.partials.sidebar', ['dteModuleEnabled' => $dteModuleEnabled])
 
         {{-- Footer --}}
-        <div class="px-4 py-3 border-t border-gray-800 text-[11px] text-gray-600 leading-tight">
-            Stockia &copy; {{ date('Y') }}
+        <div class="px-4 py-3 border-t border-gray-800 space-y-1">
+            <div class="flex items-center justify-between">
+                <span class="text-[11px] text-gray-600">Stockia &copy; {{ date('Y') }}</span>
+                <span id="sidebar-clock" class="text-[11px] text-gray-400 tabular-nums font-mono"></span>
+            </div>
+            <p id="sidebar-date" class="text-[11px] text-gray-600 capitalize"></p>
         </div>
     </aside>
 
@@ -65,19 +69,28 @@
 
             <div class="flex items-center gap-3 shrink-0">
                 @yield('topbar-actions')
-                <div class="text-right text-sm leading-snug">
-                    <p class="font-medium text-gray-800">{{ auth()->user()->name }}</p>
-                    <p class="text-xs text-gray-500">
-                        @if ($uiWarehouse)
-                            {{ $uiWarehouse->name }}
-                            @if ($uiCompany) · {{ $uiCompany->name }} @endif
-                        @elseif ($uiCompany)
-                            {{ $uiCompany->name }}
+
+                {{-- Contexto: empresa + almacén --}}
+                @if($uiWarehouse || $uiCompany)
+                    <div class="hidden sm:flex items-center gap-1.5 rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs text-gray-600 leading-none">
+                        @if($uiCompany)
+                            <span class="text-gray-400">🏢</span>
+                            <span class="font-medium text-gray-700">{{ $uiCompany->name }}</span>
                         @endif
-                    </p>
-                </div>
-                <div class="h-8 w-8 rounded-full bg-indigo-100 text-indigo-700 font-semibold text-sm flex items-center justify-center select-none uppercase">
-                    {{ substr(auth()->user()->name, 0, 1) }}
+                        @if($uiWarehouse)
+                            @if($uiCompany)<span class="text-gray-300 select-none">·</span>@endif
+                            <span class="text-gray-400">📦</span>
+                            <span class="font-medium text-gray-700">{{ $uiWarehouse->name }}</span>
+                        @endif
+                    </div>
+                @endif
+
+                {{-- Usuario + avatar --}}
+                <div class="flex items-center gap-2">
+                    <p class="hidden sm:block text-sm font-medium text-gray-800 leading-none">{{ auth()->user()->name }}</p>
+                    <div class="h-8 w-8 rounded-full bg-indigo-100 text-indigo-700 font-semibold text-sm flex items-center justify-center select-none uppercase shrink-0">
+                        {{ substr(auth()->user()->name, 0, 1) }}
+                    </div>
                 </div>
             </div>
         </header>
@@ -122,5 +135,21 @@
 </div>
 
 @yield('scripts')
+<script>
+(function () {
+    const clockEl = document.getElementById('sidebar-clock');
+    const dateEl  = document.getElementById('sidebar-date');
+    if (!clockEl) return;
+
+    function tick() {
+        const now  = new Date();
+        clockEl.textContent = now.toLocaleTimeString('es-SV', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+        dateEl.textContent  = now.toLocaleDateString('es-SV', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' });
+    }
+
+    tick();
+    setInterval(tick, 1000);
+})();
+</script>
 </body>
 </html>

@@ -64,6 +64,9 @@ Route::middleware(['auth'])->group(function () {
                 Route::resource('customers', DteCustomerController::class);
             });
 
+            Route::get('products/check-unique', [ProductController::class, 'checkUnique'])
+                ->name('products.check-unique');
+
             Route::get('products/{product}/adjust', [ProductController::class, 'adjust'])
                 ->name('products.adjust');
 

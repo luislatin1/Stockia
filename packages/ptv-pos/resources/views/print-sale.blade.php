@@ -32,6 +32,42 @@
             background: #fff;
         }
         .toolbar p { margin: 0; font-size: 13px; color: #92400e; }
+        .change-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #ecfdf5;
+            border: 2px solid #10b981;
+            border-radius: 10px;
+            padding: 8px 20px;
+            min-width: 160px;
+        }
+        .change-box .change-label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            color: #059669;
+            margin-bottom: 2px;
+        }
+        .change-box .change-amount {
+            font-size: 26px;
+            font-weight: 800;
+            color: #065f46;
+            line-height: 1;
+        }
+        .change-box .change-sub {
+            font-size: 11px;
+            color: #6b7280;
+            margin-top: 3px;
+        }
+        .change-box.exact {
+            background: #f0f9ff;
+            border-color: #38bdf8;
+        }
+        .change-box.exact .change-label { color: #0284c7; }
+        .change-box.exact .change-amount { color: #0c4a6e; }
         .btn {
             border: 0;
             border-radius: 6px;
@@ -95,9 +131,33 @@
         }
     </style>
 </head>
+@php
+$cat014Labels = [
+    59 => 'Unidad', 58 => 'Kilogramo', 54 => 'Litro',
+    36 => 'Metro',  35 => 'Metro cuadrado', 33 => 'Caja',
+    34 => 'Docena', 99 => 'Servicio',
+];
+@endphp
 <body>
     <div class="toolbar">
-        <p>Venta #{{ $sale->id }} pendiente de impresion.</p>
+        {{-- Vuelto / Cambio --}}
+        @php
+            $cashReceived  = (float) ($sale->cash_received ?? 0);
+            $changeAmount  = (float) ($sale->change_amount ?? 0);
+            $saleTotal     = (float) ($sale->total ?? 0);
+            $isExact       = $changeAmount == 0;
+        @endphp
+        <div class="change-box {{ $isExact ? 'exact' : '' }}">
+            <span class="change-label">{{ $isExact ? 'Pago exacto' : '💵 Cambio a devolver' }}</span>
+            <span class="change-amount">${{ number_format($changeAmount, 2) }}</span>
+            <span class="change-sub">
+                Recibido ${{ number_format($cashReceived, 2) }} · Total ${{ number_format($saleTotal, 2) }}
+            </span>
+        </div>
+
+        <div style="flex:1"></div>
+
+        <p>Venta #{{ $sale->id }} pendiente de impresión.</p>
         <button type="button" class="btn btn-print" onclick="window.print()">Imprimir ahora</button>
         <a href="{{ route('ptvpos.sales.pdf', $sale->id) }}" target="_blank" class="btn btn-print" style="text-decoration: none;">Abrir PDF</a>
         <form method="POST" action="{{ route('ptvpos.sales.print.complete', $sale->id) }}">
@@ -159,7 +219,7 @@
                     <tr>
                         <td>{{ $item['numItem'] ?? '-' }}</td>
                         <td class="text-right">{{ number_format((float) ($item['cantidad'] ?? 0), 2, '.', ',') }}</td>
-                        <td>{{ $item['uniMedida'] ?? '-' }}</td>
+                        <td>{{ $cat014Labels[(int)($item['uniMedida'] ?? 59)] ?? ($item['uniMedida'] ?? '-') }}</td>
                         <td>{{ $item['descripcion'] ?? '-' }}</td>
                         <td class="text-right">{{ number_format((float) ($item['precioUni'] ?? 0), 2, '.', ',') }}</td>
                         <td class="text-right">{{ number_format((float) ($item['montoDescu'] ?? 0), 2, '.', ',') }}</td>

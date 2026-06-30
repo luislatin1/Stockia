@@ -98,9 +98,12 @@
                     <option value="factura" @selected(old('document_type') === 'factura')>Factura</option>
                 </select>
             </div>
-            <div>
+            <div id="tipo-dte-wrapper" class="hidden">
                 <label class="block text-sm font-medium text-gray-700">Tipo DTE</label>
-                <input type="text" id="tipo-dte" name="tipo_dte" value="{{ old('tipo_dte') }}" placeholder="01, 03, 05..." class="mt-1 w-full rounded border border-gray-300 px-3 py-2">
+                <select id="tipo-dte" name="tipo_dte" class="mt-1 w-full rounded border border-gray-300 px-3 py-2">
+                    <option value="01" @selected(old('tipo_dte', '01') === '01')>01 – Factura Electrónica</option>
+                    <option value="03" @selected(old('tipo_dte') === '03')>03 – Crédito Fiscal (CCF)</option>
+                </select>
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700">Cliente (opcional)</label>
@@ -447,17 +450,17 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    if (documentTypeInput && tipoDteInput && !tipoDteInput.value) {
-        tipoDteInput.value = documentTypeInput.value === 'factura' ? '01' : '';
+    const tipoDteWrapper = document.getElementById('tipo-dte-wrapper');
+
+    function syncTipoDte() {
+        if (!documentTypeInput || !tipoDteWrapper) return;
+        const isFactura = documentTypeInput.value === 'factura';
+        tipoDteWrapper.classList.toggle('hidden', !isFactura);
+        if (tipoDteInput && !isFactura) tipoDteInput.value = '';
     }
 
-    if (documentTypeInput && tipoDteInput) {
-        documentTypeInput.addEventListener('change', () => {
-            if (tipoDteInput.value.trim() === '' || tipoDteInput.value === '01') {
-                tipoDteInput.value = documentTypeInput.value === 'factura' ? '01' : '';
-            }
-        });
-    }
+    syncTipoDte();
+    if (documentTypeInput) documentTypeInput.addEventListener('change', syncTipoDte);
 
     barcodeInput.focus();
 });

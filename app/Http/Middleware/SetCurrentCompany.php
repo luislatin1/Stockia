@@ -44,6 +44,11 @@ class SetCurrentCompany
 
             if ($selectedCompany) {
                 app()->instance('currentCompany', $selectedCompany);
+
+                if ($selectedCompany->timezone) {
+                    config(['app.timezone' => $selectedCompany->timezone]);
+                    date_default_timezone_set($selectedCompany->timezone);
+                }
             }
         }
 
