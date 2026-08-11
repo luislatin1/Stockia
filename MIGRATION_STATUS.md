@@ -67,25 +67,38 @@ Fuente: [factura.gob.sv — Documentos Técnicos](https://factura.gob.sv/informa
 - Empresa: **SUPER Y DISTRIBUIDORA QUEZALTECA** (NIT 0512-280887-101-3, NRC 0000-0 — parece placeholder, revisar si es el NRC real)
 - Bodega: **Principal** (código `MAIN-1`, Quezaltepeque)
 - Usuario: LuisLatin (luislatinlflg@gmail.com), asignado a la empresa/bodega
-- Aún en 0: `dte_settings`, `dte_correlativos`, `products`, `customers`
+- Aún en 0: `dte_settings`, `dte_correlativos`, `customers` (el legacy `pos.cliente` solo tiene 1 fila genérica — sin data real que migrar, se recrean frescos en Stockia)
+- `products`: **1,617 filas** migradas desde `pos` (ver sección 7)
 
-## 7. Plan de migración de datos `pos` → `stockia` (análisis, sin ejecutar todavía)
+## 7. Migración de datos `pos` → `stockia` — implementada (2026-08-11)
 
-**Clientes:** `pos.cliente` solo tiene **1 fila** (cliente genérico) — no hay data real que migrar, se recrean frescos en Stockia.
+Las 5 decisiones quedaron resueltas así, e implementadas en migraciones nuevas + `app/Console/Commands/ImportLegacyPosData.php` (comando `php artisan legacy:import-pos`, idempotente — usa `legacy_id` en cada tabla para poder re-ejecutarse sin duplicar):
 
-**Productos — el trabajo real está aquí.** `pos` separa `producto` (maestro) de `presentacion_producto` (variantes: unidad/caja/fardo, cada una con su propio barcode y hasta 7 niveles de precio `precio`/`precio1`…`precio6`). `stockia.products` es plano: una fila = un producto, un solo `price`, sin categoría ni proveedor.
+1. **Multi-presentación:** se aplanó a una fila `product` por presentación, pero **solo contando presentaciones activas** (`activo=1`), con fallback a todas si un producto no tiene ninguna activa. Esto redujo el problema real de 97 productos a solo **3** con más de una fila — el análisis inicial (95 con 2, 2 con 3) contaba también presentaciones descontinuadas.
+2. **Multi-precio:** se migra solo `precio` base a `products.price`. No se construyó ninguna función de niveles de precio (no había caso de uso concreto para ella).
+3. **Categoría / Proveedor:** se crearon `categories` y `providers` (scoped a `company_id`, con `legacy_id` para trazabilidad), y `products.category_id`/`provider_id`. Estos modelos/tablas **no existían en absoluto** antes de esta sesión. Selects agregados a los formularios de crear/editar producto.
+4. **`tipo_item`/`uni_medida`:** default `tipo_item=1` (Bienes), `uni_medida=59` (Unidad) para todos los productos migrados.
+5. **`exento` → `afecto_iva`:** mapeo inverso directo, sin complicación (solo 1 de 1,614 productos era exento).
 
-Tamaño real del problema de multi-presentación: de 1,614 productos, **1,517 tienen 1 sola presentación** (migran 1:1 sin fricción), 95 tienen 2, y solo 2 tienen 3.
+**Histórico de ventas:** las 96,134 facturas y 412,743 líneas de `pos` se migraron como solo-consulta a `legacy_sales`/`legacy_sale_items`, desacopladas de `sales`/DTE (son casi todas tipo `TICKET` no-fiscal — no tiene sentido re-emitirlas como DTE). No hay pantalla nueva para navegarlas, solo quedan en BD para reportes futuros.
 
-Decisiones pendientes antes de escribir el script de migración, en orden de impacto:
+**Resultado de la importación** (verificado con `Model::count()`, corrido dos veces para confirmar idempotencia):
 
-1. **Multi-presentación (97 productos):** ¿cada presentación se separa en un `product` distinto, o solo se migra la principal?
-2. **Multi-precio (`precio1`…`precio6`):** Stockia no tiene niveles de precio por cliente. ¿Solo se usa `precio` base, o hay que diseñar esa función primero?
-3. **Categoría / Proveedor:** Stockia no tiene esas tablas hoy. Si se necesitan para reportes, crearlas antes de migrar.
-4. **`tipo_item` / `uni_medida` (catálogos DTE, nuevos):** `pos` no los tiene. Definir default para los 1,614 productos (ej. `tipo_item=1` Bienes, `uni_medida=59` Unidad).
-5. **`exento` → `afecto_iva`:** mapeo directo pero invertido (`afecto_iva = !exento`), sin complicación.
+| Tabla | Filas |
+|---|---|
+| `categories` | 37 |
+| `providers` | 95 |
+| `products` | 1,617 |
+| `legacy_sales` | 96,134 |
+| `legacy_sale_items` | 412,743 |
 
-**Pendiente de medir:** volumen/plan para las 96,134 facturas y 412,743 líneas de detalle de `pos` — ¿se migran como histórico de solo-consulta, o se re-emiten/reconstruyen como DTE?
+**Calidad de datos del legacy encontrada durante la importación** (no son bugs del import, son así en `pos`):
+- `producto.codart` (candidato natural a SKU) es casi inútil: 1,495 de 1,614 productos comparten el valor placeholder `"1"`. Por eso casi ningún producto migrado tiene `sku` real — el `codigo` DTE cae a `barcode` o a `PRD-{id}`.
+- La categoría `id_categoria=201` tenía `nombre_cat` vacío en el legacy → se nombró `"Categoría #201"`.
+- Dos productos ("AXION DISCO CAJA", "ZORRIK LAMINA DE AFEITAR") tienen dos presentaciones activas distintas con el mismo nombre de presentación ("CAJA"/"PAQUETE") pero distinto `unidad` — quedaron como 2 filas de apariencia idéntica en Stockia. Revisar manualmente si son de verdad dos variantes distintas o un duplicado de captura.
+- El stock inicial de las presentaciones secundarias (los 3 casos multi-fila) quedó en 0 — el legacy no reparte stock por presentación, solo por producto.
+
+Para reconectar contra otra copia de `pos` o re-ejecutar: variables `LEGACY_DB_*` en `.env` (ver `.env.example`), conexión `legacy` en `config/database.php`.
 
 ## Archivos tocados en esta sesión
 
