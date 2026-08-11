@@ -111,6 +111,28 @@
     </div>
 
     <div class="mb-4">
+        <label>Categoría</label>
+        @php $categoryOld = old('category_id', $product->category_id); @endphp
+        <select name="category_id" class="w-full border p-2 rounded">
+            <option value="">Sin categoría</option>
+            @foreach ($categories as $category)
+                <option value="{{ $category->id }}" @selected((string) $categoryOld === (string) $category->id)>{{ $category->nombre }}</option>
+            @endforeach
+        </select>
+    </div>
+
+    <div class="mb-4">
+        <label>Proveedor</label>
+        @php $providerOld = old('provider_id', $product->provider_id); @endphp
+        <select name="provider_id" class="w-full border p-2 rounded">
+            <option value="">Sin proveedor</option>
+            @foreach ($providers as $provider)
+                <option value="{{ $provider->id }}" @selected((string) $providerOld === (string) $provider->id)>{{ $provider->nombre }}</option>
+            @endforeach
+        </select>
+    </div>
+
+    <div class="mb-4">
         <label class="inline-flex items-center gap-2">
             <input type="checkbox" name="afecto_iva" value="1" {{ old('afecto_iva', $product->afecto_iva ?? true) ? 'checked' : '' }}>
             <span>Afecto IVA 13%</span>

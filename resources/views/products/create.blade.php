@@ -141,6 +141,28 @@
                 </div>
             </div>
 
+            {{-- Categoría + Proveedor (2 columnas) --}}
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
+                    <select name="category_id" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300">
+                        <option value="">Sin categoría</option>
+                        @foreach ($categories as $category)
+                            <option value="{{ $category->id }}" @selected((string) old('category_id') === (string) $category->id)>{{ $category->nombre }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Proveedor</label>
+                    <select name="provider_id" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300">
+                        <option value="">Sin proveedor</option>
+                        @foreach ($providers as $provider)
+                            <option value="{{ $provider->id }}" @selected((string) old('provider_id') === (string) $provider->id)>{{ $provider->nombre }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
+
             {{-- Afecto IVA --}}
             <div>
                 <label class="inline-flex items-center gap-2 cursor-pointer">

@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\Category;
 use App\Models\InventoryMovement;
 use App\Models\Product;
+use App\Models\Provider;
 use App\Models\Warehouse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -117,9 +119,12 @@ class ProductController extends Controller
 
     public function create()
     {
-        $this->currentContext();
+        [$companyId] = $this->currentContext();
 
-        return view('products.create');
+        $categories = Category::where('company_id', $companyId)->orderBy('nombre')->get();
+        $providers = Provider::where('company_id', $companyId)->orderBy('nombre')->get();
+
+        return view('products.create', compact('categories', 'providers'));
     }
 
     public function store(Request $request)
@@ -155,6 +160,14 @@ class ProductController extends Controller
             'uni_medida' => 'nullable|integer|min:1',
             'afecto_iva' => 'nullable|boolean',
             'min_stock' => 'nullable|integer|min:0',
+            'category_id' => [
+                'nullable',
+                Rule::exists('categories', 'id')->where(fn ($query) => $query->where('company_id', $companyId)),
+            ],
+            'provider_id' => [
+                'nullable',
+                Rule::exists('providers', 'id')->where(fn ($query) => $query->where('company_id', $companyId)),
+            ],
         ]);
 
         DB::transaction(function () use ($request, $companyId, $warehouseId) {
@@ -171,6 +184,8 @@ class ProductController extends Controller
                 'afecto_iva' => $request->boolean('afecto_iva', true),
                 'price' => $request->price,
                 'description' => $request->description,
+                'category_id' => $request->filled('category_id') ? (int) $request->category_id : null,
+                'provider_id' => $request->filled('provider_id') ? (int) $request->provider_id : null,
             ]);
 
             DB::table('product_warehouse')->insert([
@@ -207,7 +222,10 @@ class ProductController extends Controller
         [$companyId, $warehouseId] = $this->currentContext();
         $this->ensureProductContext($product, $companyId, $warehouseId);
 
-        return view('products.edit', compact('product'));
+        $categories = Category::where('company_id', $companyId)->orderBy('nombre')->get();
+        $providers = Provider::where('company_id', $companyId)->orderBy('nombre')->get();
+
+        return view('products.edit', compact('product', 'categories', 'providers'));
     }
 
     public function update(Request $request, Product $product)
@@ -247,6 +265,14 @@ class ProductController extends Controller
             'uni_medida' => 'nullable|integer|min:1',
             'afecto_iva' => 'nullable|boolean',
             'min_stock' => 'nullable|integer|min:0',
+            'category_id' => [
+                'nullable',
+                Rule::exists('categories', 'id')->where(fn ($query) => $query->where('company_id', $companyId)),
+            ],
+            'provider_id' => [
+                'nullable',
+                Rule::exists('providers', 'id')->where(fn ($query) => $query->where('company_id', $companyId)),
+            ],
         ]);
 
         DB::transaction(function () use ($request, $product, $warehouseId, $companyId) {
@@ -260,6 +286,8 @@ class ProductController extends Controller
                 'afecto_iva' => $request->boolean('afecto_iva', true),
                 'price' => $request->price,
                 'description' => $request->description,
+                'category_id' => $request->filled('category_id') ? (int) $request->category_id : null,
+                'provider_id' => $request->filled('provider_id') ? (int) $request->provider_id : null,
             ]);
 
             DB::table('product_warehouse')

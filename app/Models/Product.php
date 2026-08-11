@@ -24,6 +24,9 @@ class Product extends Model
         'afecto_iva',
         'price',
         'description',
+        'category_id',
+        'provider_id',
+        'legacy_id',
     ];
 
     protected $casts = [
@@ -61,6 +64,16 @@ class Product extends Model
         return $this->belongsToMany(Warehouse::class, 'product_warehouse')
             ->withPivot('stock', 'min_stock', 'cost')
             ->withTimestamps();
+    }
+
+    public function category()
+    {
+        return $this->belongsTo(Category::class);
+    }
+
+    public function provider()
+    {
+        return $this->belongsTo(Provider::class);
     }
 
     /*
