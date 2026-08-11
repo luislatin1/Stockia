@@ -1,34 +1,162 @@
 [
   {
+    "codigo": "1",
+    "descripcion": "metro"
+  },
+  {
+    "codigo": "2",
+    "descripcion": "Yarda 1"
+  },
+  {
+    "codigo": "6",
+    "descripcion": "milímetro"
+  },
+  {
+    "codigo": "9",
+    "descripcion": "kilómetro cuadrado"
+  },
+  {
+    "codigo": "10",
+    "descripcion": "Hectárea"
+  },
+  {
+    "codigo": "13",
+    "descripcion": "metro cuadrado"
+  },
+  {
+    "codigo": "15",
+    "descripcion": "Vara cuadrada 2"
+  },
+  {
+    "codigo": "18",
+    "descripcion": "metro cúbico"
+  },
+  {
+    "codigo": "20",
+    "descripcion": "Barril 3"
+  },
+  {
+    "codigo": "22",
+    "descripcion": "Galón 1, 4"
+  },
+  {
+    "codigo": "23",
+    "descripcion": "Litro"
+  },
+  {
+    "codigo": "24",
+    "descripcion": "Botella"
+  },
+  {
+    "codigo": "26",
+    "descripcion": "Mililitro"
+  },
+  {
+    "codigo": "30",
+    "descripcion": "Tonelada"
+  },
+  {
+    "codigo": "32",
+    "descripcion": "Quintal 1"
+  },
+  {
+    "codigo": "33",
+    "descripcion": "Arroba 1"
+  },
+  {
+    "codigo": "34",
+    "descripcion": "Kilogramo"
+  },
+  {
+    "codigo": "36",
+    "descripcion": "Libra 1"
+  },
+  {
+    "codigo": "37",
+    "descripcion": "Onza troy 5"
+  },
+  {
+    "codigo": "38",
+    "descripcion": "Onza 1"
+  },
+  {
+    "codigo": "39",
+    "descripcion": "Gramo"
+  },
+  {
+    "codigo": "40",
+    "descripcion": "Miligramo"
+  },
+  {
+    "codigo": "42",
+    "descripcion": "Megawatt"
+  },
+  {
+    "codigo": "43",
+    "descripcion": "Kilowatt"
+  },
+  {
+    "codigo": "44",
+    "descripcion": "Watt"
+  },
+  {
+    "codigo": "45",
+    "descripcion": "Megavoltio-amperio"
+  },
+  {
+    "codigo": "46",
+    "descripcion": "Kilovoltio-amperio"
+  },
+  {
+    "codigo": "47",
+    "descripcion": "Voltio-amperio"
+  },
+  {
+    "codigo": "49",
+    "descripcion": "Gigawatt-hora"
+  },
+  {
+    "codigo": "50",
+    "descripcion": "Megawatt-hora"
+  },
+  {
+    "codigo": "51",
+    "descripcion": "Kilowatt-hora"
+  },
+  {
+    "codigo": "52",
+    "descripcion": "Watt-hora"
+  },
+  {
+    "codigo": "53",
+    "descripcion": "Kilovoltio"
+  },
+  {
+    "codigo": "54",
+    "descripcion": "Voltio"
+  },
+  {
+    "codigo": "55",
+    "descripcion": "Millar"
+  },
+  {
+    "codigo": "56",
+    "descripcion": "Medio millar"
+  },
+  {
+    "codigo": "57",
+    "descripcion": "Ciento"
+  },
+  {
+    "codigo": "58",
+    "descripcion": "Docena"
+  },
+  {
     "codigo": "59",
     "descripcion": "Unidad"
   },
   {
-    "codigo": "58",
-    "descripcion": "Kilogramo"
-  },
-  {
-    "codigo": "54",
-    "descripcion": "Litro"
-  },
-  {
-    "codigo": "36",
-    "descripcion": "Metro"
-  },
-  {
-    "codigo": "35",
-    "descripcion": "Metro cuadrado"
-  },
-  {
-    "codigo": "33",
-    "descripcion": "Caja"
-  },
-  {
-    "codigo": "34",
-    "descripcion": "Docena"
-  },
-  {
     "codigo": "99",
-    "descripcion": "Servicio"
+    "descripcion": "Otra 6"
   }
 ]

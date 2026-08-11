@@ -1,11 +1,11 @@
 [
   {
     "codigo": "01",
-    "descripcion": "Casa Matriz"
+    "descripcion": "Sucursal"
   },
   {
     "codigo": "02",
-    "descripcion": "Sucursal"
+    "descripcion": "Casa Matriz"
   },
   {
     "codigo": "04",
@@ -13,6 +13,6 @@
   },
   {
     "codigo": "07",
-    "descripcion": "Otro"
+    "descripcion": "Patio"
   }
 ]

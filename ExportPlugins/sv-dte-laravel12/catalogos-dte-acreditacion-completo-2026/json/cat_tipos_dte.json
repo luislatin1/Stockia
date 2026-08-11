@@ -5,26 +5,50 @@
   },
   {
     "codigo": "03",
-    "descripcion": "Comprobante de Crédito Fiscal"
+    "descripcion": "Comprobante de crédito fiscal"
+  },
+  {
+    "codigo": "04",
+    "descripcion": "Nota de remisión"
   },
   {
     "codigo": "05",
-    "descripcion": "Nota de Crédito"
+    "descripcion": "Nota de crédito"
   },
   {
     "codigo": "06",
-    "descripcion": "Nota de Débito"
+    "descripcion": "Nota de débito"
   },
   {
     "codigo": "07",
-    "descripcion": "Comprobante de Retención"
+    "descripcion": "Comprobante de retención"
   },
   {
     "codigo": "08",
-    "descripcion": "Comprobante de Liquidación"
+    "descripcion": "Comprobante de liquidación"
   },
   {
     "codigo": "09",
-    "descripcion": "Documento Contable de Liquidación"
+    "descripcion": "Documento contable de liquidación"
+  },
+  {
+    "codigo": "11",
+    "descripcion": "Facturas de exportación"
+  },
+  {
+    "codigo": "14",
+    "descripcion": "Factura de sujeto excluido"
+  },
+  {
+    "codigo": "15",
+    "descripcion": "Comprobante de donación"
+  },
+  {
+    "codigo": "17",
+    "descripcion": "Evento de Operaciones Especiales"
+  },
+  {
+    "codigo": "18",
+    "descripcion": "Evento de Retorno"
   }
 ]

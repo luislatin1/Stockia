@@ -1,20 +1,30 @@
 {
   "departamentos": [
     {
+      "codigo": "00",
+      "nombre": "Otro (Para extranjeros)",
+      "municipios": [
+        {
+          "codigo": "00",
+          "nombre": "Otro (Para extranjeros)"
+        }
+      ]
+    },
+    {
       "codigo": "01",
       "nombre": "Ahuachapán",
       "municipios": [
         {
-          "codigo": "01",
-          "nombre": "Ahuachapán Centro"
+          "codigo": "13",
+          "nombre": "AHUACHAPAN NORTE"
         },
         {
-          "codigo": "02",
-          "nombre": "Ahuachapán Norte"
+          "codigo": "14",
+          "nombre": "AHUACHAPAN CENTRO"
         },
         {
-          "codigo": "03",
-          "nombre": "Ahuachapán Sur"
+          "codigo": "15",
+          "nombre": "AHUACHAPAN SUR"
         }
       ]
     },
@@ -23,20 +33,20 @@
       "nombre": "Santa Ana",
       "municipios": [
         {
-          "codigo": "01",
-          "nombre": "Santa Ana Centro"
+          "codigo": "14",
+          "nombre": "SANTA ANA NORTE"
         },
         {
-          "codigo": "02",
-          "nombre": "Santa Ana Norte"
+          "codigo": "15",
+          "nombre": "SANTA ANA CENTRO"
         },
         {
-          "codigo": "03",
-          "nombre": "Santa Ana Este"
+          "codigo": "16",
+          "nombre": "SANTA ANA ESTE"
         },
         {
-          "codigo": "04",
-          "nombre": "Santa Ana Oeste"
+          "codigo": "17",
+          "nombre": "SANTA ANA OESTE"
         }
       ]
     },
@@ -45,20 +55,20 @@
       "nombre": "Sonsonate",
       "municipios": [
         {
-          "codigo": "01",
-          "nombre": "Sonsonate Norte"
+          "codigo": "17",
+          "nombre": "SONSONATE NORTE"
         },
         {
-          "codigo": "02",
-          "nombre": "Sonsonate Centro"
+          "codigo": "18",
+          "nombre": "SONSONATE CENTRO"
         },
         {
-          "codigo": "03",
-          "nombre": "Sonsonate Este"
+          "codigo": "19",
+          "nombre": "SONSONATE ESTE"
         },
         {
-          "codigo": "04",
-          "nombre": "Sonsonate Oeste"
+          "codigo": "20",
+          "nombre": "SONSONATE OESTE"
         }
       ]
     },
@@ -67,16 +77,16 @@
       "nombre": "Chalatenango",
       "municipios": [
         {
-          "codigo": "01",
-          "nombre": "Chalatenango Norte"
+          "codigo": "34",
+          "nombre": "CHALATENANGO NORTE"
         },
         {
-          "codigo": "02",
-          "nombre": "Chalatenango Centro"
+          "codigo": "35",
+          "nombre": "CHALATENANGO CENTRO"
         },
         {
-          "codigo": "03",
-          "nombre": "Chalatenango Sur"
+          "codigo": "36",
+          "nombre": "CHALATENANGO SUR"
         }
       ]
     },
@@ -85,24 +95,28 @@
       "nombre": "La Libertad",
       "municipios": [
         {
-          "codigo": "01",
-          "nombre": "La Libertad Norte"
+          "codigo": "23",
+          "nombre": "LA LIBERTAD NORTE"
         },
         {
-          "codigo": "02",
-          "nombre": "La Libertad Centro"
+          "codigo": "24",
+          "nombre": "LA LIBERTAD CENTRO"
         },
         {
-          "codigo": "03",
-          "nombre": "La Libertad Oeste"
+          "codigo": "25",
+          "nombre": "LA LIBERTAD OESTE"
         },
         {
-          "codigo": "04",
-          "nombre": "La Libertad Este"
+          "codigo": "26",
+          "nombre": "LA LIBERTAD ESTE"
         },
         {
-          "codigo": "05",
-          "nombre": "La Libertad Costa"
+          "codigo": "27",
+          "nombre": "LA LIBERTAD COSTA"
+        },
+        {
+          "codigo": "28",
+          "nombre": "LA LIBERTAD SUR"
         }
       ]
     },
@@ -111,24 +125,24 @@
       "nombre": "San Salvador",
       "municipios": [
         {
-          "codigo": "01",
-          "nombre": "San Salvador Centro"
+          "codigo": "20",
+          "nombre": "SAN SALVADOR NORTE"
         },
         {
-          "codigo": "02",
-          "nombre": "San Salvador Norte"
+          "codigo": "21",
+          "nombre": "SAN SALVADOR OESTE"
         },
         {
-          "codigo": "03",
-          "nombre": "San Salvador Oeste"
+          "codigo": "22",
+          "nombre": "SAN SALVADOR ESTE"
         },
         {
-          "codigo": "04",
-          "nombre": "San Salvador Este"
+          "codigo": "23",
+          "nombre": "SAN SALVADOR CENTRO"
         },
         {
-          "codigo": "05",
-          "nombre": "San Salvador Sur"
+          "codigo": "24",
+          "nombre": "SAN SALVADOR SUR"
         }
       ]
     },
@@ -137,12 +151,12 @@
       "nombre": "Cuscatlán",
       "municipios": [
         {
-          "codigo": "01",
-          "nombre": "Cuscatlán Norte"
+          "codigo": "17",
+          "nombre": "CUSCATLAN NORTE"
         },
         {
-          "codigo": "02",
-          "nombre": "Cuscatlán Sur"
+          "codigo": "18",
+          "nombre": "CUSCATLAN SUR"
         }
       ]
     },
@@ -151,16 +165,16 @@
       "nombre": "La Paz",
       "municipios": [
         {
-          "codigo": "01",
-          "nombre": "La Paz Oeste"
+          "codigo": "23",
+          "nombre": "LA PAZ OESTE"
         },
         {
-          "codigo": "02",
-          "nombre": "La Paz Centro"
+          "codigo": "24",
+          "nombre": "LA PAZ CENTRO"
         },
         {
-          "codigo": "03",
-          "nombre": "La Paz Este"
+          "codigo": "25",
+          "nombre": "LA PAZ ESTE"
         }
       ]
     },
@@ -169,12 +183,12 @@
       "nombre": "Cabañas",
       "municipios": [
         {
-          "codigo": "01",
-          "nombre": "Cabañas Este"
+          "codigo": "10",
+          "nombre": "CABAÑAS ESTE"
         },
         {
-          "codigo": "02",
-          "nombre": "Cabañas Oeste"
+          "codigo": "11",
+          "nombre": "CABAÑAS OESTE"
         }
       ]
     },
@@ -183,12 +197,12 @@
       "nombre": "San Vicente",
       "municipios": [
         {
-          "codigo": "01",
-          "nombre": "San Vicente Norte"
+          "codigo": "14",
+          "nombre": "SAN VICENTE NORTE"
         },
         {
-          "codigo": "02",
-          "nombre": "San Vicente Sur"
+          "codigo": "15",
+          "nombre": "SAN VICENTE SUR"
         }
       ]
     },
@@ -197,16 +211,16 @@
       "nombre": "Usulután",
       "municipios": [
         {
-          "codigo": "01",
-          "nombre": "Usulután Norte"
+          "codigo": "24",
+          "nombre": "USULUTAN NORTE"
         },
         {
-          "codigo": "02",
-          "nombre": "Usulután Este"
+          "codigo": "25",
+          "nombre": "USULUTAN ESTE"
         },
         {
-          "codigo": "03",
-          "nombre": "Usulután Oeste"
+          "codigo": "26",
+          "nombre": "USULUTAN OESTE"
         }
       ]
     },
@@ -215,16 +229,16 @@
       "nombre": "San Miguel",
       "municipios": [
         {
-          "codigo": "01",
-          "nombre": "San Miguel Norte"
+          "codigo": "21",
+          "nombre": "SAN MIGUEL NORTE"
         },
         {
-          "codigo": "02",
-          "nombre": "San Miguel Centro"
+          "codigo": "22",
+          "nombre": "SAN MIGUEL CENTRO"
         },
         {
-          "codigo": "03",
-          "nombre": "San Miguel Oeste"
+          "codigo": "23",
+          "nombre": "SAN MIGUEL OESTE"
         }
       ]
     },
@@ -233,12 +247,12 @@
       "nombre": "Morazán",
       "municipios": [
         {
-          "codigo": "01",
-          "nombre": "Morazán Norte"
+          "codigo": "27",
+          "nombre": "MORAZAN NORTE"
         },
         {
-          "codigo": "02",
-          "nombre": "Morazán Sur"
+          "codigo": "28",
+          "nombre": "MORAZAN SUR"
         }
       ]
     },
@@ -247,12 +261,12 @@
       "nombre": "La Unión",
       "municipios": [
         {
-          "codigo": "01",
-          "nombre": "La Unión Norte"
+          "codigo": "19",
+          "nombre": "LA UNION NORTE"
         },
         {
-          "codigo": "02",
-          "nombre": "La Unión Sur"
+          "codigo": "20",
+          "nombre": "LA UNION SUR"
         }
       ]
     }

@@ -1,18 +1,14 @@
 [
   {
     "codigo": "1",
-    "descripcion": "Error en datos del receptor"
+    "descripcion": "Error en la Información del Documento Tributario Electrónico a invalidar."
   },
   {
     "codigo": "2",
-    "descripcion": "Error en montos"
+    "descripcion": "Rescindir de la operación realizada."
   },
   {
     "codigo": "3",
-    "descripcion": "Documento emitido por error"
-  },
-  {
-    "codigo": "4",
-    "descripcion": "Operación anulada"
+    "descripcion": "Otro"
   }
 ]

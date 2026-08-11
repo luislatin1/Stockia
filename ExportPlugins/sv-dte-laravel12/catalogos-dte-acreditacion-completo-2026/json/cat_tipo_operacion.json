@@ -1,10 +1,10 @@
 [
   {
-    "codigo": "1",
-    "descripcion": "Transmisión Normal"
+    "codigo": "02",
+    "descripcion": "Factura de venta simplificada"
   },
   {
-    "codigo": "2",
-    "descripcion": "Transmisión por Contingencia"
+    "codigo": "97",
+    "descripcion": "Comprobantes de Control Interno"
   }
 ]

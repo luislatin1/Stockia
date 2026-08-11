@@ -1,11 +1,15 @@
 [
   {
+    "codigo": "36",
+    "descripcion": "NIT"
+  },
+  {
     "codigo": "13",
     "descripcion": "DUI"
   },
   {
-    "codigo": "36",
-    "descripcion": "NIT"
+    "codigo": "37",
+    "descripcion": "Otro"
   },
   {
     "codigo": "03",
@@ -13,10 +17,6 @@
   },
   {
     "codigo": "02",
-    "descripcion": "Carné de Residente"
-  },
-  {
-    "codigo": "37",
-    "descripcion": "Documento extranjero"
+    "descripcion": "Carnet de Residente"
   }
 ]
