@@ -1,0 +1,42 @@
+{
+  "pais": "El Salvador",
+  "sistema": "Documentos Tributarios Electrónicos (DTE)",
+  "version_referencia": "Catálogos del Sistema de Transmisión v1.2 (10/2025)",
+  "incluidos": [
+    "CAT-001",
+    "CAT-002",
+    "CAT-003",
+    "CAT-004",
+    "CAT-005",
+    "CAT-006",
+    "CAT-007",
+    "CAT-008",
+    "CAT-009",
+    "CAT-010",
+    "CAT-011",
+    "CAT-012",
+    "CAT-013",
+    "CAT-014",
+    "CAT-015",
+    "CAT-016",
+    "CAT-017",
+    "CAT-018",
+    "CAT-021",
+    "CAT-022",
+    "CAT-023",
+    "CAT-024",
+    "CAT-025",
+    "CAT-026",
+    "CAT-027",
+    "CAT-028",
+    "CAT-029",
+    "CAT-030",
+    "CAT-031",
+    "CAT-032"
+  ],
+  "excluidos": {
+    "CAT-019": "Actividad Económica — solicitado aparte como CSV extenso",
+    "CAT-020": "País — no incluido en esta entrega para evitar afirmar una transcripción completa sin una fuente oficial descargable verificable"
+  },
+  "nota": "CAT-008 aparece como catálogo eliminado. CAT-013 contiene los municipios/códigos tal como aparecen en la referencia v1.2; el Distrito se registra en el campo Complemento de la dirección."
+}

@@ -1,0 +1,18 @@
+{
+  "nombre": "Retención IVA MH",
+  "version_referencia": "1.2",
+  "datos": [
+    {
+      "codigo": "22",
+      "descripcion": "Retención IVA 1%"
+    },
+    {
+      "codigo": "C4",
+      "descripcion": "Retención IVA 13%"
+    },
+    {
+      "codigo": "C9",
+      "descripcion": "Otras retenciones IVA casos especiales"
+    }
+  ]
+}

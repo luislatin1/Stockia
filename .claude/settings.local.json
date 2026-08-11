@@ -44,7 +44,30 @@
       "Bash(git -C /home/luisl/Stockia config user.name)",
       "Skill(artifact-design)",
       "Skill(artifact-design:*)",
-      "Bash(grep \"^  GET.*\\\\/$\\\\|^  GET.*root\\\\| / \")"
+      "Bash(grep \"^  GET.*\\\\/$\\\\|^  GET.*root\\\\| / \")",
+      "Bash(mysqladmin ping *)",
+      "Bash(service mysql *)",
+      "Bash(systemctl status *)",
+      "Bash(journalctl -u mariadb -n 50 --no-pager)",
+      "Bash(sudo journalctl -u mariadb -n 60 --no-pager)",
+      "Read(//var/log/mysql/**)",
+      "Bash(sudo -S systemctl start mariadb)",
+      "Bash(echo \"exit:$?\")",
+      "Bash(sudo -S journalctl -xeu mariadb.service -n 80 --no-pager)",
+      "Read(//run/**)",
+      "Bash(systemctl cat *)",
+      "Read(//usr/lib/tmpfiles.d/**)",
+      "Bash(sudo -S systemd-tmpfiles --create /usr/lib/tmpfiles.d/mariadb.conf)",
+      "Bash(systemctl is-active *)",
+      "Bash(php -v)",
+      "Bash(nohup php artisan serve --host=127.0.0.1 --port=8000)",
+      "Bash(disown)",
+      "Bash(nohup npm run dev)",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" http://127.0.0.1:8000/)",
+      "Bash(curl -s http://127.0.0.1:8000/)",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" http://127.0.0.1:8000/login)",
+      "Bash(curl -s http://127.0.0.1:8000/login)",
+      "Bash(curl -s -o /dev/null -w \"login HTTP %{http_code}\\\\n\" http://127.0.0.1:8000/login)"
     ]
   }
 }

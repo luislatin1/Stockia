@@ -1,0 +1,18 @@
+{
+  "nombre": "Plazo",
+  "version_referencia": "1.2",
+  "datos": [
+    {
+      "codigo": "01",
+      "descripcion": "Días"
+    },
+    {
+      "codigo": "02",
+      "descripcion": "Meses"
+    },
+    {
+      "codigo": "03",
+      "descripcion": "Años"
+    }
+  ]
+}

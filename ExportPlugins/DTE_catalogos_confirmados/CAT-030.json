@@ -1,0 +1,30 @@
+{
+  "nombre": "Transporte",
+  "version_referencia": "1.2",
+  "datos": [
+    {
+      "codigo": "1",
+      "descripcion": "TERRESTRE"
+    },
+    {
+      "codigo": "2",
+      "descripcion": "AÉREO"
+    },
+    {
+      "codigo": "3",
+      "descripcion": "MARÍTIMO"
+    },
+    {
+      "codigo": "4",
+      "descripcion": "FERREO"
+    },
+    {
+      "codigo": "5",
+      "descripcion": "MULTIMODAL"
+    },
+    {
+      "codigo": "6",
+      "descripcion": "CORREO"
+    }
+  ]
+}

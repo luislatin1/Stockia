@@ -1,0 +1,14 @@
+{
+  "nombre": "Tipo de Transmisión",
+  "version_referencia": "1.2",
+  "datos": [
+    {
+      "codigo": "1",
+      "descripcion": "Transmisión normal"
+    },
+    {
+      "codigo": "2",
+      "descripcion": "Transmisión por contingencia"
+    }
+  ]
+}

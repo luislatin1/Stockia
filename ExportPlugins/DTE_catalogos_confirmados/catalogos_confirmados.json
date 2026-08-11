@@ -1,0 +1,1669 @@
+{
+  "metadata": {
+    "pais": "El Salvador",
+    "sistema": "Documentos Tributarios Electrónicos (DTE)",
+    "version_referencia": "Catálogos del Sistema de Transmisión v1.2 (10/2025)",
+    "incluidos": [
+      "CAT-001",
+      "CAT-002",
+      "CAT-003",
+      "CAT-004",
+      "CAT-005",
+      "CAT-006",
+      "CAT-007",
+      "CAT-008",
+      "CAT-009",
+      "CAT-010",
+      "CAT-011",
+      "CAT-012",
+      "CAT-013",
+      "CAT-014",
+      "CAT-015",
+      "CAT-016",
+      "CAT-017",
+      "CAT-018",
+      "CAT-021",
+      "CAT-022",
+      "CAT-023",
+      "CAT-024",
+      "CAT-025",
+      "CAT-026",
+      "CAT-027",
+      "CAT-028",
+      "CAT-029",
+      "CAT-030",
+      "CAT-031",
+      "CAT-032"
+    ],
+    "excluidos": {
+      "CAT-019": "Actividad Económica — solicitado aparte como CSV extenso",
+      "CAT-020": "País — no incluido en esta entrega para evitar afirmar una transcripción completa sin una fuente oficial descargable verificable"
+    },
+    "nota": "CAT-008 aparece como catálogo eliminado. CAT-013 contiene los municipios/códigos tal como aparecen en la referencia v1.2; el Distrito se registra en el campo Complemento de la dirección."
+  },
+  "catalogos": {
+    "CAT-001": {
+      "nombre": "Ambiente de destino",
+      "version_referencia": "1.2",
+      "datos": [
+        {
+          "codigo": "00",
+          "descripcion": "Modo prueba"
+        },
+        {
+          "codigo": "01",
+          "descripcion": "Modo producción"
+        }
+      ]
+    },
+    "CAT-002": {
+      "nombre": "Tipo de Documento",
+      "version_referencia": "1.2",
+      "datos": [
+        {
+          "codigo": "01",
+          "descripcion": "Factura"
+        },
+        {
+          "codigo": "03",
+          "descripcion": "Comprobante de crédito fiscal"
+        },
+        {
+          "codigo": "04",
+          "descripcion": "Nota de remisión"
+        },
+        {
+          "codigo": "05",
+          "descripcion": "Nota de crédito"
+        },
+        {
+          "codigo": "06",
+          "descripcion": "Nota de débito"
+        },
+        {
+          "codigo": "07",
+          "descripcion": "Comprobante de retención"
+        },
+        {
+          "codigo": "08",
+          "descripcion": "Comprobante de liquidación"
+        },
+        {
+          "codigo": "09",
+          "descripcion": "Documento contable de liquidación"
+        },
+        {
+          "codigo": "11",
+          "descripcion": "Facturas de exportación"
+        },
+        {
+          "codigo": "14",
+          "descripcion": "Factura de sujeto excluido"
+        },
+        {
+          "codigo": "15",
+          "descripcion": "Comprobante de donación"
+        }
+      ]
+    },
+    "CAT-003": {
+      "nombre": "Modelo de Facturación",
+      "version_referencia": "1.2",
+      "datos": [
+        {
+          "codigo": "1",
+          "descripcion": "Modelo Facturación previo"
+        },
+        {
+          "codigo": "2",
+          "descripcion": "Modelo Facturación diferido"
+        }
+      ]
+    },
+    "CAT-004": {
+      "nombre": "Tipo de Transmisión",
+      "version_referencia": "1.2",
+      "datos": [
+        {
+          "codigo": "1",
+          "descripcion": "Transmisión normal"
+        },
+        {
+          "codigo": "2",
+          "descripcion": "Transmisión por contingencia"
+        }
+      ]
+    },
+    "CAT-005": {
+      "nombre": "Tipo de Contingencia",
+      "version_referencia": "1.2",
+      "datos": [
+        {
+          "codigo": "1",
+          "descripcion": "No disponibilidad de sistema del MH"
+        },
+        {
+          "codigo": "2",
+          "descripcion": "No disponibilidad de sistema del emisor"
+        },
+        {
+          "codigo": "3",
+          "descripcion": "Falla en el suministro de servicio de Internet del Emisor"
+        },
+        {
+          "codigo": "4",
+          "descripcion": "Falla en el suministro de servicio de energía eléctrica del emisor que impida la transmisión de los DTE"
+        },
+        {
+          "codigo": "5",
+          "descripcion": "Otro (deberá digitar un máximo de 500 caracteres explicando el motivo)"
+        }
+      ]
+    },
+    "CAT-006": {
+      "nombre": "Retención IVA MH",
+      "version_referencia": "1.2",
+      "datos": [
+        {
+          "codigo": "22",
+          "descripcion": "Retención IVA 1%"
+        },
+        {
+          "codigo": "C4",
+          "descripcion": "Retención IVA 13%"
+        },
+        {
+          "codigo": "C9",
+          "descripcion": "Otras retenciones IVA casos especiales"
+        }
+      ]
+    },
+    "CAT-007": {
+      "nombre": "Tipo de Generación del Documento",
+      "version_referencia": "1.2",
+      "datos": [
+        {
+          "codigo": "1",
+          "descripcion": "Físico"
+        },
+        {
+          "codigo": "2",
+          "descripcion": "Electrónico"
+        }
+      ]
+    },
+    "CAT-008": {
+      "nombre": "Catálogo eliminado",
+      "version_referencia": "1.2",
+      "datos": []
+    },
+    "CAT-009": {
+      "nombre": "Tipo de establecimiento",
+      "version_referencia": "1.2",
+      "datos": [
+        {
+          "codigo": "01",
+          "descripcion": "Sucursal"
+        },
+        {
+          "codigo": "02",
+          "descripcion": "Casa Matriz"
+        },
+        {
+          "codigo": "04",
+          "descripcion": "Bodega"
+        },
+        {
+          "codigo": "07",
+          "descripcion": "Patio"
+        }
+      ]
+    },
+    "CAT-010": {
+      "nombre": "Código tipo de Servicio (Médico)",
+      "version_referencia": "1.2",
+      "datos": [
+        {
+          "codigo": "1",
+          "descripcion": "Cirugía"
+        },
+        {
+          "codigo": "2",
+          "descripcion": "Operación"
+        },
+        {
+          "codigo": "3",
+          "descripcion": "Tratamiento médico"
+        },
+        {
+          "codigo": "4",
+          "descripcion": "Cirugía instituto salvadoreño de Bienestar Magisterial"
+        },
+        {
+          "codigo": "5",
+          "descripcion": "Operación Instituto Salvadoreño de Bienestar Magisterial"
+        },
+        {
+          "codigo": "6",
+          "descripcion": "Tratamiento médico Instituto Salvadoreño de Bienestar Magisterial"
+        }
+      ]
+    },
+    "CAT-011": {
+      "nombre": "Tipo de ítem",
+      "version_referencia": "1.2",
+      "datos": [
+        {
+          "codigo": "1",
+          "descripcion": "Bienes"
+        },
+        {
+          "codigo": "2",
+          "descripcion": "Servicios"
+        },
+        {
+          "codigo": "3",
+          "descripcion": "Ambos (Bienes y Servicios, incluye los dos inherente a los Productos o servicios)"
+        },
+        {
+          "codigo": "4",
+          "descripcion": "Otros tributos por ítem"
+        }
+      ]
+    },
+    "CAT-012": {
+      "nombre": "Departamento",
+      "version_referencia": "1.2",
+      "datos": [
+        {
+          "codigo": "00",
+          "descripcion": "Otro (Para extranjeros)"
+        },
+        {
+          "codigo": "01",
+          "descripcion": "Ahuachapán"
+        },
+        {
+          "codigo": "02",
+          "descripcion": "Santa Ana"
+        },
+        {
+          "codigo": "03",
+          "descripcion": "Sonsonate"
+        },
+        {
+          "codigo": "04",
+          "descripcion": "Chalatenango"
+        },
+        {
+          "codigo": "05",
+          "descripcion": "La Libertad"
+        },
+        {
+          "codigo": "06",
+          "descripcion": "San Salvador"
+        },
+        {
+          "codigo": "07",
+          "descripcion": "Cuscatlán"
+        },
+        {
+          "codigo": "08",
+          "descripcion": "La Paz"
+        },
+        {
+          "codigo": "09",
+          "descripcion": "Cabañas"
+        },
+        {
+          "codigo": "10",
+          "descripcion": "San Vicente"
+        },
+        {
+          "codigo": "11",
+          "descripcion": "Usulután"
+        },
+        {
+          "codigo": "12",
+          "descripcion": "San Miguel"
+        },
+        {
+          "codigo": "13",
+          "descripcion": "Morazán"
+        },
+        {
+          "codigo": "14",
+          "descripcion": "La Unión"
+        }
+      ]
+    },
+    "CAT-013": {
+      "nombre": "Municipio",
+      "version_referencia": "1.2",
+      "datos": [
+        {
+          "codigo": "00",
+          "descripcion": "Otro (Para extranjeros)"
+        },
+        {
+          "codigo": "13",
+          "descripcion": "AHUACHAPAN NORTE"
+        },
+        {
+          "codigo": "14",
+          "descripcion": "AHUACHAPAN CENTRO"
+        },
+        {
+          "codigo": "15",
+          "descripcion": "AHUACHAPAN SUR"
+        },
+        {
+          "codigo": "14",
+          "descripcion": "SANTA ANA NORTE"
+        },
+        {
+          "codigo": "15",
+          "descripcion": "SANTA ANA CENTRO"
+        },
+        {
+          "codigo": "16",
+          "descripcion": "SANTA ANA ESTE"
+        },
+        {
+          "codigo": "17",
+          "descripcion": "SANTA ANA OESTE"
+        },
+        {
+          "codigo": "17",
+          "descripcion": "SONSONATE NORTE"
+        },
+        {
+          "codigo": "18",
+          "descripcion": "SONSONATE CENTRO"
+        },
+        {
+          "codigo": "19",
+          "descripcion": "SONSONATE ESTE"
+        },
+        {
+          "codigo": "20",
+          "descripcion": "SONSONATE OESTE"
+        },
+        {
+          "codigo": "34",
+          "descripcion": "CHALATENANGO NORTE"
+        },
+        {
+          "codigo": "35",
+          "descripcion": "CHALATENANGO CENTRO"
+        },
+        {
+          "codigo": "36",
+          "descripcion": "CHALATENANGO SUR"
+        },
+        {
+          "codigo": "23",
+          "descripcion": "LA LIBERTAD NORTE"
+        },
+        {
+          "codigo": "24",
+          "descripcion": "LA LIBERTAD CENTRO"
+        },
+        {
+          "codigo": "25",
+          "descripcion": "LA LIBERTAD OESTE"
+        },
+        {
+          "codigo": "26",
+          "descripcion": "LA LIBERTAD ESTE"
+        },
+        {
+          "codigo": "27",
+          "descripcion": "LA LIBERTAD COSTA"
+        },
+        {
+          "codigo": "28",
+          "descripcion": "LA LIBERTAD SUR"
+        },
+        {
+          "codigo": "20",
+          "descripcion": "SAN SALVADOR NORTE"
+        },
+        {
+          "codigo": "21",
+          "descripcion": "SAN SALVADOR OESTE"
+        },
+        {
+          "codigo": "22",
+          "descripcion": "SAN SALVADOR ESTE"
+        },
+        {
+          "codigo": "23",
+          "descripcion": "SAN SALVADOR CENTRO"
+        },
+        {
+          "codigo": "24",
+          "descripcion": "SAN SALVADOR SUR"
+        },
+        {
+          "codigo": "17",
+          "descripcion": "CUSCATLAN NORTE"
+        },
+        {
+          "codigo": "18",
+          "descripcion": "CUSCATLAN SUR"
+        },
+        {
+          "codigo": "23",
+          "descripcion": "LA PAZ OESTE"
+        },
+        {
+          "codigo": "24",
+          "descripcion": "LA PAZ CENTRO"
+        },
+        {
+          "codigo": "25",
+          "descripcion": "LA PAZ ESTE"
+        },
+        {
+          "codigo": "10",
+          "descripcion": "CABAÑAS OESTE"
+        },
+        {
+          "codigo": "11",
+          "descripcion": "CABAÑAS ESTE"
+        },
+        {
+          "codigo": "14",
+          "descripcion": "SAN VICENTE NORTE"
+        },
+        {
+          "codigo": "15",
+          "descripcion": "SAN VICENTE SUR"
+        },
+        {
+          "codigo": "24",
+          "descripcion": "USULUTAN NORTE"
+        },
+        {
+          "codigo": "25",
+          "descripcion": "USULUTAN ESTE"
+        },
+        {
+          "codigo": "26",
+          "descripcion": "USULUTAN OESTE"
+        },
+        {
+          "codigo": "21",
+          "descripcion": "SAN MIGUEL NORTE"
+        },
+        {
+          "codigo": "22",
+          "descripcion": "SAN MIGUEL CENTRO"
+        },
+        {
+          "codigo": "23",
+          "descripcion": "SAN MIGUEL OESTE"
+        },
+        {
+          "codigo": "27",
+          "descripcion": "MORAZAN NORTE"
+        },
+        {
+          "codigo": "28",
+          "descripcion": "MORAZAN SUR"
+        },
+        {
+          "codigo": "19",
+          "descripcion": "LA UNION NORTE"
+        },
+        {
+          "codigo": "20",
+          "descripcion": "LA UNION SUR"
+        }
+      ]
+    },
+    "CAT-014": {
+      "nombre": "Unidad de Medida",
+      "version_referencia": "1.2",
+      "datos": [
+        {
+          "codigo": "1",
+          "descripcion": "metro"
+        },
+        {
+          "codigo": "2",
+          "descripcion": "Yarda"
+        },
+        {
+          "codigo": "6",
+          "descripcion": "milímetro"
+        },
+        {
+          "codigo": "9",
+          "descripcion": "kilómetro cuadrado"
+        },
+        {
+          "codigo": "10",
+          "descripcion": "Hectárea"
+        },
+        {
+          "codigo": "13",
+          "descripcion": "metro cuadrado"
+        },
+        {
+          "codigo": "15",
+          "descripcion": "Vara cuadrada"
+        },
+        {
+          "codigo": "18",
+          "descripcion": "metro cúbico"
+        },
+        {
+          "codigo": "20",
+          "descripcion": "Barril"
+        },
+        {
+          "codigo": "22",
+          "descripcion": "Galón"
+        },
+        {
+          "codigo": "23",
+          "descripcion": "Litro"
+        },
+        {
+          "codigo": "24",
+          "descripcion": "Botella"
+        },
+        {
+          "codigo": "26",
+          "descripcion": "Mililitro"
+        },
+        {
+          "codigo": "30",
+          "descripcion": "Tonelada"
+        },
+        {
+          "codigo": "32",
+          "descripcion": "Quintal"
+        },
+        {
+          "codigo": "33",
+          "descripcion": "Arroba"
+        },
+        {
+          "codigo": "34",
+          "descripcion": "Kilogramo"
+        },
+        {
+          "codigo": "36",
+          "descripcion": "Libra"
+        },
+        {
+          "codigo": "37",
+          "descripcion": "Onza Troy"
+        },
+        {
+          "codigo": "38",
+          "descripcion": "Onza"
+        },
+        {
+          "codigo": "39",
+          "descripcion": "Gramo"
+        },
+        {
+          "codigo": "40",
+          "descripcion": "Miligramo"
+        },
+        {
+          "codigo": "42",
+          "descripcion": "Megawatt"
+        },
+        {
+          "codigo": "43",
+          "descripcion": "Kilowatt"
+        },
+        {
+          "codigo": "44",
+          "descripcion": "Watt"
+        },
+        {
+          "codigo": "45",
+          "descripcion": "Megavoltio-amperio"
+        },
+        {
+          "codigo": "46",
+          "descripcion": "Kilovoltio-amperio"
+        },
+        {
+          "codigo": "47",
+          "descripcion": "Voltio-amperio"
+        },
+        {
+          "codigo": "49",
+          "descripcion": "Gigawatt-hora"
+        },
+        {
+          "codigo": "50",
+          "descripcion": "Megawatt-hora"
+        },
+        {
+          "codigo": "51",
+          "descripcion": "Kilowatt-hora"
+        },
+        {
+          "codigo": "52",
+          "descripcion": "Watt-hora"
+        },
+        {
+          "codigo": "53",
+          "descripcion": "Kilovoltio"
+        },
+        {
+          "codigo": "54",
+          "descripcion": "Voltio"
+        },
+        {
+          "codigo": "55",
+          "descripcion": "Millar"
+        },
+        {
+          "codigo": "56",
+          "descripcion": "Medio millar"
+        },
+        {
+          "codigo": "57",
+          "descripcion": "Ciento"
+        },
+        {
+          "codigo": "58",
+          "descripcion": "Docena"
+        },
+        {
+          "codigo": "59",
+          "descripcion": "Unidad"
+        },
+        {
+          "codigo": "99",
+          "descripcion": "Otra"
+        }
+      ]
+    },
+    "CAT-015": {
+      "nombre": "Tributos",
+      "version_referencia": "1.2",
+      "datos": [
+        {
+          "codigo": "20",
+          "descripcion": "Impuesto al Valor Agregado 13%"
+        },
+        {
+          "codigo": "C3",
+          "descripcion": "Impuesto al Valor Agregado (exportaciones) 0%"
+        },
+        {
+          "codigo": "59",
+          "descripcion": "Turismo: por alojamiento (5%)"
+        },
+        {
+          "codigo": "71",
+          "descripcion": "Turismo: salida del país por vía aérea $7.00"
+        },
+        {
+          "codigo": "D1",
+          "descripcion": "FOVIAL ($0.20 Ctvs. por galón)"
+        },
+        {
+          "codigo": "C8",
+          "descripcion": "COTRANS ($0.10 Ctvs. por galón)"
+        },
+        {
+          "codigo": "D5",
+          "descripcion": "Otras tasas casos especiales"
+        },
+        {
+          "codigo": "D4",
+          "descripcion": "Otros impuestos casos especiales"
+        },
+        {
+          "codigo": "A8",
+          "descripcion": "Impuesto Especial al Combustible (0%, 0.5%, 1%)"
+        },
+        {
+          "codigo": "57",
+          "descripcion": "Impuesto industria de Cemento"
+        },
+        {
+          "codigo": "90",
+          "descripcion": "Impuesto especial a la primera matrícula"
+        },
+        {
+          "codigo": "A6",
+          "descripcion": "Impuesto ad-valorem, armas de fuego, municiones explosivas y artículos similares"
+        },
+        {
+          "codigo": "C5",
+          "descripcion": "Impuesto ad-valorem por diferencial de precios de bebidas alcohólicas (8%)"
+        },
+        {
+          "codigo": "C6",
+          "descripcion": "Impuesto ad-valorem por diferencial de precios al tabaco cigarrillos (39%)"
+        },
+        {
+          "codigo": "C7",
+          "descripcion": "Impuesto ad-valorem por diferencial de precios al tabaco cigarros (100%)"
+        },
+        {
+          "codigo": "19",
+          "descripcion": "Fabricante de Bebidas Gaseosas, Isotónicas, Deportivas, Fortificantes, Energizante o Estimulante"
+        },
+        {
+          "codigo": "28",
+          "descripcion": "Importador de Bebidas Gaseosas, Isotónicas, Deportivas, Fortificantes, Energizante o Estimulante"
+        },
+        {
+          "codigo": "31",
+          "descripcion": "Detallistas o Expendedores de Bebidas Alcohólicas"
+        },
+        {
+          "codigo": "32",
+          "descripcion": "Fabricante de Cerveza"
+        },
+        {
+          "codigo": "33",
+          "descripcion": "Importador de Cerveza"
+        },
+        {
+          "codigo": "34",
+          "descripcion": "Fabricante de Productos de Tabaco"
+        },
+        {
+          "codigo": "35",
+          "descripcion": "Importador de Productos de Tabaco"
+        },
+        {
+          "codigo": "36",
+          "descripcion": "Fabricante de Armas de Fuego, Municiones y Artículos Similares"
+        },
+        {
+          "codigo": "37",
+          "descripcion": "Importador de Arma de Fuego, Munición y Artículos. Similares"
+        },
+        {
+          "codigo": "38",
+          "descripcion": "Fabricante de Explosivos"
+        },
+        {
+          "codigo": "39",
+          "descripcion": "Importador de Explosivos"
+        },
+        {
+          "codigo": "42",
+          "descripcion": "Fabricante de Productos Pirotécnicos"
+        },
+        {
+          "codigo": "43",
+          "descripcion": "Importador de Productos Pirotécnicos"
+        },
+        {
+          "codigo": "44",
+          "descripcion": "Productor de Tabaco"
+        },
+        {
+          "codigo": "50",
+          "descripcion": "Distribuidor de Bebidas Gaseosas, Isotónicas, Deportivas, Fortificantes, Energizante o Estimulante"
+        },
+        {
+          "codigo": "51",
+          "descripcion": "Bebidas Alcohólicas"
+        },
+        {
+          "codigo": "52",
+          "descripcion": "Cerveza"
+        },
+        {
+          "codigo": "53",
+          "descripcion": "Productos del Tabaco"
+        },
+        {
+          "codigo": "54",
+          "descripcion": "Bebidas Carbonatadas o Gaseosas Simples o Endulzadas"
+        },
+        {
+          "codigo": "55",
+          "descripcion": "Otros Específicos"
+        },
+        {
+          "codigo": "58",
+          "descripcion": "Alcohol"
+        },
+        {
+          "codigo": "77",
+          "descripcion": "Importador de Jugos, Néctares, Bebidas con Jugo y Refrescos"
+        },
+        {
+          "codigo": "78",
+          "descripcion": "Distribuidor de Jugos, Néctares, Bebidas con Jugo y Refrescos"
+        },
+        {
+          "codigo": "79",
+          "descripcion": "Sobre Llamadas Telefónicas Provenientes del Ext."
+        },
+        {
+          "codigo": "85",
+          "descripcion": "Detallista de Jugos, Néctares, Bebidas con Jugo y Refrescos"
+        },
+        {
+          "codigo": "86",
+          "descripcion": "Fabricante de Preparaciones Concentradas o en Polvo para la Elaboración de Bebidas"
+        },
+        {
+          "codigo": "91",
+          "descripcion": "Fabricante de Jugos, Néctares, Bebidas con Jugo y Refrescos"
+        },
+        {
+          "codigo": "92",
+          "descripcion": "Importador de Preparaciones Concentradas o en Polvo para la Elaboración de Bebidas"
+        },
+        {
+          "codigo": "A1",
+          "descripcion": "Específicos y Ad-Valorem"
+        },
+        {
+          "codigo": "A5",
+          "descripcion": "Bebidas Gaseosas, Isotónicas, Deportivas, Fortificantes, Energizantes o Estimulantes"
+        },
+        {
+          "codigo": "A7",
+          "descripcion": "Alcohol Etílico"
+        },
+        {
+          "codigo": "A9",
+          "descripcion": "Sacos Sintéticos"
+        }
+      ]
+    },
+    "CAT-016": {
+      "nombre": "Condición de la Operación",
+      "version_referencia": "1.2",
+      "datos": [
+        {
+          "codigo": "1",
+          "descripcion": "Contado"
+        },
+        {
+          "codigo": "2",
+          "descripcion": "A crédito"
+        },
+        {
+          "codigo": "3",
+          "descripcion": "Otro"
+        }
+      ]
+    },
+    "CAT-017": {
+      "nombre": "Forma de Pago",
+      "version_referencia": "1.2",
+      "datos": [
+        {
+          "codigo": "01",
+          "descripcion": "Billetes y monedas"
+        },
+        {
+          "codigo": "02",
+          "descripcion": "Tarjeta Débito"
+        },
+        {
+          "codigo": "03",
+          "descripcion": "Tarjeta Crédito"
+        },
+        {
+          "codigo": "04",
+          "descripcion": "Cheque"
+        },
+        {
+          "codigo": "05",
+          "descripcion": "Transferencia-Depósito Bancario"
+        },
+        {
+          "codigo": "08",
+          "descripcion": "Dinero electrónico"
+        },
+        {
+          "codigo": "09",
+          "descripcion": "Monedero electrónico"
+        },
+        {
+          "codigo": "11",
+          "descripcion": "Bitcoin"
+        },
+        {
+          "codigo": "12",
+          "descripcion": "Otras Criptomonedas"
+        },
+        {
+          "codigo": "13",
+          "descripcion": "Cuentas por pagar del receptor"
+        },
+        {
+          "codigo": "14",
+          "descripcion": "Giro bancario"
+        },
+        {
+          "codigo": "99",
+          "descripcion": "Otros (se debe indicar el medio de pago)"
+        }
+      ]
+    },
+    "CAT-018": {
+      "nombre": "Plazo",
+      "version_referencia": "1.2",
+      "datos": [
+        {
+          "codigo": "01",
+          "descripcion": "Días"
+        },
+        {
+          "codigo": "02",
+          "descripcion": "Meses"
+        },
+        {
+          "codigo": "03",
+          "descripcion": "Años"
+        }
+      ]
+    },
+    "CAT-021": {
+      "nombre": "Otros Documentos Asociados",
+      "version_referencia": "1.2",
+      "datos": [
+        {
+          "codigo": "1",
+          "descripcion": "Emisor"
+        },
+        {
+          "codigo": "2",
+          "descripcion": "Receptor"
+        },
+        {
+          "codigo": "3",
+          "descripcion": "Médico (solo aplica para contribuyentes obligados a la presentación de F-958)"
+        },
+        {
+          "codigo": "4",
+          "descripcion": "Transporte (solo aplica para Factura de exportación)"
+        }
+      ]
+    },
+    "CAT-022": {
+      "nombre": "Tipo de documento de identificación del Receptor",
+      "version_referencia": "1.2",
+      "datos": [
+        {
+          "codigo": "36",
+          "descripcion": "NIT"
+        },
+        {
+          "codigo": "13",
+          "descripcion": "DUI"
+        },
+        {
+          "codigo": "37",
+          "descripcion": "Otro"
+        },
+        {
+          "codigo": "03",
+          "descripcion": "Pasaporte"
+        },
+        {
+          "codigo": "02",
+          "descripcion": "Carnet de Residente"
+        }
+      ]
+    },
+    "CAT-023": {
+      "nombre": "Tipo de Documento en Contingencia",
+      "version_referencia": "1.2",
+      "datos": [
+        {
+          "codigo": "01",
+          "descripcion": "Factura Electrónico"
+        },
+        {
+          "codigo": "03",
+          "descripcion": "Comprobante de Crédito Fiscal Electrónico"
+        },
+        {
+          "codigo": "04",
+          "descripcion": "Nota de Remisión Electrónica"
+        },
+        {
+          "codigo": "05",
+          "descripcion": "Nota de Crédito Electrónica"
+        },
+        {
+          "codigo": "06",
+          "descripcion": "Nota de Débito Electrónica"
+        },
+        {
+          "codigo": "11",
+          "descripcion": "Factura de Exportación Electrónica"
+        },
+        {
+          "codigo": "14",
+          "descripcion": "Factura de Sujeto Excluido Electrónica"
+        }
+      ]
+    },
+    "CAT-024": {
+      "nombre": "Tipo de Invalidación",
+      "version_referencia": "1.2",
+      "datos": [
+        {
+          "codigo": "1",
+          "descripcion": "Error en la Información del Documento Tributario Electrónico a invalidar."
+        },
+        {
+          "codigo": "2",
+          "descripcion": "Rescindir de la operación realizada."
+        },
+        {
+          "codigo": "3",
+          "descripcion": "Otro"
+        }
+      ]
+    },
+    "CAT-025": {
+      "nombre": "Título a que se remiten los bienes",
+      "version_referencia": "1.2",
+      "datos": [
+        {
+          "codigo": "01",
+          "descripcion": "Depósito"
+        },
+        {
+          "codigo": "02",
+          "descripcion": "Propiedad"
+        },
+        {
+          "codigo": "03",
+          "descripcion": "Consignación"
+        },
+        {
+          "codigo": "04",
+          "descripcion": "Traslado"
+        },
+        {
+          "codigo": "05",
+          "descripcion": "Otros"
+        }
+      ]
+    },
+    "CAT-026": {
+      "nombre": "Tipo de Donación",
+      "version_referencia": "1.2",
+      "datos": [
+        {
+          "codigo": "1",
+          "descripcion": "Efectivo"
+        },
+        {
+          "codigo": "2",
+          "descripcion": "Bien"
+        },
+        {
+          "codigo": "3",
+          "descripcion": "Servicio"
+        }
+      ]
+    },
+    "CAT-027": {
+      "nombre": "Recinto fiscal",
+      "version_referencia": "1.2",
+      "datos": [
+        {
+          "codigo": "01",
+          "descripcion": "Terrestre San Bartolo"
+        },
+        {
+          "codigo": "02",
+          "descripcion": "Marítima de Acajutla"
+        },
+        {
+          "codigo": "03",
+          "descripcion": "Aérea De Comalapa"
+        },
+        {
+          "codigo": "04",
+          "descripcion": "Terrestre Las Chinamas"
+        },
+        {
+          "codigo": "05",
+          "descripcion": "Terrestre La Hachadura"
+        },
+        {
+          "codigo": "06",
+          "descripcion": "Terrestre Santa Ana"
+        },
+        {
+          "codigo": "07",
+          "descripcion": "Terrestre San Cristóbal"
+        },
+        {
+          "codigo": "08",
+          "descripcion": "Terrestre Anguiatú"
+        },
+        {
+          "codigo": "09",
+          "descripcion": "Terrestre El Amatillo"
+        },
+        {
+          "codigo": "10",
+          "descripcion": "Marítima La Unión"
+        },
+        {
+          "codigo": "11",
+          "descripcion": "Terrestre El Poy"
+        },
+        {
+          "codigo": "12",
+          "descripcion": "Terrestre Metalío"
+        },
+        {
+          "codigo": "15",
+          "descripcion": "Fardos Postales"
+        },
+        {
+          "codigo": "16",
+          "descripcion": "Z.F. San Marcos"
+        },
+        {
+          "codigo": "17",
+          "descripcion": "Z.F. El Pedregal"
+        },
+        {
+          "codigo": "18",
+          "descripcion": "Z.F. San Bartolo"
+        },
+        {
+          "codigo": "20",
+          "descripcion": "Z.F. Exportsalva"
+        },
+        {
+          "codigo": "21",
+          "descripcion": "Z.F. American Park"
+        },
+        {
+          "codigo": "23",
+          "descripcion": "Z.F. Internacional"
+        },
+        {
+          "codigo": "24",
+          "descripcion": "Z.F. Diez"
+        },
+        {
+          "codigo": "26",
+          "descripcion": "Z.F. Miramar"
+        },
+        {
+          "codigo": "27",
+          "descripcion": "Z.F. Santo Tomas"
+        },
+        {
+          "codigo": "28",
+          "descripcion": "Z.F. Santa Tecla"
+        },
+        {
+          "codigo": "29",
+          "descripcion": "Z.F. Santa Ana"
+        },
+        {
+          "codigo": "30",
+          "descripcion": "Z.F. La Concordia"
+        },
+        {
+          "codigo": "31",
+          "descripcion": "Aérea Ilopango"
+        },
+        {
+          "codigo": "32",
+          "descripcion": "Z.F. Pipil"
+        },
+        {
+          "codigo": "33",
+          "descripcion": "Puerto Barillas"
+        },
+        {
+          "codigo": "34",
+          "descripcion": "Z.F. Calvo Conservas"
+        },
+        {
+          "codigo": "35",
+          "descripcion": "Feria Internacional"
+        },
+        {
+          "codigo": "36",
+          "descripcion": "Aduana El Papalón"
+        },
+        {
+          "codigo": "37",
+          "descripcion": "Z.F. Sam-Li"
+        },
+        {
+          "codigo": "38",
+          "descripcion": "Z.F. San José"
+        },
+        {
+          "codigo": "39",
+          "descripcion": "Z.F. Las Mercedes"
+        },
+        {
+          "codigo": "40",
+          "descripcion": "Z.F. EMCO"
+        },
+        {
+          "codigo": "41",
+          "descripcion": "Z.F. Gigante"
+        },
+        {
+          "codigo": "71",
+          "descripcion": "Aldesa"
+        },
+        {
+          "codigo": "72",
+          "descripcion": "Agdosa Merliot"
+        },
+        {
+          "codigo": "73",
+          "descripcion": "Bodesa"
+        },
+        {
+          "codigo": "76",
+          "descripcion": "Delegacion DHL"
+        },
+        {
+          "codigo": "77",
+          "descripcion": "Transauto"
+        },
+        {
+          "codigo": "80",
+          "descripcion": "Nejapa"
+        },
+        {
+          "codigo": "81",
+          "descripcion": "Almaconsa"
+        },
+        {
+          "codigo": "83",
+          "descripcion": "Agdosa Apopa"
+        },
+        {
+          "codigo": "85",
+          "descripcion": "Gutiérrez Courier Y Cargo"
+        },
+        {
+          "codigo": "99",
+          "descripcion": "San Bartolo Envío Hn/Gt"
+        }
+      ]
+    },
+    "CAT-029": {
+      "nombre": "Tipo de persona",
+      "version_referencia": "1.2",
+      "datos": [
+        {
+          "codigo": "1",
+          "descripcion": "Persona Natural"
+        },
+        {
+          "codigo": "2",
+          "descripcion": "Persona Jurídica"
+        }
+      ]
+    },
+    "CAT-030": {
+      "nombre": "Transporte",
+      "version_referencia": "1.2",
+      "datos": [
+        {
+          "codigo": "1",
+          "descripcion": "TERRESTRE"
+        },
+        {
+          "codigo": "2",
+          "descripcion": "AÉREO"
+        },
+        {
+          "codigo": "3",
+          "descripcion": "MARÍTIMO"
+        },
+        {
+          "codigo": "4",
+          "descripcion": "FERREO"
+        },
+        {
+          "codigo": "5",
+          "descripcion": "MULTIMODAL"
+        },
+        {
+          "codigo": "6",
+          "descripcion": "CORREO"
+        }
+      ]
+    },
+    "CAT-031": {
+      "nombre": "INCOTERMS",
+      "version_referencia": "1.2",
+      "datos": [
+        {
+          "codigo": "01",
+          "descripcion": "EXW-En fabrica"
+        },
+        {
+          "codigo": "02",
+          "descripcion": "FCA-Libre transportista"
+        },
+        {
+          "codigo": "03",
+          "descripcion": "CPT-Transporte pagado hasta"
+        },
+        {
+          "codigo": "04",
+          "descripcion": "CIP-Transporte y seguro pagado hasta"
+        },
+        {
+          "codigo": "05",
+          "descripcion": "DAP-Entrega en el lugar"
+        },
+        {
+          "codigo": "06",
+          "descripcion": "DPU-Entregado en el lugar descargado"
+        },
+        {
+          "codigo": "07",
+          "descripcion": "DDP-Entrega con impuestos pagados"
+        },
+        {
+          "codigo": "08",
+          "descripcion": "FAS-Libre al costado del buque"
+        },
+        {
+          "codigo": "09",
+          "descripcion": "FOB-Libre a bordo"
+        },
+        {
+          "codigo": "10",
+          "descripcion": "CFR-Costo y flete"
+        },
+        {
+          "codigo": "11",
+          "descripcion": "CIF- Costo seguro y flete"
+        }
+      ]
+    },
+    "CAT-032": {
+      "nombre": "Domicilio Fiscal",
+      "version_referencia": "1.2",
+      "datos": [
+        {
+          "codigo": "1",
+          "descripcion": "Domiciliado"
+        },
+        {
+          "codigo": "2",
+          "descripcion": "No Domiciliado"
+        }
+      ]
+    },
+    "CAT-028": {
+      "nombre": "Régimen",
+      "version_referencia": "1.2",
+      "datos": [
+        {
+          "codigo": "EX-1.1000.000",
+          "descripcion": "Exportación Definitiva, Exportación Definitiva, Régimen Común"
+        },
+        {
+          "codigo": "EX-1.1040.000",
+          "descripcion": "Exportación Definitiva, Exportación Definitiva Sustitución de Mercancías, Régimen Común"
+        },
+        {
+          "codigo": "EX-1.1041.020",
+          "descripcion": "Exportación Definitiva, Exportación Definitiva Proveniente de Franquicia Provisional, Franq. Presidenciales exento de DAI"
+        },
+        {
+          "codigo": "EX-1.1041.021",
+          "descripcion": "Exportación Definitiva, Exportación Definitiva Proveniente de Franquicia Provisional, Franq. Presidenciales exento de DAI e IVA"
+        },
+        {
+          "codigo": "EX-1.1048.025",
+          "descripcion": "Exportación Definitiva, Exportación Definitiva Proveniente de Franquicia Definitiva, Maquinaria y Equipo LZF. DPA"
+        },
+        {
+          "codigo": "EX-1.1048.031",
+          "descripcion": "Exportación Definitiva, Exportación Definitiva Proveniente de Franquicia Definitiva, Distribución Internacional"
+        },
+        {
+          "codigo": "EX-1.1048.032",
+          "descripcion": "Exportación Definitiva, Exportación Definitiva Proveniente de Franquicia Definitiva, Operaciones Internacionales de Logística"
+        },
+        {
+          "codigo": "EX-1.1048.033",
+          "descripcion": "Exportación Definitiva, Exportación Definitiva Proveniente de Franquicia Definitiva, Centro Internacional de llamadas (Call Center)"
+        },
+        {
+          "codigo": "EX-1.1048.034",
+          "descripcion": "Exportación Definitiva, Exportación Definitiva Proveniente de Franquicia Definitiva, Tecnologías de Información LSI"
+        },
+        {
+          "codigo": "EX-1.1048.035",
+          "descripcion": "Exportación Definitiva, Exportación Definitiva Proveniente de Franquicia Definitiva, Investigación y Desarrollo LSI"
+        },
+        {
+          "codigo": "EX-1.1048.036",
+          "descripcion": "Exportación Definitiva, Exportación Definitiva Proveniente de Franquicia Definitiva, Reparación y Mantenimiento de Embarcaciones Marítimas LSI"
+        },
+        {
+          "codigo": "EX-1.1048.037",
+          "descripcion": "Exportación Definitiva, Exportación Definitiva Proveniente de Franquicia Definitiva, Reparación y Mantenimiento de Aeronaves LSI"
+        },
+        {
+          "codigo": "EX-1.1048.038",
+          "descripcion": "Exportación Definitiva, Exportación Definitiva Proveniente de Franquicia Definitiva, Procesos Empresariales LSI"
+        },
+        {
+          "codigo": "EX-1.1048.039",
+          "descripcion": "Exportación Definitiva, Exportación Definitiva Proveniente de Franquicia Definitiva, Servicios Medico-Hospitalarios LSI"
+        },
+        {
+          "codigo": "EX-1.1048.040",
+          "descripcion": "Exportación Definitiva, Exportación Definitiva Proveniente de Franquicia Definitiva, Servicios Financieros Internacionales LSI"
+        },
+        {
+          "codigo": "EX-1.1048.043",
+          "descripcion": "Exportación Definitiva, Exportación Definitiva Proveniente de Franquicia Definitiva, Reparación y Mantenimiento de Contenedores LSI"
+        },
+        {
+          "codigo": "EX-1.1048.044",
+          "descripcion": "Exportación Definitiva, Exportación Definitiva Proveniente de Franquicia Definitiva, Reparación de Equipos Tecnológicos LSI"
+        },
+        {
+          "codigo": "EX-1.1048.054",
+          "descripcion": "Exportación Definitiva, Exportación Definitiva Proveniente de Franquicia Definitiva, Atención Ancianos y Convalecientes LSI"
+        },
+        {
+          "codigo": "EX-1.1048.055",
+          "descripcion": "Exportación Definitiva, Exportación Definitiva Proveniente de Franquicia Definitiva, Telemedicina LSI"
+        },
+        {
+          "codigo": "EX-1.1048.056",
+          "descripcion": "Exportación Definitiva, Exportación Definitiva Proveniente de Franquicia Definitiva, Cinematografía LSI"
+        },
+        {
+          "codigo": "EX-1.1052.000",
+          "descripcion": "Exportación Definitiva, Exportación Definitiva de DPA con origen en Compras Locales, Régimen Común"
+        },
+        {
+          "codigo": "EX-1.1054.000",
+          "descripcion": "Exportación Definitiva, Exportación Definitiva de Zona Franca con origen en Compras Locales, Régimen Común"
+        },
+        {
+          "codigo": "EX-1.1100.000",
+          "descripcion": "Exportación Definitiva, Exportación Definitiva de Envíos de Socorro, Régimen Común"
+        },
+        {
+          "codigo": "EX-1.1200.000",
+          "descripcion": "Exportación Definitiva, Exportación Definitiva de Envíos Postales, Régimen Común"
+        },
+        {
+          "codigo": "EX-1.1300.000",
+          "descripcion": "Exportación Definitiva, Exportación Definitiva Envíos que requieren despacho urgente, Régimen Común"
+        },
+        {
+          "codigo": "EX-1.1400.000",
+          "descripcion": "Exportación Definitiva, Exportación Definitiva Courier, Régimen Común"
+        },
+        {
+          "codigo": "EX-1.1400.011",
+          "descripcion": "Exportación Definitiva, Exportación Definitiva Courier, Muestras Sin Valor Comercial"
+        },
+        {
+          "codigo": "EX-1.1400.012",
+          "descripcion": "Exportación Definitiva, Exportación Definitiva Courier, Material Publicitario"
+        },
+        {
+          "codigo": "EX-1.1400.017",
+          "descripcion": "Exportación Definitiva, Exportación Definitiva Courier, Declaración de Documentos"
+        },
+        {
+          "codigo": "EX-1.1500.000",
+          "descripcion": "Exportación Definitiva, Exportación Definitiva Menaje de casa, Régimen Común"
+        },
+        {
+          "codigo": "EX-2.2100.000",
+          "descripcion": "Exportación Temporal, Exportación Temporal para Perfeccionamiento Pasivo, Régimen Común"
+        },
+        {
+          "codigo": "EX-2.2200.000",
+          "descripcion": "Exportación Temporal, Exportación Temporal con Reimportación en el mismo estado, Régimen Común"
+        },
+        {
+          "codigo": "EX-2.2400.000",
+          "descripcion": "Traslados Definitivos"
+        },
+        {
+          "codigo": "EX-3.3050.000",
+          "descripcion": "Re-Exportación, Reexportación Proveniente de Importación Temporal, Régimen Común"
+        },
+        {
+          "codigo": "EX-3.3051.000",
+          "descripcion": "Re-Exportación, Reexportación Proveniente de Tiendas Libres, Régimen Común"
+        },
+        {
+          "codigo": "EX-3.3052.000",
+          "descripcion": "Re-Exportación, Reexportación Proveniente de Admisión Temporal para Perfeccionamiento Activo, Régimen Común"
+        },
+        {
+          "codigo": "EX-3.3053.000",
+          "descripcion": "Re-Exportación, Reexportación Proveniente de Admisión Temporal, Régimen Común"
+        },
+        {
+          "codigo": "EX-3.3054.000",
+          "descripcion": "Re-Exportación, Reexportación Proveniente de Régimen de Zona Franca, Régimen Común"
+        },
+        {
+          "codigo": "EX-3.3055.000",
+          "descripcion": "Re-Exportación, Reexportación Proveniente de Admisión Temporal para Perfeccionamiento Activo con Garantía, Régimen Común"
+        },
+        {
+          "codigo": "EX-3.3056.000",
+          "descripcion": "Re-Exportación, Reexportación Proveniente de Admisión Temporal Distribución Internacional Parque de Servicios, Régimen Común"
+        },
+        {
+          "codigo": "EX-3.3056.057",
+          "descripcion": "Re-Exportación, Reexportación Proveniente de Admisión Temporal Distribución Internacional Parque de Servicios, Remisión entre Usuarios Directos del Mismo Parque de Servicios"
+        },
+        {
+          "codigo": "EX-3.3056.058",
+          "descripcion": "Re-Exportación, Reexportación Proveniente de Admisión Temporal Distribución Internacional Parque de Servicios, Remisión entre Usuarios Directos de Diferente Parque de Servicios"
+        },
+        {
+          "codigo": "EX-3.3056.072",
+          "descripcion": "Re-Exportación, Reexportación Proveniente de Admisión Temporal Distribución Internacional Parque de Servicios, Decreto 738 Eléctricos e Híbridos"
+        },
+        {
+          "codigo": "EX-3.3057.000",
+          "descripcion": "Re-Exportación, Reexportación Proveniente de Admisión Temporal Operaciones Internacional de Logística Parque de Servicios, Régimen Común"
+        },
+        {
+          "codigo": "EX-3.3057.057",
+          "descripcion": "Re-Exportación, Reexportación Proveniente de Admisión Temporal Operaciones Internacional de Logística Parque de Servicios, Remisión entre Usuarios Directos del Mismo Parque de Servicios"
+        },
+        {
+          "codigo": "EX-3.3057.058",
+          "descripcion": "Re-Exportación, Reexportación Proveniente de Admisión Temporal Operaciones Internacional de Logística Parque de Servicios, Remisión entre Usuarios Directos de Diferente Parque de Servicios"
+        },
+        {
+          "codigo": "EX-3.3058.033",
+          "descripcion": "Re-Exportación, Reexportación Proveniente de Admisión Temporal Centro Servicio LSI, Centro Internacional de llamadas (Call Center)"
+        },
+        {
+          "codigo": "EX-3.3058.036",
+          "descripcion": "Re-Exportación, Reexportación Proveniente de Admisión Temporal Centro Servicio LSI, Reparación y Mantenimiento de Embarcaciones Marítimas LSI"
+        },
+        {
+          "codigo": "EX-3.3058.037",
+          "descripcion": "Re-Exportación, Reexportación Proveniente de Admisión Temporal Centro Servicio LSI, Reparación y Mantenimiento de Aeronaves LSI"
+        },
+        {
+          "codigo": "EX-3.3058.043",
+          "descripcion": "Re-Exportación, Reexportación Proveniente de Admisión Temporal Centro Servicio LSI, Reparación y Mantenimiento de Contenedores LSI"
+        },
+        {
+          "codigo": "EX-3.3059.000",
+          "descripcion": "Re-Exportación, Reexportación Proveniente de Admisión Temporal Reparación de Equipo Tecnológico Parque de Servicios, Régimen Común"
+        },
+        {
+          "codigo": "EX-3.3059.057",
+          "descripcion": "Re-Exportación, Reexportación Proveniente de Admisión Temporal Reparación de Equipo Tecnológico Parque de Servicios, Remisión entre Usuarios Directos del Mismo Parque de Servicios"
+        },
+        {
+          "codigo": "EX-3.3059.058",
+          "descripcion": "Re-Exportación, Reexportación Proveniente de Admisión Temporal Reparación de Equipo Tecnológico Parque de Servicios, Remisión entre Usuarios Directos de Diferente Parque de Servicios"
+        },
+        {
+          "codigo": "EX-3.3070.000",
+          "descripcion": "Re-Exportación, Reexportación Proveniente de Depósito., Régimen Común"
+        },
+        {
+          "codigo": "EX-3.3070.072",
+          "descripcion": "Re-Exportación, Reexportación Proveniente de Depósito., Decreto 738 Eléctricos e Híbridos"
+        },
+        {
+          "codigo": "EX-3.3071.000",
+          "descripcion": "Reexp. Prov. de Deposito."
+        },
+        {
+          "codigo": "EX-3.3052.000",
+          "descripcion": "Reexp. Prov. de Adm Temp. para Perfeccionamiento Activo"
+        },
+        {
+          "codigo": "EX-3.3054.000",
+          "descripcion": "Reexp. Prov. de Regimen de Zona Franca"
+        },
+        {
+          "codigo": "EX-3.3055.000",
+          "descripcion": "Reexp. Prov. para Perfeccionamiento Activo con Garantía"
+        },
+        {
+          "codigo": "EX-3.3056.000",
+          "descripcion": "Re-Exp. Ley de Servi. Internacionales"
+        },
+        {
+          "codigo": "EX-3.3057.000",
+          "descripcion": "Reexportación Prov. de Centro de Servicio LSI"
+        }
+      ]
+    }
+  }
+}

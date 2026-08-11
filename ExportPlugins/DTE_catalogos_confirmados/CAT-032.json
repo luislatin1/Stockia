@@ -1,0 +1,14 @@
+{
+  "nombre": "Domicilio Fiscal",
+  "version_referencia": "1.2",
+  "datos": [
+    {
+      "codigo": "1",
+      "descripcion": "Domiciliado"
+    },
+    {
+      "codigo": "2",
+      "descripcion": "No Domiciliado"
+    }
+  ]
+}

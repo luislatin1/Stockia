@@ -1,0 +1,18 @@
+{
+  "nombre": "Condición de la Operación",
+  "version_referencia": "1.2",
+  "datos": [
+    {
+      "codigo": "1",
+      "descripcion": "Contado"
+    },
+    {
+      "codigo": "2",
+      "descripcion": "A crédito"
+    },
+    {
+      "codigo": "3",
+      "descripcion": "Otro"
+    }
+  ]
+}
