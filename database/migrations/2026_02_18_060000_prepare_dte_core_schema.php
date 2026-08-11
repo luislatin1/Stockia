@@ -71,9 +71,11 @@ return new class extends Migration
                 'direccion_complemento' => DB::raw('fiscal_address'),
             ]);
 
-        $codigoExpression = DB::getDriverName() === 'pgsql'
-            ? "COALESCE(sku, barcode, 'PRD-' || id::text)"
-            : "COALESCE(sku, barcode, CONCAT('PRD-', id))";
+        $codigoExpression = match (DB::getDriverName()) {
+            'pgsql' => "COALESCE(sku, barcode, 'PRD-' || id::text)",
+            'sqlite' => "COALESCE(sku, barcode, 'PRD-' || id)",
+            default => "COALESCE(sku, barcode, CONCAT('PRD-', id))",
+        };
 
         DB::table('products')->update([
             'codigo' => DB::raw($codigoExpression),

@@ -7,11 +7,14 @@ use App\Models\InventoryMovement;
 use App\Models\SaleItem;
 use App\Models\Warehouse;
 use App\Models\Company;
+use App\Traits\BelongsToCompany;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class Sale extends Model
 {
+    use BelongsToCompany;
+
     protected $fillable = [
         'company_id',
         'customer_id',

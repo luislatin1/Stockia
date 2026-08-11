@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\BelongsToCompany;
 
 class Customer extends Model
 {
+    use BelongsToCompany;
+
     protected $fillable = [
         'company_id',
         'tipo_documento',
