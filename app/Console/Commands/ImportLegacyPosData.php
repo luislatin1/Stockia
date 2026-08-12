@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\Category;
 use App\Models\Company;
+use App\Models\LegacyPurchase;
 use App\Models\LegacySale;
 use App\Models\Product;
 use App\Models\Provider;
@@ -15,7 +16,7 @@ class ImportLegacyPosData extends Command
 {
     protected $signature = 'legacy:import-pos {--company=} {--skip-history}';
 
-    protected $description = 'Importa categorias, proveedores, productos e historico de ventas desde la base legacy `pos` (conexion "legacy").';
+    protected $description = 'Importa categorias, proveedores, productos e historico de ventas/compras desde la base legacy `pos` (conexion "legacy").';
 
     private int $companyId;
 
@@ -51,9 +52,10 @@ class ImportLegacyPosData extends Command
         $this->importProducts($categoryMap, $providerMap);
 
         if (! $this->option('skip-history')) {
-            $this->importHistory();
+            $this->importSalesHistory();
+            $this->importPurchasesHistory($providerMap);
         } else {
-            $this->info('Historico de ventas omitido (--skip-history).');
+            $this->info('Historico de ventas y compras omitido (--skip-history).');
         }
 
         return self::SUCCESS;
@@ -247,7 +249,87 @@ class ImportLegacyPosData extends Command
         ]);
     }
 
-    private function importHistory(): void
+    private function importPurchasesHistory(array $providerMap): void
+    {
+        $this->info('Importando compras...');
+        $purchaseCount = 0;
+
+        DB::connection('legacy')->table('compra')
+            ->chunkById(1000, function ($rows) use (&$purchaseCount, $providerMap) {
+                $payload = $rows->map(fn ($r) => [
+                    'company_id' => $this->companyId,
+                    'provider_id' => $r->id_proveedor ? ($providerMap[$r->id_proveedor] ?? null) : null,
+                    'legacy_id' => $r->id_compra,
+                    'numero_doc' => $this->nullIfBlank($r->numero_doc),
+                    'fecha' => $r->fecha,
+                    'hora' => $r->hora ?: null,
+                    'iva' => (float) $r->iva,
+                    'total' => (float) $r->total,
+                    'dias_credito' => $r->dias_credito ?: null,
+                    'anulada' => (bool) $r->anulada,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ])->all();
+
+                DB::table('legacy_purchases')->upsert(
+                    $payload,
+                    ['company_id', 'legacy_id'],
+                    ['provider_id', 'numero_doc', 'fecha', 'hora', 'iva', 'total', 'dias_credito', 'anulada', 'updated_at']
+                );
+
+                $purchaseCount += count($payload);
+            }, 'id_compra', 'id_compra');
+
+        $this->info("Compras importadas: {$purchaseCount}");
+
+        $purchaseMap = LegacyPurchase::where('company_id', $this->companyId)->pluck('id', 'legacy_id')->all();
+        $productMap = Product::where('company_id', $this->companyId)->whereNotNull('legacy_id')->pluck('id', 'legacy_id')->all();
+
+        $this->info('Importando lineas de compra...');
+        $itemCount = 0;
+        $skipped = 0;
+
+        DB::connection('legacy')->table('detalle_compra')
+            ->chunkById(2000, function ($rows) use (&$itemCount, &$skipped, $purchaseMap, $productMap) {
+                $payload = [];
+
+                foreach ($rows as $r) {
+                    $purchaseId = $purchaseMap[$r->id_compra] ?? null;
+
+                    if (! $purchaseId) {
+                        $skipped++;
+
+                        continue;
+                    }
+
+                    $payload[] = [
+                        'legacy_purchase_id' => $purchaseId,
+                        'product_id' => $productMap[$r->id_presentacion] ?? null,
+                        'legacy_id' => $r->id_det_compra,
+                        'cantidad' => (float) $r->cantidad,
+                        'costo_unitario' => (float) $r->ultcosto,
+                        'subtotal' => (float) $r->subtotal,
+                        'exento' => (bool) $r->exento,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
+                }
+
+                if ($payload) {
+                    DB::table('legacy_purchase_items')->upsert(
+                        $payload,
+                        ['legacy_purchase_id', 'legacy_id'],
+                        ['product_id', 'cantidad', 'costo_unitario', 'subtotal', 'exento', 'updated_at']
+                    );
+
+                    $itemCount += count($payload);
+                }
+            }, 'id_det_compra', 'id_det_compra');
+
+        $this->info("Lineas de compra importadas: {$itemCount} (omitidas por compra no encontrada: {$skipped})");
+    }
+
+    private function importSalesHistory(): void
     {
         $this->info('Importando facturas...');
         $saleCount = 0;

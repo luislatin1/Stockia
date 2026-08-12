@@ -108,6 +108,12 @@ return [
                     'active' => ['categories.*'],
                 ],
                 [
+                    'icon' => '🧾',
+                    'label' => 'Compras',
+                    'route' => 'purchases.index',
+                    'active' => ['purchases.*'],
+                ],
+                [
                     'icon' => '🔄',
                     'label' => 'Movimientos',
                     'route' => 'inventory_movements.index',
