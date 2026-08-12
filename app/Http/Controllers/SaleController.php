@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\InventoryMovement;
+use App\Models\LegacySale;
 use App\Models\NonSellableProduct;
 use App\Models\CompanyUser;
 use App\Models\Customer;
@@ -81,9 +82,20 @@ class SaleController extends Controller
         return false;
     }
 
-    public function index()
+    public function index(Request $request)
     {
         [$companyId, $warehouseId] = $this->currentContext();
+
+        $view = $request->query('view') === 'historico' ? 'historico' : 'live';
+
+        if ($view === 'historico') {
+            $sales = LegacySale::where('company_id', $companyId)
+                ->latest('fecha')
+                ->latest('id')
+                ->paginate(30);
+
+            return view('sales.index', compact('sales', 'view'));
+        }
 
         $salesQuery = Sale::where('company_id', $companyId)
             ->where('warehouse_id', $warehouseId);
@@ -97,7 +109,7 @@ class SaleController extends Controller
             ->latest()
             ->get();
 
-        return view('sales.index', compact('sales'));
+        return view('sales.index', compact('sales', 'view'));
     }
 
     public function exportExcel(): StreamedResponse
