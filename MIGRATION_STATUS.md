@@ -107,3 +107,15 @@ Para reconectar contra otra copia de `pos` o re-ejecutar: variables `LEGACY_DB_*
 - `../digital/pos/_conexion.php` — password vacío, host `127.0.0.2`
 - `ExportPlugins/sv-dte-laravel12/catalogos-dte-acreditacion-completo-2026/json/*.json` — todos regenerados con data oficial
 - `ExportPlugins/sv-dte-laravel12/catalogo-ubicaciones-sv-dte-2026/json/departamentos_municipios_sv_2026.json` — regenerado
+
+## 8. Sesión 2026-08-12 — Arquitectura de módulos y 5 módulos de negocio nuevos
+
+Trabajo distinto al de arriba (no es migración de entorno/datos, es evaluación y construcción de la arquitectura de módulos de Stockia). Resumen:
+
+- Se evaluó qué le falta a Stockia frente al sistema legacy DigitalPos y se clasificó cada función faltante como Core (nativo, sin toggle) o módulo opcional.
+- Se corrigió un antipatrón real: los toggles `sales` e `inventory` envolvían 100% funcionalidad Core sin nada opcional real — se extrajo ese Core a rutas siempre activas y ambos toggles ahora gatean contenido opcional genuino.
+- Se construyeron 5 módulos/funciones nuevas: Cuentas por Pagar, Créditos y Cobros, Comisiones, Garantías, Bancos (módulo Contabilidad nuevo), y Traslados + Lotes/Estantes (Inventario Avanzado).
+- Se agregó un mecanismo compartido de aviso "módulo no instalado" (antes las opciones desaparecían en silencio del menú).
+- Todo quedó commiteado localmente (`git log` — commit `feat: fix Core/module toggle architecture and add 5 new business modules`). **No se hizo push** (repo es solo local, ver instrucciones del usuario).
+
+**Para retomar:** ver [`MODULOS.md`](MODULOS.md) — mapa completo de qué es Core vs. qué agrega cada módulo, incluyendo lo identificado pero aún no construido (Pedidos/Apartados de cliente, Libros fiscales IVA) y referencia técnica de dónde vive cada pieza.
