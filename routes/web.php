@@ -1,6 +1,8 @@
 <?php
 
+use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\PurchaseController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DashboardController;
@@ -76,6 +78,12 @@ Route::middleware(['auth'])->group(function () {
             Route::resource('products', ProductController::class)
                 ->only(['index','create','store', 'show', 'edit', 'update', 'destroy']);
 
+            Route::resource('purchases', PurchaseController::class)
+                ->only(['index', 'create', 'store', 'show']);
+
+            Route::resource('categories', CategoryController::class)
+                ->only(['index', 'create', 'store', 'edit', 'update', 'destroy']);
+
             Route::resource('users', UserController::class)
                 ->only(['index','create','store','show', 'edit', 'update', 'destroy']);
             Route::patch('users/{user}/role', [UserController::class, 'updateRole'])
@@ -102,7 +110,6 @@ Route::middleware(['auth'])->group(function () {
 */
 
 Route::view('/currencies', 'currencies.index')->name('currencies.index');
-Route::view('/categories', 'categories.index')->name('categories.index');
 
 /*
 |--------------------------------------------------------------------------
