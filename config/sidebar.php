@@ -114,6 +114,12 @@ return [
                     'active' => ['purchases.*'],
                 ],
                 [
+                    'icon' => '🚚',
+                    'label' => 'Proveedores',
+                    'route' => 'providers.index',
+                    'active' => ['providers.*'],
+                ],
+                [
                     'icon' => '🔄',
                     'label' => 'Movimientos',
                     'route' => 'inventory_movements.index',
