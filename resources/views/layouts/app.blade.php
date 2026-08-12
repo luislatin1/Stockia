@@ -16,9 +16,6 @@
     $uiWarehouse  = session('current_warehouse_id')
         ? \App\Models\Warehouse::find(session('current_warehouse_id'))
         : null;
-    $dteModuleEnabled = \Illuminate\Support\Facades\Schema::hasTable('modules')
-        ? \App\Models\Module::where('key', 'dte-sv-mh')->where('enabled', true)->exists()
-        : false;
 @endphp
 
 <body class="bg-gray-100 font-sans antialiased text-gray-700">
@@ -48,7 +45,7 @@
         </div>
 
         {{-- Nav --}}
-        @include('layouts.partials.sidebar', ['dteModuleEnabled' => $dteModuleEnabled])
+        @include('layouts.partials.sidebar')
 
         {{-- Footer --}}
         <div class="px-4 py-3 border-t border-gray-800 space-y-1">

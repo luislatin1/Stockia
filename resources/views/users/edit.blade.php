@@ -48,6 +48,14 @@
                     @endforeach
                 </select>
             </div>
+
+            <div id="comision-wrapper" class="hidden">
+                <label for="comision_porcentaje" class="mb-1 block text-sm font-medium text-gray-700">% Comisión</label>
+                <input id="comision_porcentaje" type="number" step="0.01" min="0" max="100" name="comision_porcentaje"
+                       value="{{ old('comision_porcentaje', $currentComisionPorcentaje) }}"
+                       class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                <p class="mt-1 text-xs text-gray-500">Porcentaje sobre el subtotal de cada venta que procese este usuario.</p>
+            </div>
         </div>
 
         <div class="mt-6 flex flex-wrap items-center gap-3">
@@ -60,5 +68,20 @@
         </div>
     </form>
 </div>
+@endsection
 
+@section('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const roleEl = document.getElementById('role');
+    const wrapper = document.getElementById('comision-wrapper');
+
+    function toggle() {
+        wrapper.classList.toggle('hidden', roleEl.value !== 'Vendedor');
+    }
+
+    roleEl.addEventListener('change', toggle);
+    toggle();
+});
+</script>
 @endsection

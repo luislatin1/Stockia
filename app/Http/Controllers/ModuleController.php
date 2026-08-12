@@ -12,51 +12,6 @@ use Illuminate\Validation\Rule;
 
 class ModuleController extends Controller
 {
-    private const CATALOG = [
-        'sales' => [
-            'name' => 'Ventas',
-            'description' => 'Gestiona ventas, cobros en efectivo, tickets y facturas locales.',
-            'version' => '1.0.0',
-            'dependencies' => ['inventory'],
-            'provider' => \App\Modules\Sales\Providers\SalesServiceProvider::class,
-        ],
-        'inventory' => [
-            'name' => 'Inventario',
-            'description' => 'Control de stock, movimientos y ajustes por almacén.',
-            'version' => '1.0.0',
-            'dependencies' => [],
-            'provider' => \App\Modules\Inventory\Providers\InventoryServiceProvider::class,
-        ],
-        'accounting' => [
-            'name' => 'Contabilidad',
-            'description' => 'Asientos contables, libro diario y reportes financieros.',
-            'version' => '0.1.0',
-            'dependencies' => ['sales'],
-            'provider' => \App\Modules\Accounting\Providers\AccountingServiceProvider::class,
-        ],
-        'ptv-pos' => [
-            'name' => 'PTV-POS',
-            'description' => 'Punto de venta local con control de caja y turnos.',
-            'version' => '0.1.0',
-            'dependencies' => ['sales', 'inventory'],
-            'provider' => \Stockia\PTVPos\Providers\PTVPosServiceProvider::class,
-        ],
-        'sales-quotes' => [
-            'name' => 'Sales Quotes',
-            'description' => 'Cotizaciones comerciales con estados y control por almacén.',
-            'version' => '0.1.0',
-            'dependencies' => ['sales', 'inventory'],
-            'provider' => \Stockia\SalesQuotes\Providers\SalesQuotesServiceProvider::class,
-        ],
-        'dte-sv-mh' => [
-            'name' => 'DTE SV MH',
-            'description' => 'Emisión de DTE para El Salvador con integración MH y modo simulado.',
-            'version' => '0.1.0',
-            'dependencies' => ['sales'],
-            'provider' => \TuEmpresa\SvDte\DteServiceProvider::class,
-        ],
-    ];
-
     private function modulesTableReady(): bool
     {
         return Schema::hasTable('modules');
@@ -64,7 +19,7 @@ class ModuleController extends Controller
 
     private function catalog(): array
     {
-        return self::CATALOG;
+        return Module::CATALOG;
     }
 
     public function index()
@@ -72,7 +27,7 @@ class ModuleController extends Controller
         if (! $this->modulesTableReady()) {
             return view('settings.modules.index', [
                 'modulesTableReady' => false,
-                'catalog' => collect($this->catalog()),
+                'catalog' => $this->visibleCatalog($this->catalog()),
                 'installedModules' => collect(),
             ]);
         }
@@ -102,9 +57,19 @@ class ModuleController extends Controller
 
         return view('settings.modules.index', [
             'modulesTableReady' => true,
-            'catalog' => collect($catalog),
+            'catalog' => $this->visibleCatalog($catalog),
             'installedModules' => $installedModules,
         ]);
+    }
+
+    /**
+     * Oculta del listado los módulos sin contenido real todavía
+     * (marcados 'visible' => false en el catálogo), sin afectar su
+     * estado instalado/activo real.
+     */
+    private function visibleCatalog(array $catalog)
+    {
+        return collect($catalog)->filter(fn ($info) => ($info['visible'] ?? true) !== false);
     }
 
     public function wizard(Request $request)

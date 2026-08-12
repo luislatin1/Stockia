@@ -37,6 +37,9 @@ class Sale extends Model
         'cash_received',
         'change_amount',
         'document_type',
+        'dias_credito',
+        'fecha_vencimiento',
+        'saldo_pendiente',
     ];
 
     protected $casts = [
@@ -52,11 +55,58 @@ class Sale extends Model
         'total' => 'decimal:2',
         'cash_received' => 'decimal:2',
         'change_amount' => 'decimal:2',
+        'fecha_vencimiento' => 'date',
     ];
+
+    protected static function booted(): void
+    {
+        static::created(function (self $sale) {
+            if (! Module::isEnabled('sales')) {
+                return;
+            }
+
+            $rate = CompanyUser::where('company_id', $sale->company_id)
+                ->where('user_id', $sale->user_id)
+                ->value('comision_porcentaje');
+
+            if (! $rate || (float) $rate <= 0) {
+                return;
+            }
+
+            $baseAmount = (float) $sale->subtotal;
+
+            Commission::create([
+                'company_id' => $sale->company_id,
+                'sale_id' => $sale->id,
+                'user_id' => $sale->user_id,
+                'rate' => $rate,
+                'base_amount' => $baseAmount,
+                'amount' => round($baseAmount * ((float) $rate / 100), 2),
+            ]);
+        });
+    }
 
     public function items()
     {
         return $this->hasMany(SaleItem::class);
+    }
+
+    public function payments()
+    {
+        return $this->hasMany(SalePayment::class);
+    }
+
+    public function commission()
+    {
+        return $this->hasOne(Commission::class);
+    }
+
+    public function getEstaVencidaAttribute(): bool
+    {
+        return $this->payment_method === 'credit'
+            && $this->saldo_pendiente > 0
+            && $this->fecha_vencimiento !== null
+            && $this->fecha_vencimiento->isPast();
     }
 
     public function warehouse()

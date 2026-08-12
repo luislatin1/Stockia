@@ -35,6 +35,34 @@ protected $casts = [
     'subtotal' => 'decimal:2',
 ];
 
+protected static function booted(): void
+{
+    static::created(function (self $item) {
+        if (! Module::isEnabled('sales')) {
+            return;
+        }
+
+        $garantiaMeses = $item->product?->garantia_meses;
+
+        if (! $garantiaMeses) {
+            return;
+        }
+
+        $sale = $item->sale;
+        $fechaInicio = $sale->created_at->toDateString();
+
+        Warranty::create([
+            'company_id' => $sale->company_id,
+            'sale_id' => $sale->id,
+            'sale_item_id' => $item->id,
+            'product_id' => $item->product_id,
+            'customer_id' => $sale->customer_id,
+            'fecha_inicio' => $fechaInicio,
+            'fecha_vencimiento' => \Illuminate\Support\Carbon::parse($fechaInicio)->addMonths((int) $garantiaMeses),
+        ]);
+    });
+}
+
 public function product()
 {
     return $this->belongsTo(Product::class);
@@ -43,5 +71,10 @@ public function product()
 public function sale()
 {
     return $this->belongsTo(Sale::class);
+}
+
+public function warranty()
+{
+    return $this->hasOne(Warranty::class);
 }
 }

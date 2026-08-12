@@ -52,12 +52,17 @@ class User extends Authenticatable
     public function companies()
 {
     return $this->belongsToMany(Company::class)
-        ->withPivot('role')
+        ->withPivot('role', 'comision_porcentaje')
         ->withTimestamps();
 }
 
     public function companyAccess()
     {
         return $this->hasMany(CompanyUser::class);
+    }
+
+    public function commissions()
+    {
+        return $this->hasMany(Commission::class);
     }
 }

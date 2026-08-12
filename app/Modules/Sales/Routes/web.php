@@ -1,34 +1,18 @@
 <?php
 
-use App\Modules\Sales\Http\Controllers\SaleController;
+use App\Http\Controllers\CommissionController;
+use App\Http\Controllers\WarrantyController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'company.selected', 'role:Vendedor,Admin,SuperAdmin'])->group(function () {
-    Route::get('sales/export/excel', [SaleController::class, 'exportExcel'])
-        ->name('sales.export.excel');
+    Route::get('garantias', [WarrantyController::class, 'index'])->name('warranties.index');
+    Route::get('garantias/{warranty}', [WarrantyController::class, 'show'])->name('warranties.show');
+    Route::post('garantias/{warranty}/reclamo', [WarrantyController::class, 'claim'])->name('warranties.claim');
+    Route::post('garantias/{warranty}/resolver', [WarrantyController::class, 'resolve'])->name('warranties.resolve');
 
-    Route::resource('sales', SaleController::class)
-        ->only(['index','create', 'show', 'edit', 'update', 'destroy']);
-
-    Route::post('sales', [SaleController::class, 'store'])
-        ->middleware('dte.document')
-        ->name('sales.store');
-
-    Route::get('sales/{sale}/ticket', [SaleController::class, 'ticket'])
-        ->name('sales.ticket');
-
-    Route::get('sales/{sale}/invoice', [SaleController::class, 'invoice'])
-        ->name('sales.invoice');
-
-    Route::get('sales/{sale}/ticket/pdf', [SaleController::class, 'ticketPdf'])
-        ->name('sales.ticket.pdf');
-
-    Route::get('sales/{sale}/invoice/pdf', [SaleController::class, 'invoicePdf'])
-        ->name('sales.invoice.pdf');
-
-    Route::get('sales/{sale}/admin-adjustment', [SaleController::class, 'adminAdjustment'])
-        ->name('sales.admin-adjustment');
-
-    Route::post('sales/{sale}/admin-adjustment', [SaleController::class, 'storeAdminAdjustment'])
-        ->name('sales.admin-adjustment.store');
+    Route::middleware(['role:Admin,SuperAdmin'])->group(function () {
+        Route::get('comisiones', [CommissionController::class, 'index'])->name('commissions.index');
+        Route::get('comisiones/{user}', [CommissionController::class, 'show'])->name('commissions.show');
+        Route::post('comisiones/{commission}/pagar', [CommissionController::class, 'pay'])->name('commissions.pay');
+    });
 });

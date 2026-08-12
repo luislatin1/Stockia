@@ -83,7 +83,7 @@
                 </div>
 
                 <div>
-                    <label for="cash_received" class="mb-1 block text-sm font-medium text-gray-700">Efectivo recibido</label>
+                    <label id="cash_received_label" for="cash_received" class="mb-1 block text-sm font-medium text-gray-700">Efectivo recibido</label>
                     <input id="cash_received"
                            type="number"
                            step="0.01"
@@ -91,6 +91,19 @@
                            name="cash_received"
                            value="{{ old('cash_received') }}"
                            class="w-full rounded border border-gray-300 px-3 py-2">
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <input type="checkbox" id="es_credito" name="es_credito" value="1" @checked(old('es_credito'))
+                           class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-300">
+                    <label for="es_credito" class="text-sm font-medium text-gray-700">Venta a crédito</label>
+                </div>
+
+                <div id="dias-credito-wrapper" class="hidden">
+                    <label for="dias_credito" class="mb-1 block text-sm font-medium text-gray-700">Días de crédito</label>
+                    <input type="number" id="dias_credito" name="dias_credito" min="1" value="{{ old('dias_credito') }}"
+                           class="w-full rounded border border-gray-300 px-3 py-2">
+                    <p id="credito-cliente-warning" class="hidden mt-1 text-xs text-red-600">Selecciona un cliente para vender a crédito (no aplica a Consumidor final).</p>
                 </div>
 
                 <div>
@@ -177,6 +190,23 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     }
+
+    const esCreditoCheckbox = document.getElementById('es_credito');
+    const diasCreditoWrapper = document.getElementById('dias-credito-wrapper');
+    const cashReceivedLabel = document.getElementById('cash_received_label');
+    const customerSelect = document.querySelector('select[name="customer_id"]');
+    const creditoClienteWarning = document.getElementById('credito-cliente-warning');
+
+    function toggleCredito() {
+        const isCredito = esCreditoCheckbox.checked;
+        diasCreditoWrapper.classList.toggle('hidden', ! isCredito);
+        cashReceivedLabel.textContent = isCredito ? 'Anticipo (opcional)' : 'Efectivo recibido';
+        creditoClienteWarning.classList.toggle('hidden', ! isCredito || customerSelect.value !== '');
+    }
+
+    esCreditoCheckbox.addEventListener('change', toggleCredito);
+    customerSelect.addEventListener('change', toggleCredito);
+    toggleCredito();
 
     recalc();
 });

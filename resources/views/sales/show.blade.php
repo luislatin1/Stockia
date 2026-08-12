@@ -101,6 +101,88 @@
         </table>
     </div>
 
+    @if ($sale->payment_method === 'credit')
+        <div class="rounded-xl border bg-white p-4 shadow-sm space-y-4">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                    <p class="text-xs uppercase text-gray-500">Saldo pendiente</p>
+                    <p class="mt-1 text-xl font-bold {{ $sale->saldo_pendiente > 0 ? 'text-amber-600' : 'text-emerald-600' }}">
+                        ${{ number_format($sale->saldo_pendiente, 2) }}
+                    </p>
+                </div>
+                <div class="text-right">
+                    <p class="text-xs uppercase text-gray-500">Vence</p>
+                    <p class="mt-1 font-semibold {{ $sale->esta_vencida ? 'text-red-600' : 'text-gray-900' }}">
+                        {{ $sale->fecha_vencimiento?->format('d/m/Y') ?? '—' }}
+                        @if ($sale->esta_vencida)
+                            <span class="text-xs">(vencida)</span>
+                        @endif
+                    </p>
+                </div>
+            </div>
+
+            @if ($sale->payments->isNotEmpty())
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="text-[11px] font-semibold uppercase tracking-wider text-gray-500">
+                            <th class="text-left py-1">Fecha</th>
+                            <th class="text-left py-1">Forma</th>
+                            <th class="text-left py-1">Referencia</th>
+                            <th class="text-right py-1">Monto</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        @foreach ($sale->payments as $payment)
+                            <tr>
+                                <td class="py-1.5">{{ $payment->fecha->format('d/m/Y') }}</td>
+                                <td class="py-1.5">{{ $payment->forma_pago }}</td>
+                                <td class="py-1.5">{{ $payment->referencia ?: '—' }}</td>
+                                <td class="py-1.5 text-right">${{ number_format($payment->monto, 2) }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            @endif
+
+            @if ($sale->saldo_pendiente > 0)
+                <form action="{{ route('sales.payments.store', $sale) }}" method="POST"
+                      class="grid grid-cols-4 gap-3 items-end border-t border-gray-100 pt-4">
+                    @csrf
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Fecha</label>
+                        <input type="date" name="fecha" value="{{ now()->format('Y-m-d') }}"
+                               class="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Monto</label>
+                        <input type="number" step="0.01" min="0.01" max="{{ $sale->saldo_pendiente }}" name="monto"
+                               class="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Forma de pago</label>
+                        <select name="forma_pago" class="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm">
+                            <option value="efectivo">Efectivo</option>
+                            <option value="transferencia">Transferencia</option>
+                            <option value="cheque">Cheque</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Referencia</label>
+                        <input type="text" name="referencia" class="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm">
+                    </div>
+                    @error('monto')
+                        <p class="col-span-4 text-red-500 text-xs">{{ $message }}</p>
+                    @enderror
+                    <div class="col-span-4">
+                        <button type="submit" class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 transition-colors">
+                            Registrar cobro
+                        </button>
+                    </div>
+                </form>
+            @endif
+        </div>
+    @endif
+
     @if(($adjustments ?? collect())->isNotEmpty())
         <div class="rounded-xl border bg-white p-4 shadow-sm">
             <h3 class="text-lg font-semibold text-gray-900">Historial de Cancelacion / Anulacion</h3>

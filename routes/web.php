@@ -1,10 +1,16 @@
 <?php
 
+use App\Http\Controllers\AccountsPayableController;
+use App\Http\Controllers\AccountsReceivableController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\InventoryMovementController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProviderController;
 use App\Http\Controllers\PurchaseController;
+use App\Http\Controllers\SaleController;
+use App\Http\Controllers\StockTransferController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\WarehouseController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\CompanySelectionController;
@@ -81,6 +87,13 @@ Route::middleware(['auth'])->group(function () {
 
             Route::resource('purchases', PurchaseController::class)
                 ->only(['index', 'create', 'store', 'show']);
+            Route::post('/purchases/{purchase}/payments', [PurchaseController::class, 'storePayment'])
+                ->name('purchases.payments.store');
+
+            Route::get('/cuentas-por-pagar', [AccountsPayableController::class, 'index'])
+                ->name('accounts-payable.index');
+            Route::get('/cuentas-por-pagar/{provider}', [AccountsPayableController::class, 'show'])
+                ->name('accounts-payable.show');
 
             Route::resource('categories', CategoryController::class)
                 ->only(['index', 'create', 'store', 'edit', 'update', 'destroy']);
@@ -94,6 +107,16 @@ Route::middleware(['auth'])->group(function () {
                 ->name('users.role.update');
             Route::get('/companies', [CompanyController::class, 'index'])->name('companies.index');
             Route::post('/companies', [CompanyController::class, 'store'])->name('companies.store');
+
+            Route::get('/warehouses', [WarehouseController::class, 'index'])->name('warehouses.index');
+            Route::post('/warehouses', [WarehouseController::class, 'store'])->name('warehouses.store');
+
+            Route::get('traslados', [StockTransferController::class, 'index'])->name('stock-transfers.index');
+            Route::get('traslados/create', [StockTransferController::class, 'create'])->name('stock-transfers.create');
+            Route::post('traslados', [StockTransferController::class, 'store'])->name('stock-transfers.store');
+            Route::get('traslados/{stockTransfer}', [StockTransferController::class, 'show'])->name('stock-transfers.show');
+            Route::post('traslados/{stockTransfer}/recibir', [StockTransferController::class, 'receive'])->name('stock-transfers.receive');
+            Route::post('traslados/{stockTransfer}/anular', [StockTransferController::class, 'cancel'])->name('stock-transfers.cancel');
         });
 
         Route::middleware(['role:SuperAdmin'])->prefix('settings')->name('settings.')->group(function () {
@@ -102,6 +125,50 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/modules/install', [ModuleController::class, 'install'])->name('modules.install');
             Route::patch('/modules/{module}/toggle', [ModuleController::class, 'toggle'])->name('modules.toggle');
             Route::post('/modules/upload', [ModuleController::class, 'upload'])->name('modules.upload');
+        });
+
+        Route::get('/inventory-movements', [InventoryMovementController::class, 'index'])
+            ->name('inventory_movements.index');
+
+        Route::middleware(['role:Vendedor,Admin,SuperAdmin'])->group(function () {
+            Route::get('sales/export/excel', [SaleController::class, 'exportExcel'])
+                ->name('sales.export.excel');
+
+            Route::resource('sales', SaleController::class)
+                ->only(['index', 'create', 'show', 'edit', 'update', 'destroy']);
+
+            Route::post('sales', [SaleController::class, 'store'])
+                ->middleware('dte.document')
+                ->name('sales.store');
+
+            Route::get('sales/{sale}/ticket', [SaleController::class, 'ticket'])
+                ->name('sales.ticket');
+
+            Route::get('sales/{sale}/invoice', [SaleController::class, 'invoice'])
+                ->name('sales.invoice');
+
+            Route::get('sales/{sale}/ticket/pdf', [SaleController::class, 'ticketPdf'])
+                ->name('sales.ticket.pdf');
+
+            Route::get('sales/{sale}/invoice/pdf', [SaleController::class, 'invoicePdf'])
+                ->name('sales.invoice.pdf');
+
+            Route::get('sales/{sale}/admin-adjustment', [SaleController::class, 'adminAdjustment'])
+                ->name('sales.admin-adjustment');
+
+            Route::post('sales/{sale}/admin-adjustment', [SaleController::class, 'storeAdminAdjustment'])
+                ->name('sales.admin-adjustment.store');
+
+            Route::middleware(['role:Admin,SuperAdmin'])->group(function () {
+                Route::post('sales/{sale}/payments', [SaleController::class, 'storePayment'])
+                    ->name('sales.payments.store');
+
+                Route::get('cuentas-por-cobrar', [AccountsReceivableController::class, 'index'])
+                    ->name('accounts-receivable.index');
+
+                Route::get('cuentas-por-cobrar/{customer}', [AccountsReceivableController::class, 'show'])
+                    ->name('accounts-receivable.show');
+            });
         });
 
     });

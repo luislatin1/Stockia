@@ -20,11 +20,34 @@ class Purchase extends Model
         'iva',
         'total',
         'notes',
+        'es_credito',
+        'dias_credito',
+        'fecha_vencimiento',
+        'saldo_pendiente',
+    ];
+
+    protected $casts = [
+        'fecha' => 'date',
+        'fecha_vencimiento' => 'date',
+        'es_credito' => 'boolean',
     ];
 
     public function items()
     {
         return $this->hasMany(PurchaseItem::class);
+    }
+
+    public function payments()
+    {
+        return $this->hasMany(PurchasePayment::class);
+    }
+
+    public function getEstaVencidaAttribute(): bool
+    {
+        return $this->es_credito
+            && $this->saldo_pendiente > 0
+            && $this->fecha_vencimiento !== null
+            && $this->fecha_vencimiento->isPast();
     }
 
     public function provider()

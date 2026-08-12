@@ -21,6 +21,7 @@ class Customer extends Model
         'telefono',
         'correo',
         'es_contribuyente',
+        'dias_credito_default',
     ];
 
     protected $casts = [
@@ -30,5 +31,10 @@ class Customer extends Model
     public function company()
     {
         return $this->belongsTo(Company::class);
+    }
+
+    public function sales()
+    {
+        return $this->hasMany(Sale::class);
     }
 }

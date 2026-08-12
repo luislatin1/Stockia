@@ -9,7 +9,9 @@ use App\Models\Product;
 use App\Models\Provider;
 use App\Models\Purchase;
 use App\Models\PurchaseItem;
+use App\Models\PurchasePayment;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Symfony\Component\HttpFoundation\Response;
@@ -73,6 +75,8 @@ class PurchaseController extends Controller
             'numero_doc' => 'nullable|string|max:30',
             'fecha' => 'required|date',
             'notes' => 'nullable|string|max:255',
+            'es_credito' => 'nullable|boolean',
+            'dias_credito' => 'nullable|integer|min:1|required_if:es_credito,1',
             'items' => 'required|array|min:1',
             'items.*.product_id' => [
                 'required',
@@ -85,7 +89,13 @@ class PurchaseController extends Controller
         $subtotal = collect($validated['items'])
             ->sum(fn ($item) => $item['cantidad'] * $item['costo_unitario']);
 
-        $purchaseId = DB::transaction(function () use ($validated, $companyId, $warehouseId, $subtotal) {
+        $esCredito = (bool) ($validated['es_credito'] ?? false);
+        $diasCredito = $esCredito ? (int) $validated['dias_credito'] : null;
+        $fechaVencimiento = $esCredito
+            ? Carbon::parse($validated['fecha'])->addDays($diasCredito)
+            : null;
+
+        $purchaseId = DB::transaction(function () use ($validated, $companyId, $warehouseId, $subtotal, $esCredito, $diasCredito, $fechaVencimiento) {
             $purchase = Purchase::create([
                 'company_id' => $companyId,
                 'warehouse_id' => $warehouseId,
@@ -97,6 +107,10 @@ class PurchaseController extends Controller
                 'iva' => 0,
                 'total' => $subtotal,
                 'notes' => $validated['notes'] ?? null,
+                'es_credito' => $esCredito,
+                'dias_credito' => $diasCredito,
+                'fecha_vencimiento' => $fechaVencimiento,
+                'saldo_pendiente' => $esCredito ? $subtotal : 0,
             ]);
 
             foreach ($validated['items'] as $item) {
@@ -143,8 +157,43 @@ class PurchaseController extends Controller
             abort(Response::HTTP_NOT_FOUND);
         }
 
-        $purchase->load(['items.product', 'provider']);
+        $purchase->load(['items.product', 'provider', 'payments.user']);
 
         return view('purchases.show', compact('purchase'));
+    }
+
+    public function storePayment(Request $request, Purchase $purchase)
+    {
+        [$companyId] = $this->currentContext();
+
+        if ((int) $purchase->company_id !== $companyId) {
+            abort(Response::HTTP_NOT_FOUND);
+        }
+
+        if (! $purchase->es_credito || $purchase->saldo_pendiente <= 0) {
+            abort(Response::HTTP_BAD_REQUEST, 'Esta compra no tiene saldo pendiente.');
+        }
+
+        $validated = $request->validate([
+            'fecha' => 'required|date',
+            'monto' => ['required', 'numeric', 'min:0.01', 'max:'.$purchase->saldo_pendiente],
+            'forma_pago' => 'required|string|max:30',
+            'referencia' => 'nullable|string|max:60',
+            'notes' => 'nullable|string|max:255',
+        ]);
+
+        PurchasePayment::create([
+            'company_id' => $companyId,
+            'purchase_id' => $purchase->id,
+            'user_id' => auth()->id(),
+            'fecha' => $validated['fecha'],
+            'monto' => $validated['monto'],
+            'forma_pago' => $validated['forma_pago'],
+            'referencia' => $validated['referencia'] ?? null,
+            'notes' => $validated['notes'] ?? null,
+        ]);
+
+        return redirect()->route('purchases.show', $purchase)
+            ->with('success', 'Abono registrado correctamente.');
     }
 }

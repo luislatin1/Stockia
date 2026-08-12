@@ -1,16 +1,17 @@
 <?php
 
-use App\Modules\Inventory\Http\Controllers\InventoryMovementController;
-use App\Modules\Inventory\Http\Controllers\WarehouseController;
+use App\Http\Controllers\ProductBatchController;
+use App\Http\Controllers\ProductLocationController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['auth', 'company.selected'])->group(function () {
-    Route::get('/inventory-movements', [InventoryMovementController::class, 'index'])
-        ->name('inventory_movements.index');
+Route::middleware(['auth', 'company.selected', 'role:Admin,SuperAdmin'])->group(function () {
+    Route::get('lotes', [ProductBatchController::class, 'index'])->name('product-batches.index');
+    Route::get('lotes/create', [ProductBatchController::class, 'create'])->name('product-batches.create');
+    Route::post('lotes', [ProductBatchController::class, 'store'])->name('product-batches.store');
+    Route::delete('lotes/{lote}', [ProductBatchController::class, 'destroy'])->name('product-batches.destroy');
 
-    Route::middleware(['role:Admin,SuperAdmin'])->group(function () {
-        Route::get('/warehouses', [WarehouseController::class, 'index'])->name('warehouses.index');
-        Route::post('/warehouses', [WarehouseController::class, 'store'])->name('warehouses.store');
-    });
+    Route::get('estantes', [ProductLocationController::class, 'index'])->name('product-locations.index');
+    Route::get('estantes/create', [ProductLocationController::class, 'create'])->name('product-locations.create');
+    Route::post('estantes', [ProductLocationController::class, 'store'])->name('product-locations.store');
+    Route::delete('estantes/{estante}', [ProductLocationController::class, 'destroy'])->name('product-locations.destroy');
 });
-

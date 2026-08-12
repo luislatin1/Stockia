@@ -19,10 +19,16 @@ class Provider extends Model
         'telefono',
         'email',
         'direccion',
+        'dias_credito_default',
     ];
 
     public function products()
     {
         return $this->hasMany(Product::class);
+    }
+
+    public function purchases()
+    {
+        return $this->hasMany(Purchase::class);
     }
 }

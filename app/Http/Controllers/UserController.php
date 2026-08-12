@@ -60,6 +60,7 @@ class UserController extends Controller
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'min:6'],
             'role' => ['required', 'in:' . implode(',', self::ROLES)],
+            'comision_porcentaje' => ['nullable', 'numeric', 'min:0', 'max:100'],
         ]);
 
         DB::transaction(function () use ($validated, $companyId) {
@@ -71,6 +72,7 @@ class UserController extends Controller
 
             $user->companies()->attach($companyId, [
                 'role' => $validated['role'],
+                'comision_porcentaje' => $validated['comision_porcentaje'] ?? null,
             ]);
 
             $companyUser = CompanyUser::where('company_id', $companyId)
@@ -102,8 +104,9 @@ class UserController extends Controller
         $user = $this->findUserInCurrentCompany($id);
         $roles = self::ROLES;
         $currentRole = optional($user->companies->first())->pivot->role;
+        $currentComisionPorcentaje = optional($user->companies->first())->pivot->comision_porcentaje;
 
-        return view('users.edit', compact('user', 'roles', 'currentRole'));
+        return view('users.edit', compact('user', 'roles', 'currentRole', 'currentComisionPorcentaje'));
     }
 
     public function update(Request $request, string $id): RedirectResponse
@@ -116,6 +119,7 @@ class UserController extends Controller
             'email' => ['required', 'email', 'max:255', 'unique:users,email,' . $user->id],
             'password' => ['nullable', 'string', 'min:6'],
             'role' => ['required', 'in:' . implode(',', self::ROLES)],
+            'comision_porcentaje' => ['nullable', 'numeric', 'min:0', 'max:100'],
         ]);
 
         DB::transaction(function () use ($user, $validated, $companyId) {
@@ -130,6 +134,7 @@ class UserController extends Controller
 
             $user->companies()->updateExistingPivot($companyId, [
                 'role' => $validated['role'],
+                'comision_porcentaje' => $validated['comision_porcentaje'] ?? null,
             ]);
         });
 

@@ -12,6 +12,7 @@ use App\Models\Dte;
 use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\Product;
+use App\Models\SalePayment;
 use App\Services\Dte\DteCalculationService;
 use App\Services\Dte\DteEmissionService;
 use Illuminate\Http\Request;
@@ -197,7 +198,7 @@ class SaleController extends Controller
         [$companyId, $warehouseId] = $this->currentContext();
         $sale = $this->findSaleInContext((int) $id, $companyId, $warehouseId);
         $this->ensureSaleAccess($sale, $companyId, $warehouseId);
-        $sale->load(['items.product', 'company', 'warehouse', 'user', 'customer']);
+        $sale->load(['items.product', 'company', 'warehouse', 'user', 'customer', 'payments.user']);
 
         $adjustments = DB::table('sale_adjustments')
             ->leftJoin('users', 'users.id', '=', 'sale_adjustments.processed_by_user_id')
@@ -241,10 +242,12 @@ class SaleController extends Controller
         $validated = $request->validate([
             'products' => ['required', 'array'],
             'products.*' => ['nullable', 'integer', 'min:0'],
-            'cash_received' => ['required', 'numeric', 'min:0'],
+            'cash_received' => ['required_unless:es_credito,1', 'nullable', 'numeric', 'min:0'],
             'document_type' => ['required', 'in:ticket,factura'],
-            'customer_id' => ['nullable', 'integer', 'exists:customers,id'],
+            'customer_id' => ['nullable', 'integer', 'exists:customers,id', 'required_if:es_credito,1'],
             'tipo_dte' => ['nullable', 'string', 'size:2'],
+            'es_credito' => ['nullable', 'boolean'],
+            'dias_credito' => ['nullable', 'integer', 'min:1', 'required_if:es_credito,1'],
         ]);
 
         if (! empty($validated['customer_id'])) {
@@ -329,13 +332,21 @@ class SaleController extends Controller
         $subtotal = (float) $totals['subtotal'];
         $taxTotal = (float) $totals['iva'];
         $grandTotal = (float) $totals['total'];
-        $cashReceived = round((float) $validated['cash_received'], 2);
+        $cashReceived = round((float) ($validated['cash_received'] ?? 0), 2);
+        $esCredito = $request->boolean('es_credito');
 
-        if ($cashReceived < $grandTotal) {
+        if (! $esCredito && $cashReceived < $grandTotal) {
             return back()->withErrors('El efectivo recibido no cubre el total de la venta.');
         }
 
-        $changeAmount = round($cashReceived - $grandTotal, 2);
+        if ($esCredito && $cashReceived > $grandTotal) {
+            return back()->withErrors('El anticipo no puede ser mayor al total de la venta.');
+        }
+
+        $changeAmount = $esCredito ? 0.0 : round($cashReceived - $grandTotal, 2);
+        $saldoPendiente = $esCredito ? round($grandTotal - $cashReceived, 2) : 0.0;
+        $diasCredito = $esCredito ? (int) $validated['dias_credito'] : null;
+        $fechaVencimiento = $esCredito ? now()->addDays($diasCredito) : null;
 
         $saleId = DB::transaction(function () use (
             $products,
@@ -345,7 +356,11 @@ class SaleController extends Controller
             $totals,
             $cashReceived,
             $changeAmount,
-            $validated
+            $validated,
+            $esCredito,
+            $saldoPendiente,
+            $diasCredito,
+            $fechaVencimiento
         ) {
             $sale = Sale::create([
                 'company_id' => $companyId,
@@ -365,10 +380,13 @@ class SaleController extends Controller
                 'subtotal' => $totals['subtotal'],
                 'tax_total' => $totals['iva'],
                 'total' => $totals['total'],
-                'payment_method' => 'cash',
+                'payment_method' => $esCredito ? 'credit' : 'cash',
                 'cash_received' => $cashReceived,
                 'change_amount' => $changeAmount,
                 'document_type' => $validated['document_type'],
+                'dias_credito' => $diasCredito,
+                'fecha_vencimiento' => $fechaVencimiento,
+                'saldo_pendiente' => $saldoPendiente,
             ]);
 
             $sale->update([
@@ -430,6 +448,38 @@ class SaleController extends Controller
         }
 
         return $redirect;
+    }
+
+    public function storePayment(Request $request, Sale $sale)
+    {
+        [$companyId, $warehouseId] = $this->currentContext();
+        $this->ensureSaleAccess($sale, $companyId, $warehouseId);
+
+        if ($sale->payment_method !== 'credit' || $sale->saldo_pendiente <= 0) {
+            abort(Response::HTTP_BAD_REQUEST, 'Esta venta no tiene saldo pendiente.');
+        }
+
+        $validated = $request->validate([
+            'fecha' => 'required|date',
+            'monto' => ['required', 'numeric', 'min:0.01', 'max:'.$sale->saldo_pendiente],
+            'forma_pago' => 'required|string|max:30',
+            'referencia' => 'nullable|string|max:60',
+            'notes' => 'nullable|string|max:255',
+        ]);
+
+        SalePayment::create([
+            'company_id' => $companyId,
+            'sale_id' => $sale->id,
+            'user_id' => auth()->id(),
+            'fecha' => $validated['fecha'],
+            'monto' => $validated['monto'],
+            'forma_pago' => $validated['forma_pago'],
+            'referencia' => $validated['referencia'] ?? null,
+            'notes' => $validated['notes'] ?? null,
+        ]);
+
+        return redirect()->route('sales.show', $sale)
+            ->with('success', 'Cobro registrado correctamente.');
     }
 
     public function ticket(Sale $sale)

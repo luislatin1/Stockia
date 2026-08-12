@@ -27,6 +27,7 @@ class Product extends Model
         'category_id',
         'provider_id',
         'legacy_id',
+        'garantia_meses',
     ];
 
     protected $casts = [
@@ -64,6 +65,16 @@ class Product extends Model
         return $this->belongsToMany(Warehouse::class, 'product_warehouse')
             ->withPivot('stock', 'min_stock', 'cost')
             ->withTimestamps();
+    }
+
+    public function batches()
+    {
+        return $this->hasMany(ProductBatch::class);
+    }
+
+    public function locations()
+    {
+        return $this->hasMany(ProductLocation::class);
     }
 
     public function category()

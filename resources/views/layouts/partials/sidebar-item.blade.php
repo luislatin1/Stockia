@@ -14,7 +14,27 @@
     $classes = $base . ' ' . ($isActive ? $active : $normal);
 @endphp
 
-@if (($item['type'] ?? 'link') === 'logout')
+@if ($item['locked'] ?? false)
+    @php
+        $lockedTitle = 'Requiere el módulo “' . $item['module_label'] . '”. '
+            . (currentRole() === 'SuperAdmin' ? 'Actívalo en Ajustes.' : 'Pide a un administrador que lo active.');
+    @endphp
+    @if (currentRole() === 'SuperAdmin')
+        <a href="{{ route('settings.modules.index') }}" title="{{ $lockedTitle }}"
+           class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-gray-500 hover:bg-gray-800/60 transition-colors duration-150">
+            <span class="text-base leading-none opacity-50">{{ $item['icon'] ?? '•' }}</span>
+            <span class="flex-1">{{ $item['label'] }}</span>
+            <span class="text-xs" aria-hidden="true">🔒</span>
+        </a>
+    @else
+        <div title="{{ $lockedTitle }}"
+             class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-gray-500 cursor-not-allowed">
+            <span class="text-base leading-none opacity-50">{{ $item['icon'] ?? '•' }}</span>
+            <span class="flex-1">{{ $item['label'] }}</span>
+            <span class="text-xs" aria-hidden="true">🔒</span>
+        </div>
+    @endif
+@elseif (($item['type'] ?? 'link') === 'logout')
     <form action="{{ route('logout') }}" method="POST">
         @csrf
         <button type="submit" class="{{ $classes }}">

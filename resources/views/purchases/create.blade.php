@@ -19,10 +19,11 @@
             <div class="grid grid-cols-3 gap-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Proveedor</label>
-                    <select name="provider_id" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300">
+                    <select id="provider_id" name="provider_id" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300">
                         <option value="">Sin proveedor</option>
                         @foreach ($providers as $provider)
-                            <option value="{{ $provider->id }}" @selected((string) old('provider_id') === (string) $provider->id)>{{ $provider->nombre }}</option>
+                            <option value="{{ $provider->id }}" data-dias-credito="{{ $provider->dias_credito_default }}"
+                                    @selected((string) old('provider_id') === (string) $provider->id)>{{ $provider->nombre }}</option>
                         @endforeach
                     </select>
                     @error('provider_id')
@@ -43,6 +44,22 @@
                     <input type="text" name="numero_doc"
                            class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
                            value="{{ old('numero_doc') }}" placeholder="Factura del proveedor">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-3 gap-4 items-end">
+                <div class="flex items-center gap-2 pt-6">
+                    <input type="checkbox" id="es_credito" name="es_credito" value="1" @checked(old('es_credito'))
+                           class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-300">
+                    <label for="es_credito" class="text-sm font-medium text-gray-700">Compra a crédito</label>
+                </div>
+                <div id="dias-credito-wrapper" class="hidden">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Días de crédito</label>
+                    <input type="number" id="dias_credito" name="dias_credito" min="1" value="{{ old('dias_credito') }}"
+                           class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300">
+                    @error('dias_credito')
+                        <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                    @enderror
                 </div>
             </div>
 
@@ -175,6 +192,26 @@
     });
 
     addRow();
+
+    const esCreditoCheckbox = document.getElementById('es_credito');
+    const diasCreditoWrapper = document.getElementById('dias-credito-wrapper');
+    const diasCreditoInput = document.getElementById('dias_credito');
+    const providerSelect = document.getElementById('provider_id');
+
+    function toggleDiasCredito() {
+        diasCreditoWrapper.classList.toggle('hidden', ! esCreditoCheckbox.checked);
+    }
+
+    esCreditoCheckbox.addEventListener('change', toggleDiasCredito);
+    toggleDiasCredito();
+
+    providerSelect.addEventListener('change', function () {
+        const selected = providerSelect.options[providerSelect.selectedIndex];
+        const diasDefault = selected ? selected.dataset.diasCredito : '';
+        if (diasDefault && ! diasCreditoInput.value) {
+            diasCreditoInput.value = diasDefault;
+        }
+    });
 })();
 </script>
 @endsection
