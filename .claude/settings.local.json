@@ -159,7 +159,13 @@
       "Bash(grep -n 'SaleItem::create\\\\|SaleItem\\(\\\\|\\\\$products\\\\b\\\\|\\\\$sale\\\\b' packages/ptv-pos/src/Http/Controllers/PTVPosController.php)",
       "Bash(php -l app/Http/Controllers/DteVatBooksController.php)",
       "WebSearch",
-      "Bash(echo \"exit:$?\")"
+      "Bash(echo \"exit:$?\")",
+      "Bash(php -v)",
+      "Bash(php -r ' *)",
+      "Bash(unzip -l ExportPlugins/ptv-pos.zip)",
+      "Bash(unzip -l ExportPlugins/sales-quotes.zip)",
+      "Bash(unzip -l ExportPlugins/sv-dte-laravel12.zip)",
+      "Bash(awk 'NR>3 && NF>=4 {print $4}')"
     ],
     "additionalDirectories": [
       "C:\\Users\\LUIS~1.LAT\\AppData\\Local\\Temp\\claude\\c--laragonOld-www-Stockia\\27ae11ba-dee7-43ba-bf74-13adfec08d43\\scratchpad"
