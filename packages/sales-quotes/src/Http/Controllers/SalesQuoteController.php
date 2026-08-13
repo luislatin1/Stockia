@@ -71,7 +71,7 @@ class SalesQuoteController extends Controller
 
         $quotes = $quotesQuery
             ->orderByDesc('sales_quotes.id')
-            ->get([
+            ->paginate(20, [
                 'sales_quotes.*',
                 'users.name as user_name',
             ]);

@@ -13,9 +13,15 @@
     <div class="mb-4">
         <label>Nombre</label>
         <input type="text"
+               id="field-name"
                name="name"
                value="{{ old('name', $product->name) }}"
-               class="w-full border p-2 rounded">
+               class="w-full border p-2 rounded"
+               data-unique-field="name">
+        @error('name')
+            <p class="text-red-500 text-sm">{{ $message }}</p>
+        @enderror
+        <p id="field-name-unique-msg" class="text-red-500 text-sm mt-1 hidden"></p>
     </div>
 
     <div class="mb-4">

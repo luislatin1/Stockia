@@ -82,6 +82,8 @@
         @empty
             <p class="rounded border border-dashed border-gray-300 bg-white p-6 text-center text-gray-500">No hay ventas aún.</p>
         @endforelse
+
+        {{ $sales->links() }}
     @endif
 </div>
 @endsection

@@ -95,18 +95,16 @@ class Product extends Model
 
     public function stockInWarehouse($warehouseId): int
     {
-        return (int) $this->warehouses()
-    ->where('warehouses.id', $warehouseId)
-    ->value('product_warehouse.stock') ?? 0;
+        $warehouse = $this->warehouses->where('id', $warehouseId)->first();
+
+        return (int) ($warehouse?->pivot->stock ?? 0);
     }
 
     public function minStockInWarehouse($warehouseId): int
     {
-        $warehouse = $this->warehouses()
-            ->where('warehouse_id', $warehouseId)
-            ->first();
+        $warehouse = $this->warehouses->where('id', $warehouseId)->first();
 
-        return $warehouse?->pivot->min_stock ?? 0;
+        return (int) ($warehouse?->pivot->min_stock ?? 0);
     }
 
     /*
@@ -202,7 +200,7 @@ class Product extends Model
             ->where('id', $warehouseId)
             ->first();
 
-        return $this->minStockInWarehouse($warehouseId);
+        return $warehouse?->pivot->min_stock ?? 0;
     }
     // public function getCurrentStockAttribute()
     // {

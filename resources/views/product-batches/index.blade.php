@@ -73,6 +73,10 @@
                 <td colspan="7" class="px-4 py-6 text-center text-gray-500">No hay lotes registrados.</td>
             </tr>
         @endforelse
+
+        <x-slot name="footer">
+            {{ $batches->links() }}
+        </x-slot>
     </x-table>
 </div>
 @endsection

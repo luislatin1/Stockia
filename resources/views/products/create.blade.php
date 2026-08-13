@@ -20,12 +20,14 @@
             {{-- Nombre --}}
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Nombre <span class="text-red-500">*</span></label>
-                <input type="text" name="name"
+                <input type="text" id="field-name" name="name"
                        class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
-                       value="{{ old('name') }}" placeholder="Nombre del producto">
+                       value="{{ old('name') }}" placeholder="Nombre del producto"
+                       data-unique-field="name">
                 @error('name')
                     <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                 @enderror
+                <p id="field-name-unique-msg" class="text-red-500 text-xs mt-1 hidden"></p>
             </div>
 
             {{-- SKU + Código Barras (2 columnas) --}}

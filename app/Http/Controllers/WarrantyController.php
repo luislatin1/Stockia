@@ -30,7 +30,7 @@ class WarrantyController extends Controller
             $query->where('estado', $request->query('estado'));
         }
 
-        $warranties = $query->latest()->get();
+        $warranties = $query->latest()->paginate(25)->withQueryString();
 
         return view('warranties.index', compact('warranties'));
     }

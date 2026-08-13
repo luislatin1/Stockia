@@ -44,46 +44,88 @@ class ProductController extends Controller
         }
     }
 
+    private function warehouseStockSubquery(int $warehouseId)
+    {
+        return DB::table('product_warehouse')
+            ->select('product_id', 'stock', 'min_stock')
+            ->where('warehouse_id', $warehouseId);
+    }
+
     public function index(Request $request)
     {
         [$companyId, $warehouseId] = $this->currentContext();
+
         $search = trim((string) $request->query('q', ''));
 
-        $query = Product::with(['warehouses' => function ($query) use ($warehouseId) {
-            $query->where('warehouse_id', $warehouseId);
-        }])
-        ->where('company_id', $companyId);
+        $availability = (string) $request->query('availability', '');
+        if (! in_array($availability, ['disponible', 'low_stock', 'agotado'], true)) {
+            $availability = '';
+        }
+
+        $sort = (string) $request->query('sort', 'name');
+        if (! in_array($sort, ['name', 'price', 'stock'], true)) {
+            $sort = 'name';
+        }
+
+        $dir = strtolower((string) $request->query('dir', 'asc')) === 'desc' ? 'desc' : 'asc';
+
+        $query = Product::query()
+            ->leftJoinSub($this->warehouseStockSubquery($warehouseId), 'pw', 'pw.product_id', '=', 'products.id')
+            ->where('products.company_id', $companyId)
+            ->select('products.*')
+            ->selectRaw('COALESCE(pw.stock, 0) as warehouse_stock')
+            ->selectRaw('COALESCE(pw.min_stock, 0) as warehouse_min_stock');
 
         if ($search !== '') {
             $query->where(function ($innerQuery) use ($search) {
-                $innerQuery->where('name', 'like', '%' . $search . '%')
-                    ->orWhere('codigo', $search)
-                    ->orWhere('barcode', $search)
-                    ->orWhere('sku', $search);
+                $innerQuery->where('products.name', 'like', '%' . $search . '%')
+                    ->orWhere('products.codigo', $search)
+                    ->orWhere('products.barcode', $search)
+                    ->orWhere('products.sku', $search);
             });
         }
 
-        if ($request->low_stock) {
-            $query->whereHas('warehouses', function ($q) use ($warehouseId) {
-                $q->where('warehouse_id', $warehouseId)
-                    ->whereColumn('product_warehouse.stock', '<=', 'product_warehouse.min_stock');
-            });
+        if ($availability === 'disponible') {
+            $query->whereRaw('COALESCE(pw.stock, 0) > COALESCE(pw.min_stock, 0)');
+        } elseif ($availability === 'low_stock') {
+            $query->whereRaw('COALESCE(pw.stock, 0) > 0 AND COALESCE(pw.stock, 0) <= COALESCE(pw.min_stock, 0)');
+        } elseif ($availability === 'agotado') {
+            $query->whereRaw('COALESCE(pw.stock, 0) <= 0');
         }
 
-        $products = $query->get();
+        if ($sort === 'price') {
+            $query->orderBy('products.price', $dir);
+        } elseif ($sort === 'stock') {
+            $query->orderByRaw('COALESCE(pw.stock, 0) ' . $dir);
+        } else {
+            $query->orderBy('products.name', $dir);
+        }
 
-        $allProducts = Product::with(['warehouses' => function ($q) use ($warehouseId) {
-            $q->where('warehouse_id', $warehouseId);
-        }])->where('company_id', $companyId)->get();
+        $products = $query->paginate(30)->withQueryString();
+
+        $statsRow = DB::table('products as p')
+            ->leftJoinSub($this->warehouseStockSubquery($warehouseId), 'pw', 'pw.product_id', '=', 'p.id')
+            ->where('p.company_id', $companyId)
+            ->selectRaw('COUNT(*) as total')
+            ->selectRaw('SUM(CASE WHEN COALESCE(pw.stock, 0) > 0 AND COALESCE(pw.stock, 0) <= COALESCE(pw.min_stock, 0) THEN 1 ELSE 0 END) as low_stock')
+            ->selectRaw('SUM(CASE WHEN COALESCE(pw.stock, 0) <= 0 THEN 1 ELSE 0 END) as out_of_stock')
+            ->selectRaw('SUM(p.price * COALESCE(pw.stock, 0)) as inventory_value')
+            ->first();
 
         $stats = [
-            'total'           => $allProducts->count(),
-            'low_stock'       => $allProducts->filter(fn ($p) => $p->stock > 0 && $p->stock <= $p->min_stock)->count(),
-            'out_of_stock'    => $allProducts->filter(fn ($p) => $p->stock === 0)->count(),
-            'inventory_value' => $allProducts->sum(fn ($p) => $p->price * $p->stock),
+            'total' => (int) $statsRow->total,
+            'low_stock' => (int) $statsRow->low_stock,
+            'out_of_stock' => (int) $statsRow->out_of_stock,
+            'inventory_value' => (float) $statsRow->inventory_value,
         ];
 
-        return view('products.index', compact('products', 'search', 'stats'));
+        $viewData = compact('products', 'search', 'availability', 'sort', 'dir');
+
+        if ($request->ajax()) {
+            return view('products._results', $viewData);
+        }
+
+        return view('products.index', $viewData + ['stats' => $stats]);
     }
 
     public function checkUnique(Request $request): \Illuminate\Http\JsonResponse
@@ -94,7 +136,7 @@ class ProductController extends Controller
         $value = trim((string) $request->query('value', ''));
         $productId = $request->query('product_id');
 
-        $allowed = ['sku', 'codigo', 'barcode'];
+        $allowed = ['sku', 'codigo', 'barcode', 'name'];
         if (! in_array($field, $allowed, true) || $value === '') {
             return response()->json(['available' => true]);
         }
@@ -109,7 +151,7 @@ class ProductController extends Controller
 
         $exists = $query->exists();
 
-        $labels = ['sku' => 'SKU', 'codigo' => 'Código DTE', 'barcode' => 'Código de barras'];
+        $labels = ['sku' => 'SKU', 'codigo' => 'Código DTE', 'barcode' => 'Código de barras', 'name' => 'nombre'];
 
         return response()->json([
             'available' => ! $exists,
@@ -134,7 +176,12 @@ class ProductController extends Controller
         Warehouse::where('company_id', $companyId)->findOrFail($warehouseId);
 
         $request->validate([
-            'name' => 'required|string|max:255',
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('products', 'name')->where(fn ($query) => $query->where('company_id', $companyId)),
+            ],
             'sku' => [
                 'nullable',
                 'string',
@@ -175,7 +222,7 @@ class ProductController extends Controller
 
             $product = Product::create([
                 'company_id' => $companyId,
-                'name' => $request->name,
+                'name' => trim((string) $request->name),
                 'codigo' => $request->filled('codigo') ? trim((string) $request->codigo) : null,
                 'sku' => $request->filled('sku') ? trim((string) $request->sku) : null,
                 'barcode' => $request->filled('barcode') ? trim((string) $request->barcode) : null,
@@ -234,7 +281,14 @@ class ProductController extends Controller
         $this->ensureProductContext($product, $companyId, $warehouseId);
 
         $request->validate([
-            'name' => 'required|string|max:255',
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('products', 'name')
+                    ->where(fn ($query) => $query->where('company_id', $companyId))
+                    ->ignore($product->id),
+            ],
             'sku' => [
                 'nullable',
                 'string',
@@ -277,7 +331,7 @@ class ProductController extends Controller
 
         DB::transaction(function () use ($request, $product, $warehouseId, $companyId) {
             $product->update([
-                'name' => $request->name,
+                'name' => trim((string) $request->name),
                 'codigo' => $request->filled('codigo') ? trim((string) $request->codigo) : null,
                 'sku' => $request->filled('sku') ? trim((string) $request->sku) : null,
                 'barcode' => $request->filled('barcode') ? trim((string) $request->barcode) : null,

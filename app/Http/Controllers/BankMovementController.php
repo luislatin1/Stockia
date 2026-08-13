@@ -20,7 +20,7 @@ class BankMovementController extends Controller
         $this->ensureAccess($bankAccount);
 
         $bankAccount->load(['bank', 'currency']);
-        $movements = $bankAccount->movements()->with('user')->latest('fecha')->latest('id')->get();
+        $movements = $bankAccount->movements()->with('user')->latest('fecha')->latest('id')->paginate(30);
 
         return view('accounting.bank-movements.index', ['account' => $bankAccount, 'movements' => $movements]);
     }

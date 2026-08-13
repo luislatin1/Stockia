@@ -50,6 +50,10 @@
                 <td colspan="5" class="px-4 py-6 text-center text-gray-500">No hay traslados registrados.</td>
             </tr>
         @endforelse
+
+        <x-slot name="footer">
+            {{ $transfers->links() }}
+        </x-slot>
     </x-table>
 </div>
 @endsection

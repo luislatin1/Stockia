@@ -51,5 +51,7 @@
             </tbody>
         </table>
     </div>
+
+    {{ $warranties->links() }}
 </div>
 @endsection

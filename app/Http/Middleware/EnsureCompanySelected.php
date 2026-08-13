@@ -37,6 +37,7 @@ class EnsureCompanySelected
 
         $companyUser = CompanyUser::where('company_id', $companyId)
             ->where('user_id', $userId)
+            ->with(['warehouses' => fn ($q) => $q->where('warehouses.id', $warehouseId)])
             ->first();
 
         if (! $companyUser) {
@@ -50,11 +51,7 @@ class EnsureCompanySelected
                 ->with('error', 'Debes seleccionar un almacen para continuar.');
         }
 
-        $hasWarehouse = $companyUser->warehouses()
-            ->where('warehouses.id', $warehouseId)
-            ->exists();
-
-        if (! $hasWarehouse) {
+        if ($companyUser->warehouses->isEmpty()) {
             session()->forget('current_warehouse_id');
             return redirect()->route('warehouse.select')
                 ->with('error', 'El almacen seleccionado no esta asignado a tu usuario.');

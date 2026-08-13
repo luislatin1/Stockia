@@ -39,7 +39,7 @@ class CommissionController extends Controller
             ->where('user_id', $user->id)
             ->with('sale')
             ->latest()
-            ->get();
+            ->paginate(25);
 
         return view('commissions.show', compact('user', 'commissions'));
     }

@@ -13,33 +13,26 @@ class SetCurrentCompany
         if (Auth::check()) {
             $user = $request->user();
             $currentCompanyId = session('current_company_id');
+            $selectedCompany = null;
 
             if ($currentCompanyId) {
-                $hasAccess = $user->companies()
-                    ->where('companies.id', (int) $currentCompanyId)
-                    ->exists();
-
-                if (! $hasAccess) {
-                    session()->forget(['current_company_id', 'current_warehouse_id']);
-                    $currentCompanyId = null;
-                }
-            }
-
-            if (! $currentCompanyId) {
-                $firstCompanyId = $user->companies()
-                    ->orderBy('companies.id')
-                    ->value('companies.id');
-
-                if ($firstCompanyId) {
-                    session(['current_company_id' => (int) $firstCompanyId]);
-                }
-            }
-
-            $selectedCompany = null;
-            if (session()->has('current_company_id')) {
                 $selectedCompany = $user->companies()
-                    ->where('companies.id', (int) session('current_company_id'))
+                    ->where('companies.id', (int) $currentCompanyId)
                     ->first();
+
+                if (! $selectedCompany) {
+                    session()->forget(['current_company_id', 'current_warehouse_id']);
+                }
+            }
+
+            if (! $selectedCompany) {
+                $selectedCompany = $user->companies()
+                    ->orderBy('companies.id')
+                    ->first();
+
+                if ($selectedCompany) {
+                    session(['current_company_id' => (int) $selectedCompany->id]);
+                }
             }
 
             if ($selectedCompany) {

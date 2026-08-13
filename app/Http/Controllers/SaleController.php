@@ -108,7 +108,8 @@ class SaleController extends Controller
         $sales = $salesQuery
             ->with('user')
             ->latest()
-            ->get();
+            ->paginate(30)
+            ->withQueryString();
 
         return view('sales.index', compact('sales', 'view'));
     }
@@ -124,14 +125,11 @@ class SaleController extends Controller
             $salesQuery->where('user_id', auth()->id());
         }
 
-        $sales = $salesQuery
-            ->with('user')
-            ->latest('id')
-            ->get();
+        $salesQuery->with('user')->latest('id');
 
         $filename = 'ventas_' . $companyId . '_' . $warehouseId . '_' . Date::now()->format('Ymd_His') . '.csv';
 
-        return response()->streamDownload(function () use ($sales): void {
+        return response()->streamDownload(function () use ($salesQuery): void {
             $output = fopen('php://output', 'w');
             if (! $output) {
                 return;
@@ -151,20 +149,22 @@ class SaleController extends Controller
                 'Cambio',
             ], ';');
 
-            foreach ($sales as $sale) {
-                fputcsv($output, [
-                    $sale->id,
-                    optional($sale->created_at)->format('Y-m-d H:i:s'),
-                    $sale->status,
-                    $sale->document_type,
-                    $sale->user->name ?? 'N/A',
-                    number_format((float) ($sale->subtotal ?? 0), 2, '.', ''),
-                    number_format((float) ($sale->tax_total ?? 0), 2, '.', ''),
-                    number_format((float) ($sale->total ?? 0), 2, '.', ''),
-                    number_format((float) ($sale->cash_received ?? 0), 2, '.', ''),
-                    number_format((float) ($sale->change_amount ?? 0), 2, '.', ''),
-                ], ';');
-            }
+            $salesQuery->chunk(500, function ($sales) use ($output) {
+                foreach ($sales as $sale) {
+                    fputcsv($output, [
+                        $sale->id,
+                        optional($sale->created_at)->format('Y-m-d H:i:s'),
+                        $sale->status,
+                        $sale->document_type,
+                        $sale->user->name ?? 'N/A',
+                        number_format((float) ($sale->subtotal ?? 0), 2, '.', ''),
+                        number_format((float) ($sale->tax_total ?? 0), 2, '.', ''),
+                        number_format((float) ($sale->total ?? 0), 2, '.', ''),
+                        number_format((float) ($sale->cash_received ?? 0), 2, '.', ''),
+                        number_format((float) ($sale->change_amount ?? 0), 2, '.', ''),
+                    ], ';');
+                }
+            });
 
             fclose($output);
         }, $filename, [

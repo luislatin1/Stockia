@@ -21,11 +21,18 @@ class ProductBatchController extends Controller
             $query->where('warehouse_id', (int) $request->query('warehouse_id'));
         }
 
-        $batches = $query->orderBy('fecha_vencimiento')->get();
+        $limitDate = now()->addDays(30)->toDateString();
+        $today = now()->toDateString();
 
-        if ($request->filled('estado')) {
-            $batches = $batches->filter(fn ($batch) => $batch->estado_vencimiento === $request->query('estado'))->values();
-        }
+        match ($request->query('estado')) {
+            'vencido' => $query->whereDate('fecha_vencimiento', '<', $today),
+            'por_vencer' => $query->whereDate('fecha_vencimiento', '>=', $today)
+                ->whereDate('fecha_vencimiento', '<=', $limitDate),
+            'vigente' => $query->whereDate('fecha_vencimiento', '>', $limitDate),
+            default => null,
+        };
+
+        $batches = $query->orderBy('fecha_vencimiento')->paginate(30)->withQueryString();
 
         $warehouses = Warehouse::where('company_id', $companyId)->orderBy('name')->get();
 

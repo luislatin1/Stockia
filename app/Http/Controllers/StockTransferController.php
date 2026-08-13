@@ -37,7 +37,7 @@ class StockTransferController extends Controller
             })
             ->with(['originWarehouse', 'destinationWarehouse'])
             ->latest('id')
-            ->get();
+            ->paginate(25);
 
         return view('stock-transfers.index', compact('transfers'));
     }

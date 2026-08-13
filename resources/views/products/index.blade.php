@@ -44,105 +44,119 @@
 
 </div>
 
-{{-- ── TABLA ───────────────────────────────────────────────────── --}}
-<x-table>
-
-    {{-- Barra de búsqueda y filtros --}}
-    <x-slot name="header">
-        <form method="GET" action="{{ route('products.index') }}" class="flex items-center gap-2 flex-1 min-w-0">
+{{-- ── BARRA DE BÚSQUEDA Y FILTROS (fija, no se reemplaza por AJAX) ── --}}
+<div class="flex items-center gap-2 flex-wrap justify-between mb-4">
+    <div class="flex items-center gap-2 flex-1 min-w-0">
+        <div class="relative w-64">
             <input type="text"
-                   name="q"
+                   id="product-search"
                    value="{{ $search ?? '' }}"
-                   class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm w-64 focus:outline-none focus:ring-2 focus:ring-indigo-300"
-                   placeholder="Buscar por nombre, SKU o código…">
-            <button type="submit"
-                    class="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-                Buscar
-            </button>
-            @if($search)
-                <a href="{{ route('products.index') }}"
-                   class="text-sm text-gray-400 hover:text-gray-600">✕ Limpiar</a>
-            @endif
-        </form>
-
-        <div class="flex items-center gap-2 shrink-0">
-            @if(request('low_stock'))
-                <a href="{{ route('products.index') }}"
-                   class="inline-flex items-center gap-1 rounded-lg border border-amber-300 bg-amber-50 px-3 py-1.5 text-sm font-medium text-amber-700 hover:bg-amber-100 transition-colors">
-                    ✕ Quitar filtro
-                </a>
-            @else
-                <a href="{{ route('products.index', ['low_stock' => 1]) }}"
-                   class="inline-flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-                    ⚠️ Stock bajo
-                </a>
-            @endif
+                   class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm w-full focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                   placeholder="Buscar por nombre, SKU o código… (mín. 3 letras)">
+            <span id="product-search-spinner" class="hidden absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400">…</span>
         </div>
-    </x-slot>
+        <button type="button" id="product-search-clear"
+                class="text-sm text-gray-400 hover:text-gray-600 {{ ($search ?? '') === '' ? 'hidden' : '' }}">
+            ✕ Limpiar
+        </button>
+    </div>
 
-    {{-- Columnas --}}
-    <x-slot name="thead">
-        <th class="px-4 py-3">Nombre</th>
-        <th class="px-4 py-3">SKU</th>
-        <th class="px-4 py-3">Código Barras</th>
-        <th class="px-4 py-3 text-right">Precio</th>
-        <th class="px-4 py-3 text-right">Stock</th>
-        <th class="px-4 py-3 text-right">Acciones</th>
-    </x-slot>
+    <div class="flex items-center gap-2 shrink-0">
+        <select id="product-availability-filter"
+                class="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300">
+            <option value="" @selected(($availability ?? '') === '')>Todos los estados</option>
+            <option value="disponible" @selected(($availability ?? '') === 'disponible')>✅ Disponible</option>
+            <option value="low_stock" @selected(($availability ?? '') === 'low_stock')>⚠️ Stock bajo</option>
+            <option value="agotado" @selected(($availability ?? '') === 'agotado')>🚫 Agotado</option>
+        </select>
+    </div>
+</div>
 
-    @forelse($products as $product)
-        <tr class="hover:bg-gray-50 transition-colors">
-            <td class="px-4 py-3 font-medium text-gray-900">{{ $product->name }}</td>
-            <td class="px-4 py-3 text-xs font-mono text-gray-500">{{ $product->sku ?: '—' }}</td>
-            <td class="px-4 py-3 text-xs font-mono text-gray-500">{{ $product->barcode ?: '—' }}</td>
-            <td class="px-4 py-3 text-right font-medium text-gray-900">${{ number_format($product->price, 2) }}</td>
-            <td class="px-4 py-3 text-right">
-                @if($product->stock === 0)
-                    <span class="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">
-                        🚫 Agotado
-                    </span>
-                @elseif($product->stock <= $product->min_stock)
-                    <span class="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">
-                        ⚠ {{ $product->stock }}
-                    </span>
-                @else
-                    <span class="font-medium text-gray-900">{{ $product->stock }}</span>
-                @endif
-            </td>
-            <td class="px-4 py-3">
-                <div class="flex items-center justify-end gap-2">
-                    <a href="{{ route('products.edit', $product) }}"
-                       class="rounded-md border border-gray-300 bg-white px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-                        Editar
-                    </a>
-                    <a href="{{ route('products.adjust', $product) }}"
-                       class="rounded-md border border-gray-300 bg-white px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-                        Ajustar
-                    </a>
-                    <a href="{{ route('products.show', $product) }}"
-                       class="rounded-md border border-gray-300 bg-white px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-                        Ver
-                    </a>
-                </div>
-            </td>
-        </tr>
-    @empty
-        <tr>
-            <td colspan="6" class="px-4 py-10 text-center text-sm text-gray-400">
-                No hay productos que coincidan.
-            </td>
-        </tr>
-    @endforelse
+{{-- ── TABLA (esta región se reemplaza por AJAX en cada búsqueda/filtro) ── --}}
+<div id="products-table-region">
+    @include('products._results', compact('products', 'search', 'availability', 'sort', 'dir'))
+</div>
 
-    {{-- Footer con contador --}}
-    <x-slot name="footer">
-        <span class="text-xs text-gray-400">
-            {{ $products->count() }} de {{ $stats['total'] }} productos
-            @if($search) · búsqueda: "<strong>{{ $search }}</strong>" @endif
-            @if(request('low_stock')) · filtro: stock bajo @endif
-        </span>
-    </x-slot>
+@endsection
 
-</x-table>
+@section('scripts')
+<script>
+(function () {
+    const BASE_URL = '{{ route('products.index') }}';
+    const region = document.getElementById('products-table-region');
+    const searchInput = document.getElementById('product-search');
+    const clearBtn = document.getElementById('product-search-clear');
+    const availabilitySelect = document.getElementById('product-availability-filter');
+    const spinner = document.getElementById('product-search-spinner');
 
+    let debounceTimer = null;
+    const MIN_CHARS = 3;
+
+    function buildUrl(overrides) {
+        const params = new URLSearchParams(window.location.search);
+        Object.entries(overrides).forEach(([key, value]) => {
+            if (value === null || value === '') {
+                params.delete(key);
+            } else {
+                params.set(key, value);
+            }
+        });
+        params.set('page', overrides.page || 1);
+
+        return BASE_URL + '?' + params.toString();
+    }
+
+    async function loadResults(url) {
+        spinner.classList.remove('hidden');
+
+        try {
+            const res = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            if (!res.ok) return;
+
+            region.innerHTML = await res.text();
+            history.replaceState(null, '', url);
+            bindRegionLinks();
+        } catch (_) {
+            // silencioso: si falla el fetch, el usuario puede recargar la página
+        } finally {
+            spinner.classList.add('hidden');
+        }
+    }
+
+    function bindRegionLinks() {
+        // Solo interceptamos los enlaces de orden (thead) y paginación (nav);
+        // los de Editar/Ajustar/Ver dentro de cada fila deben navegar normalmente.
+        region.querySelectorAll('thead a[href], nav[role="navigation"] a[href]').forEach(link => {
+            link.addEventListener('click', function (e) {
+                e.preventDefault();
+                loadResults(this.href);
+            });
+        });
+    }
+
+    searchInput.addEventListener('input', function () {
+        const value = this.value.trim();
+        clearBtn.classList.toggle('hidden', value === '');
+
+        if (value.length > 0 && value.length < MIN_CHARS) return;
+
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+            loadResults(buildUrl({ q: value, page: 1 }));
+        }, 300);
+    });
+
+    clearBtn.addEventListener('click', function () {
+        searchInput.value = '';
+        clearBtn.classList.add('hidden');
+        loadResults(buildUrl({ q: null, page: 1 }));
+    });
+
+    availabilitySelect.addEventListener('change', function () {
+        loadResults(buildUrl({ availability: this.value || null, page: 1 }));
+    });
+
+    bindRegionLinks();
+})();
+</script>
 @endsection

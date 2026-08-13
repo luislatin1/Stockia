@@ -59,6 +59,8 @@
         </table>
     </div>
 
+    {{ $commissions->links() }}
+
     <a href="{{ route('commissions.index') }}" class="text-sm text-gray-500 hover:text-gray-700">← Volver a Comisiones</a>
 </div>
 @endsection

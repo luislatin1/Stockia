@@ -21,7 +21,7 @@ class ProductLocationController extends Controller
             $query->where('warehouse_id', (int) $request->query('warehouse_id'));
         }
 
-        $locations = $query->orderBy('estante')->get();
+        $locations = $query->orderBy('estante')->paginate(30)->withQueryString();
         $warehouses = Warehouse::where('company_id', $companyId)->orderBy('name')->get();
 
         return view('product-locations.index', compact('locations', 'warehouses'));
