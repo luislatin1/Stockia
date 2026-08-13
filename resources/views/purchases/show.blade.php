@@ -44,8 +44,11 @@
         @endforeach
 
         <x-slot name="footer">
-            <div class="flex justify-end text-sm font-semibold text-gray-900">
-                Total: ${{ number_format($purchase->total, 2) }}
+            <div class="flex flex-col items-end gap-1 text-sm text-gray-700">
+                <div>Gravadas: ${{ number_format($purchase->gravadas, 2) }}</div>
+                <div>Exentas: ${{ number_format($purchase->exentas, 2) }}</div>
+                <div>IVA (13%): ${{ number_format($purchase->iva, 2) }}</div>
+                <div class="font-semibold text-gray-900">Total: ${{ number_format($purchase->total, 2) }}</div>
             </div>
         </x-slot>
     </x-table>

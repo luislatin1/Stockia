@@ -21,6 +21,7 @@ use App\Http\Controllers\CoreAdminController;
 use App\Http\Controllers\SetupWizardController;
 use App\Http\Controllers\DteAdminController;
 use App\Http\Controllers\DteCustomerController;
+use App\Http\Controllers\DteVatBooksController;
 
 
 /*
@@ -71,6 +72,9 @@ Route::middleware(['auth'])->group(function () {
                 Route::get('/admin', [DteAdminController::class, 'index'])->name('admin.index');
                 Route::patch('/admin/settings', [DteAdminController::class, 'updateSettings'])->name('admin.settings.update');
                 Route::resource('customers', DteCustomerController::class);
+
+                Route::get('/libros-iva', [DteVatBooksController::class, 'index'])->name('books.index');
+                Route::get('/libros-iva/{book}/export', [DteVatBooksController::class, 'export'])->name('books.export');
             });
 
             Route::get('products/check-unique', [ProductController::class, 'checkUnique'])

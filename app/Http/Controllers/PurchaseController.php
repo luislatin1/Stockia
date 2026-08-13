@@ -86,8 +86,31 @@ class PurchaseController extends Controller
             'items.*.costo_unitario' => 'required|numeric|min:0',
         ]);
 
-        $subtotal = collect($validated['items'])
-            ->sum(fn ($item) => $item['cantidad'] * $item['costo_unitario']);
+        // El desglose gravado/exento se deriva del campo afecto_iva de cada producto
+        // (el mismo dato que ya usan las Ventas), no de una entrada manual nueva en el
+        // formulario: así el Libro de Compras queda correcto sin agregar pasos al usuario.
+        $afectoIvaMap = Product::where('company_id', $companyId)
+            ->whereIn('id', collect($validated['items'])->pluck('product_id'))
+            ->pluck('afecto_iva', 'id');
+
+        $gravadas = 0.0;
+        $exentas = 0.0;
+
+        foreach ($validated['items'] as $item) {
+            $lineSubtotal = $item['cantidad'] * $item['costo_unitario'];
+
+            if ($afectoIvaMap[$item['product_id']] ?? true) {
+                $gravadas += $lineSubtotal;
+            } else {
+                $exentas += $lineSubtotal;
+            }
+        }
+
+        $gravadas = round($gravadas, 2);
+        $exentas = round($exentas, 2);
+        $subtotal = round($gravadas + $exentas, 2);
+        $iva = round($gravadas * 0.13, 2);
+        $total = round($subtotal + $iva, 2);
 
         $esCredito = (bool) ($validated['es_credito'] ?? false);
         $diasCredito = $esCredito ? (int) $validated['dias_credito'] : null;
@@ -95,7 +118,7 @@ class PurchaseController extends Controller
             ? Carbon::parse($validated['fecha'])->addDays($diasCredito)
             : null;
 
-        $purchaseId = DB::transaction(function () use ($validated, $companyId, $warehouseId, $subtotal, $esCredito, $diasCredito, $fechaVencimiento) {
+        $purchaseId = DB::transaction(function () use ($validated, $companyId, $warehouseId, $subtotal, $gravadas, $exentas, $iva, $total, $esCredito, $diasCredito, $fechaVencimiento) {
             $purchase = Purchase::create([
                 'company_id' => $companyId,
                 'warehouse_id' => $warehouseId,
@@ -104,13 +127,16 @@ class PurchaseController extends Controller
                 'numero_doc' => $validated['numero_doc'] ?? null,
                 'fecha' => $validated['fecha'],
                 'subtotal' => $subtotal,
-                'iva' => 0,
-                'total' => $subtotal,
+                'gravadas' => $gravadas,
+                'exentas' => $exentas,
+                'no_sujetas' => 0,
+                'iva' => $iva,
+                'total' => $total,
                 'notes' => $validated['notes'] ?? null,
                 'es_credito' => $esCredito,
                 'dias_credito' => $diasCredito,
                 'fecha_vencimiento' => $fechaVencimiento,
-                'saldo_pendiente' => $esCredito ? $subtotal : 0,
+                'saldo_pendiente' => $esCredito ? $total : 0,
             ]);
 
             foreach ($validated['items'] as $item) {
