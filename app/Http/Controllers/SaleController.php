@@ -398,7 +398,7 @@ class SaleController extends Controller
                 if (! $product) {
                     throw new \RuntimeException('Producto inválido en detalle de venta.');
                 }
-                SaleItem::create([
+                $saleItem = new SaleItem([
                     'sale_id' => $sale->id,
                     'product_id' => $product->id,
                     'quantity' => $lineItem['quantity'],
@@ -414,6 +414,11 @@ class SaleController extends Controller
                     'uni_medida' => $lineItem['uni_medida'],
                     'subtotal' => $lineItem['subtotal'],
                 ]);
+                // Ya tenemos $product y $sale en memoria: se los pasamos al modelo
+                // para que el evento `created` (garantías) no dispare 2 consultas más por línea.
+                $saleItem->setRelation('product', $product);
+                $saleItem->setRelation('sale', $sale);
+                $saleItem->save();
 
                 InventoryMovement::create([
                     'company_id' => $companyId,

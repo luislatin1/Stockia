@@ -560,7 +560,7 @@ class PTVPosController extends Controller
                     if (! $product) {
                         throw new \RuntimeException('Producto inválido en detalle POS.');
                     }
-                    SaleItem::create([
+                    $saleItem = new SaleItem([
                         'sale_id' => $sale->id,
                         'product_id' => $product->id,
                         'quantity' => $item['quantity'],
@@ -576,6 +576,11 @@ class PTVPosController extends Controller
                         'uni_medida' => $item['uni_medida'],
                         'subtotal' => $item['subtotal'],
                     ]);
+                    // $product y $sale ya estan en memoria: evita 2 consultas extra por linea
+                    // en el evento `created` de SaleItem (garantias).
+                    $saleItem->setRelation('product', $product);
+                    $saleItem->setRelation('sale', $sale);
+                    $saleItem->save();
 
                     InventoryMovement::create([
                         'company_id' => $companyId,

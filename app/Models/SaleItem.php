@@ -42,13 +42,20 @@ protected static function booted(): void
             return;
         }
 
-        $garantiaMeses = $item->product?->garantia_meses;
+        $product = $item->relationLoaded('product')
+            ? $item->getRelation('product')
+            : $item->product;
+
+        $garantiaMeses = $product?->garantia_meses;
 
         if (! $garantiaMeses) {
             return;
         }
 
-        $sale = $item->sale;
+        $sale = $item->relationLoaded('sale')
+            ? $item->getRelation('sale')
+            : $item->sale;
+
         $fechaInicio = $sale->created_at->toDateString();
 
         Warranty::create([
