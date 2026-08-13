@@ -64,7 +64,7 @@ Fuente: [factura.gob.sv — Documentos Técnicos](https://factura.gob.sv/informa
 
 ## 6. Estado actual de la app Stockia
 
-- Empresa: **SUPER Y DISTRIBUIDORA QUEZALTECA** (NIT 0512-280887-101-3, NRC 0000-0 — parece placeholder, revisar si es el NRC real)
+- Empresa: **SUPER Y DISTRIBUIDORA QUEZALTECA** (NIT 0512-280887-101-3, NRC **23119-4** — ✅ resuelto 2026-08-13, era placeholder `0000-0`; el usuario confirmó el NRC real y se actualizó directo en `companies`)
 - Bodega: **Principal** (código `MAIN-1`, Quezaltepeque)
 - Usuario: LuisLatin (luislatinlflg@gmail.com), asignado a la empresa/bodega
 - Aún en 0: `dte_settings`, `dte_correlativos`, `customers` (el legacy `pos.cliente` solo tiene 1 fila genérica — sin data real que migrar, se recrean frescos en Stockia)
@@ -95,7 +95,7 @@ Las 5 decisiones quedaron resueltas así, e implementadas en migraciones nuevas 
 **Calidad de datos del legacy encontrada durante la importación** (no son bugs del import, son así en `pos`):
 - `producto.codart` (candidato natural a SKU) es casi inútil: 1,495 de 1,614 productos comparten el valor placeholder `"1"`. Por eso casi ningún producto migrado tiene `sku` real — el `codigo` DTE cae a `barcode` o a `PRD-{id}`.
 - La categoría `id_categoria=201` tenía `nombre_cat` vacío en el legacy → se nombró `"Categoría #201"`.
-- Dos productos ("AXION DISCO CAJA", "ZORRIK LAMINA DE AFEITAR") tienen dos presentaciones activas distintas con el mismo nombre de presentación ("CAJA"/"PAQUETE") pero distinto `unidad` — quedaron como 2 filas de apariencia idéntica en Stockia. Revisar manualmente si son de verdad dos variantes distintas o un duplicado de captura.
+- ✅ **Resuelto 2026-08-13** — Dos productos ("AXION DISCO CAJA", "ZORRIK LAMINA DE AFEITAR") tenían dos presentaciones activas distintas con el mismo nombre de presentación ("CAJA"/"PAQUETE") pero distinto `unidad` — quedaban como 2 filas de apariencia idéntica en Stockia (ids 467/468 y 923/924). Se confirmó con el usuario que eran duplicados de captura del legacy: se reasignó el historial de `legacy_sale_items` de la fila con stock 0 (468→467, 924→923) y se eliminaron los productos 468 y 924. Se agregó además una restricción de nombre único por empresa (`products_company_id_name_unique`) para que no puedan volver a crearse duplicados de nombre.
 - El stock inicial de las presentaciones secundarias (los 3 casos multi-fila) quedó en 0 — el legacy no reparte stock por presentación, solo por producto.
 
 Para reconectar contra otra copia de `pos` o re-ejecutar: variables `LEGACY_DB_*` en `.env` (ver `.env.example`), conexión `legacy` en `config/database.php`.
@@ -118,4 +118,23 @@ Trabajo distinto al de arriba (no es migración de entorno/datos, es evaluación
 - Se agregó un mecanismo compartido de aviso "módulo no instalado" (antes las opciones desaparecían en silencio del menú).
 - Todo quedó commiteado localmente (`git log` — commit `feat: fix Core/module toggle architecture and add 5 new business modules`). **No se hizo push** (repo es solo local, ver instrucciones del usuario).
 
-**Para retomar:** ver [`MODULOS.md`](MODULOS.md) — mapa completo de qué es Core vs. qué agrega cada módulo, incluyendo lo identificado pero aún no construido (Pedidos/Apartados de cliente, Libros fiscales IVA) y referencia técnica de dónde vive cada pieza.
+**Para retomar de esa sesión:** ver [`MODULOS.md`](MODULOS.md) — mapa completo de qué es Core vs. qué agrega cada módulo y referencia técnica de dónde vive cada pieza.
+
+## 9. Sesión 2026-08-13 — Productos, auditoría de rendimiento, Apartados, Libros IVA
+
+Trabajo distinto al de arriba también. Resumen:
+
+- **Productos:** se limpiaron los 2 duplicados de captura del legacy (ver sección 7 arriba, ✅ resuelto) y se agregó restricción de nombre único. Se rehizo el listado: paginación, orden por columna (nombre/precio/stock), filtro de disponibilidad, y búsqueda en vivo por AJAX.
+- **NRC de la empresa:** ✅ resuelto (ver sección 6 arriba) — ya no es placeholder.
+- **Auditoría de rendimiento de toda la app:** 20 hallazgos (N+1, consultas muertas, falta de paginación, índices faltantes) — los 20 quedaron corregidos, incluyendo el N+1 de garantías en el checkout y el índice compuesto de `inventory_movements`.
+- **Apartados de clientes** (nuevo, dentro de `packages/sales-quotes`): reserva de mercadería con entrega futura; descuenta stock de inmediato y lo libera si se anula.
+- **Libros Fiscales IVA** (nuevo, `DteVatBooksController`): Ventas a Contribuyente, Ventas a Consumidor (resumen diario) y Compras, con export CSV. Al construir el libro de Compras se descubrió que `PurchaseController` nunca capturaba IVA real (siempre `iva=0`, `total=subtotal`) — se corrigió derivando gravado/exento del `afecto_iva` de cada producto, sin agregar campos al formulario. El formato de columnas se basó en investigación web del Anexo de Compras/Ventas de Hacienda, pero **no ha sido validado por un contador real** — pendiente antes de usarlo como libro oficial de presentación.
+- **Revisión de empaquetado de módulos:** ver [`MODULOS.md`](MODULOS.md) sección 6 — solo `ptv-pos` y `sales-quotes` son paquetes Composer reales y autocontenidos; `sales`, `inventory`, `accounting` y `dte-sv-mh` siguen siendo solo un interruptor (`modules` + `ModuleGateServiceProvider`) con el código mezclado directo en `app/`. El mapa archivo-por-archivo de qué movería cada uno a un paquete real ya está documentado, pero **no ejecutado** — es un refactor de +30 archivos, quedó como la siguiente decisión, no como tarea de una sesión.
+- Todo quedó commiteado localmente en 5 commits (`perf: fix N+1...`, `perf: close remaining audit items...`, `feat: add customer layaway orders...`, `docs: map which module files...`). **No se hizo push.**
+
+**Pendiente sin resolver, en el radar para la próxima sesión (por tamaño):**
+1. ✅ **Resuelto 2026-08-13** — Los 3 ZIP de `ExportPlugins/` (`ptv-pos.zip`, `sales-quotes.zip`, `sv-dte-laravel12.zip`) se regeneraron desde el código fuente actual (confirmado: `sales-quotes.zip` ya incluye Apartados) y quedaron listos para commitear. No existía un script para esto — el proceso manual con `Compress-Archive` quedó documentado en [`MODULOS.md`](MODULOS.md) sección 6 para no tener que redescubrirlo la próxima vez.
+2. **Convertir `sales`/`inventory`/`accounting`/`dte-sv-mh` en paquetes reales** — ver `MODULOS.md` sección 6 para el mapa completo antes de empezar.
+3. Que un contador valide el formato exacto de columnas de los Libros IVA contra la plantilla oficial vigente de Hacienda.
+
+**Para retomar de esta sesión:** ver [`MODULOS.md`](MODULOS.md) secciones 4 y 6.

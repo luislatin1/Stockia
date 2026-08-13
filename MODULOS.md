@@ -106,6 +106,20 @@ Evaluación hecha el 2026-08-13 al plantearse sacar los módulos hacia un sistem
 - Seeder de catálogos: `database/seeders/DteCatalogSeeder.php`
 - El paquete Composer `tuempresa/sv-dte` (`ExportPlugins/sv-dte-laravel12/`) casi no tiene código propio real — solo helpers/builders/validators usados opcionalmente vía `class_exists()`; no registra rutas ni migra nada. No es una base útil para extraer el módulo tal cual está hoy.
 
+### Cómo regenerar los ZIP de distribución (`ExportPlugins/*.zip`)
+
+No existía un script para esto — cada ZIP se regeneró manualmente el 2026-08-13 con PowerShell (`Compress-Archive`), zipeando el **contenido** de la carpeta fuente sin envolverla en una carpeta con el nombre del paquete (así es como ya estaban armados los ZIP anteriores):
+
+```powershell
+Compress-Archive -Path "packages\ptv-pos\*" -DestinationPath "ExportPlugins\ptv-pos.zip" -Force
+Compress-Archive -Path "packages\sales-quotes\*" -DestinationPath "ExportPlugins\sales-quotes.zip" -Force
+Compress-Archive -Path "ExportPlugins\sv-dte-laravel12\*" -DestinationPath "ExportPlugins\sv-dte-laravel12.zip" -Force
+```
+
+`sv-dte-laravel12.zip` es un caso especial: no existe un `packages/sv-dte-laravel12/` separado — el código fuente real de ese paquete vive directo en `ExportPlugins/sv-dte-laravel12/` (ver sección 6), así que el ZIP se genera de esa misma carpeta.
+
+**Regenerar el ZIP de un módulo después de cambiarlo no es automático** — es un paso manual que hay que acordarse de correr (y comitear) cada vez que se toque `packages/ptv-pos/`, `packages/sales-quotes/` o `ExportPlugins/sv-dte-laravel12/`.
+
 ### Qué se necesitaría para que estos 4 sean paquetes reales (no se hizo, es la siguiente decisión)
 
 Crear `packages/sales`, `packages/inventory`, `packages/accounting`, `packages/dte-sv-mh` con su propio `composer.json` + `src/` + `database/migrations/` + `resources/views/` + `routes/web.php`, mover cada archivo de la lista de arriba, y actualizar los `namespace` de controladores/modelos y las referencias en `routes/web.php`/`config/sidebar.php`. Es un refactor real (mover +30 archivos y reescribir sus namespaces), no una tarea de una sesión — por eso quedó como mapa/checklist por ahora en vez de ejecutarse.
