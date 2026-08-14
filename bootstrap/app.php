@@ -3,9 +3,9 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use App\Http\Middleware\ValidarDocumentoDte;
 use App\Http\Middleware\SetCurrentCompany;
 use App\Http\Middleware\EnsureCompanySelected;
+use Stockia\DteSvMh\Http\Middleware\ValidarDocumentoDte;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(

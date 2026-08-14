@@ -16,9 +16,10 @@ use App\Models\InventoryMovement;
 use App\Models\CompanyUser;
 use App\Models\Company;
 use App\Models\Customer;
-use App\Models\Dte;
+use App\Models\Module;
 use App\Services\Dte\DteCalculationService;
-use App\Services\Dte\DteEmissionService;
+use Stockia\DteSvMh\Models\Dte;
+use Stockia\DteSvMh\Services\DteEmissionService;
 
 class PTVPosController extends Controller
 {
@@ -604,7 +605,7 @@ class PTVPosController extends Controller
         $warning = null;
         try {
             $sale = Sale::find($saleId);
-            if ($sale) {
+            if ($sale && Module::isEnabled('dte-sv-mh')) {
                 app(DteEmissionService::class)->emitForSale($sale);
             }
         } catch (Throwable $e) {

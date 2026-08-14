@@ -21,6 +21,7 @@ class ModuleGateServiceProvider extends ServiceProvider
         'sales' => ['comisiones', 'garantias'],
         'accounting' => ['contabilidad'],
         'inventory' => ['lotes', 'estantes'],
+        'dte-sv-mh' => ['dte'],
     ];
 
     public function boot(): void

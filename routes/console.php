@@ -3,7 +3,7 @@
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use App\Services\PluginInstaller;
-use App\Services\Dte\DteEmissionService;
+use Stockia\DteSvMh\Services\DteEmissionService;
 use Illuminate\Support\Facades\File;
 
 Artisan::command('inspire', function () {

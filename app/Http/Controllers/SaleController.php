@@ -8,17 +8,18 @@ use App\Models\LegacySale;
 use App\Models\NonSellableProduct;
 use App\Models\CompanyUser;
 use App\Models\Customer;
-use App\Models\Dte;
+use App\Models\Module;
 use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\Product;
 use App\Models\SalePayment;
 use App\Services\Dte\DteCalculationService;
-use App\Services\Dte\DteEmissionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Hash;
+use Stockia\DteSvMh\Models\Dte;
+use Stockia\DteSvMh\Services\DteEmissionService;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -438,7 +439,7 @@ class SaleController extends Controller
         $warning = null;
         try {
             $sale = Sale::find($saleId);
-            if ($sale) {
+            if ($sale && Module::isEnabled('dte-sv-mh')) {
                 app(DteEmissionService::class)->emitForSale($sale);
             }
         } catch (\Throwable $e) {

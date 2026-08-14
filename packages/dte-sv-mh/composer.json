@@ -1,0 +1,33 @@
+{
+  "name": "stockia/dte-sv-mh",
+  "description": "DTE El Salvador (Ministerio de Hacienda) integration module for Stockia",
+  "type": "library",
+  "license": "proprietary",
+  "version": "0.1.0",
+  "require": {
+    "php": "^8.2",
+    "illuminate/support": "^12.0",
+    "illuminate/routing": "^12.0",
+    "illuminate/database": "^12.0",
+    "illuminate/http": "^12.0",
+    "tuempresa/sv-dte": "^0.1.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "Stockia\\DteSvMh\\": "src/",
+      "Stockia\\DteSvMh\\Database\\Seeders\\": "database/seeders/"
+    }
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "Stockia\\DteSvMh\\Providers\\DteSvMhServiceProvider"
+      ]
+    },
+    "stockia": {
+      "module_key": "dte-sv-mh"
+    }
+  },
+  "minimum-stability": "stable",
+  "prefer-stable": true
+}

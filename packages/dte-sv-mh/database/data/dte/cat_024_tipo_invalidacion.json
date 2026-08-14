@@ -1,0 +1,14 @@
+[
+  {
+    "codigo": "1",
+    "descripcion": "Error en la Información del Documento Tributario Electrónico a invalidar."
+  },
+  {
+    "codigo": "2",
+    "descripcion": "Rescindir de la operación realizada."
+  },
+  {
+    "codigo": "3",
+    "descripcion": "Otro"
+  }
+]
