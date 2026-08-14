@@ -135,8 +135,8 @@ Trabajo distinto al de arriba también. Resumen:
 **Pendiente sin resolver, en el radar para la próxima sesión (por tamaño):**
 1. ✅ **Resuelto 2026-08-13** — Los 3 ZIP de `ExportPlugins/` (`ptv-pos.zip`, `sales-quotes.zip`, `sv-dte-laravel12.zip`) se regeneraron desde el código fuente actual (confirmado: `sales-quotes.zip` ya incluye Apartados) y quedaron listos para commitear. No existía un script para esto — el proceso manual con `Compress-Archive` quedó documentado en [`MODULOS.md`](MODULOS.md) sección 6 para no tener que redescubrirlo la próxima vez.
 2. ✅ **Resuelto 2026-08-13/14** — `sales`, `inventory`, `accounting` y `dte-sv-mh` ya son paquetes Composer reales bajo `packages/`. Ver sección 10 abajo y `MODULOS.md` sección 6 para el detalle completo.
-3. Que un contador valide el formato exacto de columnas de los Libros IVA contra la plantilla oficial vigente de Hacienda.
-4. Bug encontrado durante la extracción de `dte-sv-mh` (no arreglado, ver sección 10): `DteEmissionService::emitForSale()` falla en modo `simulacion`/`real` al insertar `response_payload` (array PHP crudo) en una columna JSON de `dte_send_attempts`.
+3. Que un contador valide el formato exacto de columnas de los Libros IVA contra la plantilla oficial vigente de Hacienda. Sigue pendiente — requiere revisión humana, no es tarea de código.
+4. ✅ **Resuelto 2026-08-14** — Bug encontrado durante la extracción de `dte-sv-mh` (ver sección 10): `DteEmissionService::emitForSale()`/`resendContingency()` fallaban en modo `simulacion`/`real` al insertar `response_payload` (array PHP crudo) en una columna JSON de `dte_send_attempts`. Se envolvió en `json_encode()` en ambos lugares; verificado con una venta de prueba en modo `simulacion` (llega a `estado: ACEPTADO`).
 
 **Para retomar de esta sesión:** ver [`MODULOS.md`](MODULOS.md) secciones 4 y 6.
 
