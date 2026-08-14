@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Stockia\Sales\Http\Controllers\CommissionController;
 use Stockia\Sales\Http\Controllers\WarrantyController;
 
-Route::middleware(['auth', 'company.selected', 'role:Vendedor,Admin,SuperAdmin'])->group(function () {
+Route::middleware(['web', 'auth', 'company.selected', 'role:Vendedor,Admin,SuperAdmin'])->group(function () {
     Route::middleware(['can:garantias'])->group(function () {
         Route::get('garantias', [WarrantyController::class, 'index'])->name('warranties.index');
         Route::get('garantias/{warranty}', [WarrantyController::class, 'show'])->name('warranties.show');
