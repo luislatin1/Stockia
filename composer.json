@@ -13,7 +13,11 @@
         "barryvdh/laravel-dompdf": "^3.1",
         "laravel/framework": "^12.0",
         "laravel/tinker": "^2.10.1",
+        "stockia/accounting": "^0.1.0",
+        "stockia/dte-sv-mh": "^0.1.0",
+        "stockia/inventory": "^0.1.0",
         "stockia/ptv-pos": "^0.1.0",
+        "stockia/sales": "^0.1.0",
         "stockia/sales-quotes": "^0.1.0",
         "tuempresa/sv-dte": "^0.1.0"
     },
@@ -86,7 +90,23 @@
     "repositories": [
         {
             "type": "path",
+            "url": "packages/accounting"
+        },
+        {
+            "type": "path",
+            "url": "packages/dte-sv-mh"
+        },
+        {
+            "type": "path",
+            "url": "packages/inventory"
+        },
+        {
+            "type": "path",
             "url": "packages/ptv-pos"
+        },
+        {
+            "type": "path",
+            "url": "packages/sales"
         },
         {
             "type": "path",

@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "23e7e36e67a3ddb8e5a934ef4575c48c",
+    "content-hash": "94c0638a0174e0341b9559c07a16cd79",
     "packages": [
         {
             "name": "barryvdh/laravel-dompdf",
@@ -3666,18 +3666,136 @@
             "time": "2025-09-14T07:37:21+00:00"
         },
         {
-            "name": "stockia/ptv-pos",
+            "name": "stockia/accounting",
             "version": "0.1.0",
             "dist": {
                 "type": "path",
-                "url": "packages/ptv-pos",
-                "reference": "df8ea09d1a49fd22634355490eb183e8be7dced1"
+                "url": "packages/accounting",
+                "reference": "c4bd797c79188e9a9058759f262c3a340f17f6e8"
             },
             "require": {
                 "illuminate/database": "^12.0",
                 "illuminate/routing": "^12.0",
                 "illuminate/support": "^12.0",
                 "php": "^8.2"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Stockia\\Accounting\\Providers\\AccountingServiceProvider"
+                    ]
+                },
+                "stockia": {
+                    "module_key": "accounting"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Stockia\\Accounting\\": "src/"
+                }
+            },
+            "license": [
+                "proprietary"
+            ],
+            "description": "Accounting module (Bancos) for Stockia",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "stockia/dte-sv-mh",
+            "version": "0.1.0",
+            "dist": {
+                "type": "path",
+                "url": "packages/dte-sv-mh",
+                "reference": "db257e1f3e1376c6f73b131449bcfcf08e4ec262"
+            },
+            "require": {
+                "illuminate/database": "^12.0",
+                "illuminate/http": "^12.0",
+                "illuminate/routing": "^12.0",
+                "illuminate/support": "^12.0",
+                "php": "^8.2",
+                "tuempresa/sv-dte": "^0.1.0"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Stockia\\DteSvMh\\Providers\\DteSvMhServiceProvider"
+                    ]
+                },
+                "stockia": {
+                    "module_key": "dte-sv-mh"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Stockia\\DteSvMh\\": "src/",
+                    "Stockia\\DteSvMh\\Database\\Seeders\\": "database/seeders/"
+                }
+            },
+            "license": [
+                "proprietary"
+            ],
+            "description": "DTE El Salvador (Ministerio de Hacienda) integration module for Stockia",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "stockia/inventory",
+            "version": "0.1.0",
+            "dist": {
+                "type": "path",
+                "url": "packages/inventory",
+                "reference": "c0494cf536b97aff10c684284f4c2ec3c59abc04"
+            },
+            "require": {
+                "illuminate/database": "^12.0",
+                "illuminate/routing": "^12.0",
+                "illuminate/support": "^12.0",
+                "php": "^8.2"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Stockia\\Inventory\\Providers\\InventoryServiceProvider"
+                    ]
+                },
+                "stockia": {
+                    "module_key": "inventory"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Stockia\\Inventory\\": "src/"
+                }
+            },
+            "license": [
+                "proprietary"
+            ],
+            "description": "Inventory module (Lotes/Vencimientos + Estantes) for Stockia",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "stockia/ptv-pos",
+            "version": "0.1.0",
+            "dist": {
+                "type": "path",
+                "url": "packages/ptv-pos",
+                "reference": "b7c4b81c4dbb17bc85a221bf981edd2950ad6fd6"
+            },
+            "require": {
+                "illuminate/database": "^12.0",
+                "illuminate/routing": "^12.0",
+                "illuminate/support": "^12.0",
+                "php": "^8.2",
+                "stockia/dte-sv-mh": "^0.1.0"
             },
             "type": "library",
             "extra": {
@@ -3699,6 +3817,44 @@
                 "proprietary"
             ],
             "description": "PTV-POS module for Stockia",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "stockia/sales",
+            "version": "0.1.0",
+            "dist": {
+                "type": "path",
+                "url": "packages/sales",
+                "reference": "3f9b88da91602936b344b20b39fa97df0f7cf1ce"
+            },
+            "require": {
+                "illuminate/database": "^12.0",
+                "illuminate/routing": "^12.0",
+                "illuminate/support": "^12.0",
+                "php": "^8.2"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Stockia\\Sales\\Providers\\SalesServiceProvider"
+                    ]
+                },
+                "stockia": {
+                    "module_key": "sales"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Stockia\\Sales\\": "src/"
+                }
+            },
+            "license": [
+                "proprietary"
+            ],
+            "description": "Sales module (Comisiones + Garantias) for Stockia",
             "transport-options": {
                 "relative": true
             }

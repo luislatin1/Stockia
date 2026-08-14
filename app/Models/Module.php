@@ -13,21 +13,21 @@ class Module extends Model
             'description' => 'Comisiones a vendedores y garantías de productos vendidos. El CRUD de ventas es núcleo del sistema y no depende de este módulo.',
             'version' => '2.0.0',
             'dependencies' => [],
-            'provider' => \App\Modules\Sales\Providers\SalesServiceProvider::class,
+            'provider' => \Stockia\Sales\Providers\SalesServiceProvider::class,
         ],
         'inventory' => [
             'name' => 'Inventario',
             'description' => 'Inventario avanzado: lotes y vencimientos, ubicación de productos en estantes por bodega. El control de stock básico y los traslados entre bodegas son núcleo del sistema.',
             'version' => '3.0.0',
             'dependencies' => [],
-            'provider' => \App\Modules\Inventory\Providers\InventoryServiceProvider::class,
+            'provider' => \Stockia\Inventory\Providers\InventoryServiceProvider::class,
         ],
         'accounting' => [
             'name' => 'Contabilidad',
             'description' => 'Bancos: catálogo de bancos, cuentas y libro de movimientos (depósitos, retiros, cheques).',
             'version' => '0.1.0',
             'dependencies' => [],
-            'provider' => \App\Modules\Accounting\Providers\AccountingServiceProvider::class,
+            'provider' => \Stockia\Accounting\Providers\AccountingServiceProvider::class,
         ],
         'ptv-pos' => [
             'name' => 'PTV-POS',
@@ -48,7 +48,7 @@ class Module extends Model
             'description' => 'Emisión de DTE para El Salvador con integración MH y modo simulado.',
             'version' => '0.1.0',
             'dependencies' => [],
-            'provider' => \TuEmpresa\SvDte\DteServiceProvider::class,
+            'provider' => \Stockia\DteSvMh\Providers\DteSvMhServiceProvider::class,
         ],
     ];
 
