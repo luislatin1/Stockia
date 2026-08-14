@@ -1,8 +1,8 @@
 <?php
 
-use App\Http\Controllers\ProductBatchController;
-use App\Http\Controllers\ProductLocationController;
 use Illuminate\Support\Facades\Route;
+use Stockia\Inventory\Http\Controllers\ProductBatchController;
+use Stockia\Inventory\Http\Controllers\ProductLocationController;
 
 Route::middleware(['auth', 'company.selected', 'role:Admin,SuperAdmin'])->group(function () {
     Route::get('lotes', [ProductBatchController::class, 'index'])->name('product-batches.index');

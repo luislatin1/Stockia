@@ -1,7 +1,9 @@
 <?php
 
-namespace App\Models;
+namespace Stockia\Inventory\Models;
 
+use App\Models\Product;
+use App\Models\Warehouse;
 use App\Traits\BelongsToCompany;
 use Illuminate\Database\Eloquent\Model;
 

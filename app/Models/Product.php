@@ -69,12 +69,12 @@ class Product extends Model
 
     public function batches()
     {
-        return $this->hasMany(ProductBatch::class);
+        return $this->hasMany(\Stockia\Inventory\Models\ProductBatch::class);
     }
 
     public function locations()
     {
-        return $this->hasMany(ProductLocation::class);
+        return $this->hasMany(\Stockia\Inventory\Models\ProductLocation::class);
     }
 
     public function category()
