@@ -116,3 +116,16 @@ Compress-Archive -Path "ExportPlugins\sv-dte-laravel12\*" -DestinationPath "Expo
 ```
 
 **Regenerar el ZIP de un módulo después de cambiarlo sigue sin ser automático** — es un paso manual que hay que acordarse de correr (y comitear) cada vez que se toque cualquier `packages/<módulo>/` o `ExportPlugins/sv-dte-laravel12/`. Ver `[[feedback-module-packaging]]` en la memoria de Claude para este hábito.
+
+## 7. Permisos granulares por pantalla (2026-08-14)
+
+Cierra el gap real encontrado en la auditoría de completitud contra DigitalPos (sección 4bis): los 3 roles fijos (Vendedor/Admin/SuperAdmin) ahora tienen una capa de **excepciones por usuario y por pantalla** encima, sin reemplazarlos — comportamiento idéntico a hoy si nadie configura ninguna excepción.
+
+- **Catálogo:** `App\Models\Permission::CATALOG` — ~27 claves (una por pantalla o grupo de pantallas que ya comparten el mismo gate de rol; ver el archivo para la lista completa), cada una con `label`, `section` (mismas secciones de `config/sidebar.php`), `default_roles` y `overridable` (default `true`).
+- **No overridable** (sin capa de excepciones, solo rol, como barrera anti-escalamiento de privilegios): `users` (la pantalla de Usuarios) y `settings-modules` (Ajustes > Módulos).
+- **Excepción por usuario:** tabla `company_user_permissions` (`company_user_id`, `permission_key`, `allowed`) — la sola presencia de una fila es la excepción; sin fila, se usa el rol de siempre. `Permission::userCan()` es el único punto de verdad.
+- **Aplicación:** Gates nativos de Laravel, registrados en `AppServiceProvider::boot()` (uno por clave overridable) y aplicados con el middleware `can:<clave>` **junto al** `role:...` que ya existía en cada grupo de rutas (no lo reemplaza) — en `routes/web.php` y en los 6 `packages/*/routes/web.php`.
+- **Sidebar:** `resources/views/layouts/partials/sidebar.blade.php` ya traía soporte sin usar para `$item['can']` (autorización nativa) — se aprobechó agregando `'can' => 'clave'` a los ítems de `config/sidebar.php`, sin tocar ninguna plantilla Blade.
+- **Administración:** botón "Permisos" en `users.index` → `UserPermissionController` (SuperAdmin-only), un panel por sección con 3 estados por permiso (Heredado / Forzar Sí / Forzar No), guardado borra-y-reinserta las excepciones de ese usuario en una transacción.
+- **De paso, arreglados 2 hallazgos independientes de la misma auditoría de rutas:** `currencies.index`, `inventory.index` y `sale_items.index` vivían **fuera** del grupo `auth` en `routes/web.php` — accesibles sin iniciar sesión; y `app/Http/Middleware/RoleMiddleware.php` era un duplicado sin uso de `EnsureCompanyRole` — eliminado.
+- **Efecto colateral bueno:** varios ítems de `config/sidebar.php` (Productos, Categorías, Compras, Cuentas por Pagar, Proveedores, Administración Central, Usuarios) no tenían `roles` pese a que su ruta sí exigía Admin/SuperAdmin — un Vendedor los veía en el menú aunque no podía usarlos. Al agregar `can`/`roles` de forma consistente (basado en el gate real de cada ruta, no en lo que el sidebar ya declaraba) esto quedó corregido.
