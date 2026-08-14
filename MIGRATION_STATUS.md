@@ -176,3 +176,22 @@ Cierra el gap encontrado en la sección 11. Ver `MODULOS.md` sección 7 para el 
 - **Efecto colateral bueno:** varios ítems de `config/sidebar.php` (Productos, Categorías, Compras, Cuentas por Pagar, Proveedores, Administración Central, Usuarios) no tenían `roles` pese a que su ruta sí exigía Admin/SuperAdmin — un Vendedor los veía en el menú aunque no podía usarlos. Quedó corregido al agregar `can`/`roles` basados en el gate real de cada ruta.
 - Verificado en tinker (transacciones revertidas): `Permission::userCan()` respeta rol por defecto, excepción `allowed=true` y excepción `allowed=false`; `Gate::has()` confirma que `users`/`settings-modules` nunca se registran como Gate; `route:list -v` confirma el middleware `can:<clave>` en cada grupo afectado (core + los 6 paquetes); las 3 rutas movidas ya exigen `auth`; `php artisan view:cache` compila todas las vistas sin error.
 - Los 6 ZIP de `packages/` se reexportaron porque todos tuvieron cambios en sus `routes/web.php`.
+
+## 13. Sesión 2026-08-14 — Bug post-empaquetado: `accounting`/`inventory`/`sales` no cargaban
+
+El usuario reportó que Bancos y Cuentas no cargaban. Causa raíz: al extraer estos 3 módulos a paquete real (sección 10), sus `routes/web.php` se copiaron con el middleware tal cual venía del wrapper viejo `app/Modules/<Nombre>` — ese wrapper (`App\Modules\Core\Providers\ModuleServiceProvider`, ya eliminado) aplicaba `Route::middleware('web')->group($file)` **por fuera** del archivo de rutas, así que el archivo mismo nunca necesitó declarar `'web'`. Al pasar a `loadRoutesFrom()` (el mismo patrón que ya usaban bien `ptv-pos`/`dte-sv-mh`/`sales-quotes`), ese `'web'` implícito se perdió — sin él, `ShareErrorsFromSession` nunca corre y cualquier vista con `$errors->any()` (es decir, todas) explota con "Call to a member function any() on null".
+
+- **No se detectó en las verificaciones de la sección 10** porque esas pruebas fueron con `tinker` llamando clases directamente (`Module::isEnabled()`, `Permission::userCan()`), nunca simulando una petición HTTP real a través de todo el pipeline de middleware — un gap real en cómo se verificó ese trabajo.
+- **Arreglado:** se agregó `'web'` al arreglo de middleware en los 3 archivos. Verificado simulando peticiones HTTP completas (`app()->handle($request)` con sesión/auth reales, no solo `route:list`) contra las 27 rutas principales de los 6 paquetes + core — todas `200` limpio.
+- Los 3 ZIP (`accounting.zip`, `inventory.zip`, `sales.zip`) se reexportaron.
+
+**Pendiente sin resolver, prioridad para la próxima sesión (decisión del usuario 2026-08-14):**
+1. **Cobertura de pruebas automatizadas** — este bug es la prueba de que hace falta. Un smoke-test mínimo (Pest/PHPUnit) que golpee las rutas principales de cada módulo, por rol, habría cachado el `'web'` faltante solo. Candidato: empezar por un test de feature simple por cada uno de los 6 paquetes + rutas core, corriendo como cada rol (Vendedor/Admin/SuperAdmin) y confirmando `200`/redirect esperado.
+2. **Vendedor ligado a Cliente** — gap real de la sección 11 (auditoría de Usuarios contra DigitalPos), aún sin construir: un rol de representante externo atado a un cliente específico (`vendedor`+`usuario` emparejados en DigitalPos), modelo mayorista/distribuidor. Relevante si Quezalteca reparte con vendedores de ruta asignados a clientes fijos — confirmar con el negocio antes de diseñar.
+
+**Otros pendientes ya documentados, sin prioridad asignada aún:**
+- Que un contador valide el formato de columnas de los Libros IVA (sección 9) — no es tarea de código.
+- Ficha de empleado (RRHH: DUI, salario, tipo) y los reportes de DigitalPos no construidos (costo/utilidad, reposición, entradas/salidas) — prioridad baja, ver sección 11.
+- Autorización de precio / niveles de precio (sección 11) — decisión explícita del usuario de no tocarlo por ahora.
+
+**Para retomar:** empezar por el punto 1 (pruebas) ya que protege todo lo construido hasta ahora; luego el punto 2 si el negocio confirma que aplica el modelo de vendedor de ruta. Ver `MODULOS.md` secciones 4bis, 6 y 7 para el contexto técnico completo de todo lo construido en las últimas 2 sesiones.
