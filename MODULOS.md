@@ -49,6 +49,18 @@ Ninguna de estas funciones se puede "desinstalar" — son la base mínima para q
 - **Pedidos/Apartados de clientes** ✅ construido (2026-08-13) — reserva mercadería con entrega futura y descuenta stock de inmediato (se revierte si se anula). Vive dentro del paquete `packages/sales-quotes` (`CustomerOrderController`, rutas `customerorders.*`, tablas `customer_orders`/`customer_order_items`).
 - **Libros fiscales IVA** ✅ construido (2026-08-13) — Ventas a Contribuyente, Ventas a Consumidor (resumen diario) y Compras, con export CSV. Vive en `app/Http/Controllers/DteVatBooksController.php`, rutas `dte.books.*`. Construirlo destapó que Compras nunca capturaba IVA real (siempre quedaba en 0) — se corrigió derivando gravado/exento del campo `afecto_iva` de cada producto, sin agregar campos al formulario.
 
+## 4bis. Auditoría de completitud contra DigitalPos (2026-08-14)
+
+Con los 6 módulos ya empaquetados, se hizo una segunda pasada leyendo el código real de `digital/pos/` (no solo nombres de archivo) para confirmar que no falte ninguna función real del sistema legacy. Resultado: **prácticamente completo**, con un solo gap identificado — documentado aquí, sin construir todavía (decisión del usuario 2026-08-14).
+
+**Confirmado que NO son gaps** (ya cubiertos o nunca fueron una función real en el propio legacy):
+- **`admin_pedidos_prov.php`** (Pedidos a Proveedores) — es un documento paralelo sin integración real: los campos que sugerirían un flujo "pedido → luego se recibe como compra" (`estado`, `numero_factura`, `cant_facturado`) nunca se usan en el código, y ni siquiera toca inventario. No hay conexión con `admin_compra.php`. No vale la pena portarlo.
+- **`admin_asignacion.php`/`admin_movimiento_asignacion.php`** (Asignación/Reasignación) — es el mismo mecanismo de estantes/ubicaciones que ya vive en el módulo `inventory` (Lotes/Estantes), no una función de vendedor de ruta como se sospechó inicialmente.
+- **`admin_traslados.php` vs `admin_transferencia.php`** — son dos cosas distintas (traslado entre sucursales con estado en-tránsito vs. transferencia instantánea entre ubicaciones de la misma sucursal), pero la segunda se solapa conceptualmente con lo que ya cubre `inventory`.
+
+**Gap real encontrado — Autorización de precio (`admin_autorizacion.php`):**
+En DigitalPos cada usuario/vendedor tiene un techo de nivel de precio (`usuario.precios`) y cada producto puede tener hasta 6 niveles de precio (`presentacion_producto_precio`). Un supervisor genera un código de un solo uso que, capturado en el checkout, sube temporalmente ese techo para esa venta puntual, quedando auditado en la factura (`factura.precio_aut`/`factura.clave`). **No existe en Stockia** porque durante la migración de datos (2026-08-11, ver sección 7 de `MIGRATION_STATUS.md`) se decidió explícitamente no construir niveles de precio por falta de caso de uso concreto — esta función de DigitalPos es precisamente ese caso de uso. Requeriría primero construir la infraestructura de niveles de precio por producto antes de poder construir la autorización en sí. Pendiente de decisión de negocio: no se sabe si esta función se llegó a usar en la operación real de Quezalteca.
+
 ## 5. Referencia técnica rápida
 
 - **Catálogo de módulos:** `app/Models/Module::CATALOG` — nombre, descripción, versión, dependencias y clase del Service Provider de cada módulo.

@@ -153,3 +153,11 @@ Continuación directa del punto 2 pendiente de la sección 9. Resumen:
 - Los 4 ZIP nuevos/actualizados (`accounting.zip`, `inventory.zip`, `sales.zip`, `dte-sv-mh.zip`, más `ptv-pos.zip` reexportado porque también se tocó) quedaron listos para commitear.
 
 **Para retomar de esta sesión:** ver `MODULOS.md` sección 6 para el detalle completo de qué se movió y qué se quedó en Core, y el punto 4 de la lista de pendientes arriba para el bug de `dte_send_attempts` sin arreglar.
+
+## 11. Sesión 2026-08-14 — Auditoría de completitud contra DigitalPos
+
+Con los 6 módulos ya empaquetados, se leyó el código real de `digital/pos/` (no solo nombres de archivo, sino las consultas SQL y la lógica de cada pantalla) para confirmar que Stockia no le falte ninguna función real del legacy. Ver `MODULOS.md` sección 4bis para el detalle completo.
+
+**Resultado: prácticamente completo.** Se investigaron 3 grupos de pantallas sin equivalente obvio en Stockia y se descartaron 2 como falsos positivos (Pedidos a Proveedores es un documento paralelo sin integración real ni siquiera en el propio DigitalPos; Asignación/Reasignación es el mismo mecanismo que ya cubre el módulo `inventory`).
+
+**Un gap real, documentado y no construido (decisión del usuario 2026-08-14):** la "Autorización de precio" de DigitalPos — un código de un solo uso que un supervisor genera para subir temporalmente el techo de nivel de precio de un vendedor en una venta puntual. Requiere primero los niveles de precio por producto que se descartaron deliberadamente durante la migración de datos (sección 7, punto 2, "no había caso de uso concreto"). No se sabe si esta función se usó realmente en la operación de Quezalteca — queda pendiente de decisión de negocio, no de código.
