@@ -1,12 +1,13 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace Stockia\Accounting\Http\Controllers;
 
-use App\Models\Bank;
-use App\Models\BankAccount;
 use App\Models\Currency;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Controller;
 use Illuminate\Validation\Rule;
+use Stockia\Accounting\Models\Bank;
+use Stockia\Accounting\Models\BankAccount;
 
 class BankAccountController extends Controller
 {
@@ -16,7 +17,7 @@ class BankAccountController extends Controller
 
         $accounts = BankAccount::where('company_id', $companyId)->with(['bank', 'currency'])->get();
 
-        return view('accounting.bank-accounts.index', compact('accounts'));
+        return view('accounting::bank-accounts.index', compact('accounts'));
     }
 
     public function create()
@@ -26,7 +27,7 @@ class BankAccountController extends Controller
         $banks = Bank::where('company_id', $companyId)->orderBy('nombre')->get();
         $currencies = Currency::orderBy('code')->get();
 
-        return view('accounting.bank-accounts.create', compact('banks', 'currencies'));
+        return view('accounting::bank-accounts.create', compact('banks', 'currencies'));
     }
 
     public function store(Request $request)
@@ -61,6 +62,6 @@ class BankAccountController extends Controller
 
         $cuenta->load(['bank', 'currency']);
 
-        return view('accounting.bank-accounts.show', ['account' => $cuenta]);
+        return view('accounting::bank-accounts.show', ['account' => $cuenta]);
     }
 }

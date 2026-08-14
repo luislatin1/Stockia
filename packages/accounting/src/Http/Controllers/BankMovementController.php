@@ -1,10 +1,11 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace Stockia\Accounting\Http\Controllers;
 
-use App\Models\BankAccount;
-use App\Models\BankMovement;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Controller;
+use Stockia\Accounting\Models\BankAccount;
+use Stockia\Accounting\Models\BankMovement;
 
 class BankMovementController extends Controller
 {
@@ -22,7 +23,7 @@ class BankMovementController extends Controller
         $bankAccount->load(['bank', 'currency']);
         $movements = $bankAccount->movements()->with('user')->latest('fecha')->latest('id')->paginate(30);
 
-        return view('accounting.bank-movements.index', ['account' => $bankAccount, 'movements' => $movements]);
+        return view('accounting::bank-movements.index', ['account' => $bankAccount, 'movements' => $movements]);
     }
 
     public function store(Request $request, BankAccount $bankAccount)

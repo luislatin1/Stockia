@@ -1,9 +1,10 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace Stockia\Accounting\Http\Controllers;
 
-use App\Models\Bank;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Controller;
+use Stockia\Accounting\Models\Bank;
 
 class BankController extends Controller
 {
@@ -13,12 +14,12 @@ class BankController extends Controller
 
         $banks = Bank::where('company_id', $companyId)->withCount('accounts')->orderBy('nombre')->get();
 
-        return view('accounting.banks.index', compact('banks'));
+        return view('accounting::banks.index', compact('banks'));
     }
 
     public function create()
     {
-        return view('accounting.banks.create');
+        return view('accounting::banks.create');
     }
 
     public function store(Request $request)

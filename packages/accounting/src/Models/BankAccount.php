@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Models;
+namespace Stockia\Accounting\Models;
 
+use App\Models\Currency;
 use App\Traits\BelongsToCompany;
 use Illuminate\Database\Eloquent\Model;
 

@@ -1,9 +1,9 @@
 <?php
 
-use App\Http\Controllers\BankAccountController;
-use App\Http\Controllers\BankController;
-use App\Http\Controllers\BankMovementController;
 use Illuminate\Support\Facades\Route;
+use Stockia\Accounting\Http\Controllers\BankAccountController;
+use Stockia\Accounting\Http\Controllers\BankController;
+use Stockia\Accounting\Http\Controllers\BankMovementController;
 
 Route::middleware(['auth', 'company.selected', 'role:Admin,SuperAdmin'])
     ->prefix('contabilidad')
