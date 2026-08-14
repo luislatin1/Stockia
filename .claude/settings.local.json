@@ -165,10 +165,26 @@
       "Bash(unzip -l ExportPlugins/ptv-pos.zip)",
       "Bash(unzip -l ExportPlugins/sales-quotes.zip)",
       "Bash(unzip -l ExportPlugins/sv-dte-laravel12.zip)",
-      "Bash(awk 'NR>3 && NF>=4 {print $4}')"
+      "Bash(awk 'NR>3 && NF>=4 {print $4}')",
+      "Bash(git mv *)",
+      "Bash(git rm *)",
+      "Bash(composer update *)",
+      "Bash(grep -rn \"App\\\\\\\\\\\\\\\\Modules\\\\\\\\\\\\\\\\Accounting\\\\|App\\\\\\\\\\\\\\\\Models\\\\\\\\\\\\\\\\Bank\\\\b\\\\|App\\\\\\\\\\\\\\\\Http\\\\\\\\\\\\\\\\Controllers\\\\\\\\\\\\\\\\Bank\" app/ database/ routes/ config/ resources/views/)",
+      "Bash(grep -rn \"App\\\\\\\\\\\\\\\\Modules\\\\\\\\\\\\\\\\Inventory\\\\|App\\\\\\\\\\\\\\\\Models\\\\\\\\\\\\\\\\ProductBatch\\\\|App\\\\\\\\\\\\\\\\Models\\\\\\\\\\\\\\\\ProductLocation\\\\|App\\\\\\\\\\\\\\\\Http\\\\\\\\\\\\\\\\Controllers\\\\\\\\\\\\\\\\ProductBatch\\\\|App\\\\\\\\\\\\\\\\Http\\\\\\\\\\\\\\\\Controllers\\\\\\\\\\\\\\\\ProductLocation\" app/ database/ routes/ config/ resources/views/)",
+      "Bash(grep -rn \"App\\\\\\\\\\\\\\\\Modules\\\\\\\\\\\\\\\\Sales\\\\|App\\\\\\\\\\\\\\\\Models\\\\\\\\\\\\\\\\Commission\\\\|App\\\\\\\\\\\\\\\\Models\\\\\\\\\\\\\\\\Warranty\\\\|App\\\\\\\\\\\\\\\\Http\\\\\\\\\\\\\\\\Controllers\\\\\\\\\\\\\\\\Commission\\\\|App\\\\\\\\\\\\\\\\Http\\\\\\\\\\\\\\\\Controllers\\\\\\\\\\\\\\\\Warranty\" app/ database/ routes/ config/ resources/views/)",
+      "Bash(grep -n \"^use App\\\\\\\\\\\\\\\\Http\\\\\\\\\\\\\\\\Controllers\\\\\\\\\\\\\\\\Dte\" routes/web.php)",
+      "Bash(cp ExportPlugins/sv-dte-laravel12/catalogos-dte-acreditacion-completo-2026/json/*.json packages/dte-sv-mh/database/data/dte/ *)",
+      "Bash(grep -n \"App\\\\\\\\\\\\\\\\Models\\\\\\\\\\\\\\\\Dte\\\\|App\\\\\\\\\\\\\\\\Services\\\\\\\\\\\\\\\\Dte\\\\\\\\\\\\\\\\Dte\\\\|App\\\\\\\\\\\\\\\\Validators\\\\\\\\\\\\\\\\Validador\\\\|App\\\\\\\\\\\\\\\\Http\\\\\\\\\\\\\\\\Middleware\\\\\\\\\\\\\\\\ValidarDocumentoDte\\\\|App\\\\\\\\\\\\\\\\Http\\\\\\\\\\\\\\\\Controllers\\\\\\\\\\\\\\\\Dte\" packages/ptv-pos/src/Http/Controllers/PTVPosController.php routes/console.php)",
+      "Bash(grep -rn \"App\\\\\\\\\\\\\\\\Models\\\\\\\\\\\\\\\\Dte\\\\b\\\\|App\\\\\\\\\\\\\\\\Services\\\\\\\\\\\\\\\\Dte\\\\\\\\\\\\\\\\Dte\\\\|App\\\\\\\\\\\\\\\\Validators\\\\\\\\\\\\\\\\\\\\|App\\\\\\\\\\\\\\\\Http\\\\\\\\\\\\\\\\Middleware\\\\\\\\\\\\\\\\ValidarDocumentoDte\\\\|App\\\\\\\\\\\\\\\\Http\\\\\\\\\\\\\\\\Controllers\\\\\\\\\\\\\\\\Dte\\\\|App\\\\\\\\\\\\\\\\Modules\\\\\\\\\\\\\\\\Accounting\\\\|App\\\\\\\\\\\\\\\\Modules\\\\\\\\\\\\\\\\Inventory\\\\|App\\\\\\\\\\\\\\\\Modules\\\\\\\\\\\\\\\\Sales\\\\\\\\\\\\\\\\\" app/ database/ routes/ config/ resources/views/ bootstrap/)",
+      "Bash(rm -f /tmp/test_sales_hooks.php /tmp/test_dte_emission.php /tmp/test_dte_emission2.php *)",
+      "Bash(grep -n \"App\\\\\\\\\\\\\\\\Modules\\\\\\\\\\\\\\\\\\\\\\(Accounting\\\\|Inventory\\\\|Sales\\\\\\)\\\\|App\\\\\\\\\\\\\\\\Http\\\\\\\\\\\\\\\\Controllers\\\\\\\\\\\\\\\\\\\\\\(Bank\\\\|Commission\\\\|Warranty\\\\|ProductBatch\\\\|ProductLocation\\\\|Dte\\\\\\)\\\\|App\\\\\\\\\\\\\\\\Models\\\\\\\\\\\\\\\\\\\\\\(Bank\\\\|Commission\\\\|Warranty\\\\|ProductBatch\\\\|ProductLocation\\\\|Dte\\\\\\)\\\\|App\\\\\\\\\\\\\\\\Validators\\\\\\\\\\\\\\\\\\\\|App\\\\\\\\\\\\\\\\Http\\\\\\\\\\\\\\\\Middleware\\\\\\\\\\\\\\\\ValidarDocumentoDte\\\\|App\\\\\\\\\\\\\\\\Services\\\\\\\\\\\\\\\\Dte\\\\\\\\\\\\\\\\\\\\\\(Dte\\\\|Contracts\\\\|Real\\\\|Simulation\\\\\\)\\\\|App\\\\\\\\\\\\\\\\Services\\\\\\\\\\\\\\\\SimuladorMhValidator\" packages/ptv-pos/src/Http/Controllers/PTVPosController.php app/Http/Controllers/SaleController.php)",
+      "Bash(awk '{print $1}')",
+      "Bash(git reset *)"
     ],
     "additionalDirectories": [
-      "C:\\Users\\LUIS~1.LAT\\AppData\\Local\\Temp\\claude\\c--laragonOld-www-Stockia\\27ae11ba-dee7-43ba-bf74-13adfec08d43\\scratchpad"
+      "C:\\Users\\LUIS~1.LAT\\AppData\\Local\\Temp\\claude\\c--laragonOld-www-Stockia\\27ae11ba-dee7-43ba-bf74-13adfec08d43\\scratchpad",
+      "C:\\laragonOld\\www\\Stockia\\ExportPlugins\\sv-dte-laravel12\\catalogos-dte-acreditacion-completo-2026\\json",
+      "\\tmp"
     ]
   }
 }
