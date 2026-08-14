@@ -5,7 +5,7 @@ use Stockia\Accounting\Http\Controllers\BankAccountController;
 use Stockia\Accounting\Http\Controllers\BankController;
 use Stockia\Accounting\Http\Controllers\BankMovementController;
 
-Route::middleware(['auth', 'company.selected', 'role:Admin,SuperAdmin'])
+Route::middleware(['auth', 'company.selected', 'role:Admin,SuperAdmin', 'can:accounting'])
     ->prefix('contabilidad')
     ->group(function () {
         Route::resource('bancos', BankController::class)

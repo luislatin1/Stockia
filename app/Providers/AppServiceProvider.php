@@ -3,8 +3,11 @@
 namespace App\Providers;
 
 use App\Models\Company;
+use App\Models\CompanyUser;
+use App\Models\Permission;
 use App\Policies\CompanyPolicy;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
+use Illuminate\Support\Facades\Gate;
 use Stockia\DteSvMh\Services\Contracts\AuthInterface;
 use Stockia\DteSvMh\Services\Contracts\InvalidationInterface;
 use Stockia\DteSvMh\Services\Contracts\SendInterface;
@@ -60,9 +63,27 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        foreach (Permission::CATALOG as $key => $definition) {
+            if (! ($definition['overridable'] ?? true)) {
+                continue;
+            }
+
+            Gate::define($key, function ($user) use ($key) {
+                $companyId = (int) session('current_company_id');
+                if (! $companyId) {
+                    return false;
+                }
+
+                $companyUser = CompanyUser::where('company_id', $companyId)
+                    ->where('user_id', $user->id)
+                    ->first();
+
+                return Permission::userCan($companyUser, $key);
+            });
+        }
     }
-        protected $policies = [
+
+    protected $policies = [
         Company::class => CompanyPolicy::class,
     ];
 }

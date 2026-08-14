@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Stockia\SalesQuotes\Http\Controllers\CustomerOrderController;
 use Stockia\SalesQuotes\Http\Controllers\SalesQuoteController;
 
-Route::middleware(['web', 'auth', 'company.selected', 'role:Vendedor,Admin,SuperAdmin'])
+Route::middleware(['web', 'auth', 'company.selected', 'role:Vendedor,Admin,SuperAdmin', 'can:cotizaciones'])
     ->prefix('sales-quotes')
     ->name('salesquotes.')
     ->group(function () {
@@ -15,7 +15,7 @@ Route::middleware(['web', 'auth', 'company.selected', 'role:Vendedor,Admin,Super
         Route::post('/{quote}/status', [SalesQuoteController::class, 'updateStatus'])->name('status.update');
     });
 
-Route::middleware(['web', 'auth', 'company.selected', 'role:Vendedor,Admin,SuperAdmin'])
+Route::middleware(['web', 'auth', 'company.selected', 'role:Vendedor,Admin,SuperAdmin', 'can:apartados'])
     ->prefix('customer-orders')
     ->name('customerorders.')
     ->group(function () {

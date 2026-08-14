@@ -7,9 +7,14 @@
             <h2 class="text-2xl font-bold text-gray-900">Detalle de Usuario</h2>
             <p class="text-sm text-gray-500">Información general y permisos del usuario.</p>
         </div>
-        <a href="{{ route('users.edit', $user->id) }}" class="inline-flex items-center justify-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700">
-            Editar
-        </a>
+        <div class="flex gap-2">
+            <a href="{{ route('users.permissions.edit', $user->id) }}" class="inline-flex items-center justify-center rounded-lg border border-violet-200 bg-violet-50 px-4 py-2 text-sm font-semibold text-violet-700 transition hover:bg-violet-100">
+                Permisos
+            </a>
+            <a href="{{ route('users.edit', $user->id) }}" class="inline-flex items-center justify-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700">
+                Editar
+            </a>
+        </div>
     </div>
 
     @php

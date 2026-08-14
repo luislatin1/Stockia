@@ -23,6 +23,7 @@ return [
                     'active' => ['sales.*'],
                     'if_route' => 'sales.index',
                     'roles' => ['Vendedor', 'Admin', 'SuperAdmin'],
+                    'can' => 'ventas',
                 ],
                 [
                     'icon' => '💰',
@@ -30,6 +31,7 @@ return [
                     'route' => 'accounts-receivable.index',
                     'active' => ['accounts-receivable.*'],
                     'roles' => ['Admin', 'SuperAdmin'],
+                    'can' => 'cuentas-cobrar',
                 ],
                 [
                     'icon' => '🏅',
@@ -38,6 +40,7 @@ return [
                     'active' => ['commissions.*'],
                     'requires_module' => 'sales',
                     'roles' => ['Admin', 'SuperAdmin'],
+                    'can' => 'comisiones',
                 ],
                 [
                     'icon' => '🛡️',
@@ -46,6 +49,7 @@ return [
                     'active' => ['warranties.*'],
                     'requires_module' => 'sales',
                     'roles' => ['Vendedor', 'Admin', 'SuperAdmin'],
+                    'can' => 'garantias',
                 ],
                 [
                     'icon' => '📝',
@@ -54,6 +58,7 @@ return [
                     'active' => ['salesquotes.*'],
                     'requires_module' => 'sales-quotes',
                     'roles' => ['Vendedor', 'Admin', 'SuperAdmin'],
+                    'can' => 'cotizaciones',
                 ],
                 [
                     'icon' => '📦',
@@ -62,6 +67,7 @@ return [
                     'active' => ['customerorders.*'],
                     'requires_module' => 'sales-quotes',
                     'roles' => ['Vendedor', 'Admin', 'SuperAdmin'],
+                    'can' => 'apartados',
                 ],
                 [
                     'icon' => '💹',
@@ -70,6 +76,7 @@ return [
                     'active' => ['ptvpos.index'],
                     'requires_module' => 'ptv-pos',
                     'roles' => ['Vendedor', 'Admin', 'SuperAdmin'],
+                    'can' => 'ptvpos',
                 ],
                 [
                     'icon' => '🛒',
@@ -78,6 +85,7 @@ return [
                     'active' => ['ptvpos.pos'],
                     'requires_module' => 'ptv-pos',
                     'roles' => ['Vendedor', 'Admin', 'SuperAdmin'],
+                    'can' => 'ptvpos',
                 ],
                 [
                     'icon' => '🔓',
@@ -86,6 +94,7 @@ return [
                     'active' => ['ptvpos.open'],
                     'requires_module' => 'ptv-pos',
                     'roles' => ['Vendedor', 'Admin', 'SuperAdmin'],
+                    'can' => 'ptvpos',
                 ],
                 [
                     'icon' => '💸',
@@ -94,6 +103,7 @@ return [
                     'active' => ['ptvpos.cash-movements.*'],
                     'requires_module' => 'ptv-pos',
                     'roles' => ['Vendedor', 'Admin', 'SuperAdmin'],
+                    'can' => 'ptvpos',
                 ],
                 [
                     'icon' => '🔒',
@@ -102,6 +112,7 @@ return [
                     'active' => ['ptvpos.close'],
                     'requires_module' => 'ptv-pos',
                     'roles' => ['Vendedor', 'Admin', 'SuperAdmin'],
+                    'can' => 'ptvpos',
                 ],
                 [
                     'icon' => '🧰',
@@ -111,6 +122,7 @@ return [
                     'if_route' => 'ptvpos.admin.registers.index',
                     'requires_module' => 'ptv-pos',
                     'roles' => ['Admin', 'SuperAdmin'],
+                    'can' => 'ptvpos-admin',
                 ],
                 [
                     'icon' => '📋',
@@ -120,6 +132,7 @@ return [
                     'if_route' => 'ptvpos.admin.templates.index',
                     'requires_module' => 'ptv-pos',
                     'roles' => ['Admin', 'SuperAdmin'],
+                    'can' => 'ptvpos-admin',
                 ],
             ],
         ],
@@ -131,18 +144,21 @@ return [
                     'label' => 'Compras',
                     'route' => 'purchases.index',
                     'active' => ['purchases.*'],
+                    'can' => 'compras',
                 ],
                 [
                     'icon' => '💳',
                     'label' => 'Cuentas por Pagar',
                     'route' => 'accounts-payable.index',
                     'active' => ['accounts-payable.*'],
+                    'can' => 'cuentas-pagar',
                 ],
                 [
                     'icon' => '🚚',
                     'label' => 'Proveedores',
                     'route' => 'providers.index',
                     'active' => ['providers.*'],
+                    'can' => 'proveedores',
                 ],
             ],
         ],
@@ -154,12 +170,14 @@ return [
                     'label' => 'Productos',
                     'route' => 'products.index',
                     'active' => ['products.*'],
+                    'can' => 'productos',
                 ],
                 [
                     'icon' => '🏷',
                     'label' => 'Categorias',
                     'route' => 'categories.index',
                     'active' => ['categories.*'],
+                    'can' => 'categorias',
                 ],
                 [
                     'icon' => '🔄',
@@ -167,6 +185,7 @@ return [
                     'route' => 'inventory_movements.index',
                     'active' => ['inventory_movements.*'],
                     'if_route' => 'inventory_movements.index',
+                    'can' => 'inventory-movements',
                 ],
                 [
                     'icon' => '🚚',
@@ -174,6 +193,7 @@ return [
                     'route' => 'stock-transfers.index',
                     'active' => ['stock-transfers.*'],
                     'roles' => ['Admin', 'SuperAdmin'],
+                    'can' => 'stock-transfers',
                 ],
                 [
                     'icon' => '🗓️',
@@ -182,6 +202,7 @@ return [
                     'active' => ['product-batches.*'],
                     'requires_module' => 'inventory',
                     'roles' => ['Admin', 'SuperAdmin'],
+                    'can' => 'inventory-lotes',
                 ],
                 [
                     'icon' => '🗂️',
@@ -190,6 +211,7 @@ return [
                     'active' => ['product-locations.*'],
                     'requires_module' => 'inventory',
                     'roles' => ['Admin', 'SuperAdmin'],
+                    'can' => 'inventory-estantes',
                 ],
                 [
                     'icon' => '🛠',
@@ -197,6 +219,7 @@ return [
                     'route' => 'core.admin.index',
                     'active' => ['core.admin.*'],
                     'if_route' => 'core.admin.index',
+                    'can' => 'core-admin',
                 ],
             ],
         ],
@@ -210,6 +233,7 @@ return [
                     'active' => ['bancos.*'],
                     'requires_module' => 'accounting',
                     'roles' => ['Admin', 'SuperAdmin'],
+                    'can' => 'accounting',
                 ],
                 [
                     'icon' => '💵',
@@ -218,6 +242,7 @@ return [
                     'active' => ['cuentas.*', 'bank-accounts.*'],
                     'requires_module' => 'accounting',
                     'roles' => ['Admin', 'SuperAdmin'],
+                    'can' => 'accounting',
                 ],
             ],
         ],
@@ -231,6 +256,7 @@ return [
                     'active' => ['dte.admin.*'],
                     'roles' => ['Admin', 'SuperAdmin'],
                     'requires_module' => 'dte-sv-mh',
+                    'can' => 'dte-admin',
                 ],
                 [
                     'icon' => '🧾',
@@ -239,6 +265,7 @@ return [
                     'active' => ['dte.customers.*'],
                     'roles' => ['Admin', 'SuperAdmin'],
                     'requires_module' => 'dte-sv-mh',
+                    'can' => 'dte-customers',
                 ],
                 [
                     'icon' => '📚',
@@ -247,6 +274,7 @@ return [
                     'active' => ['dte.books.*'],
                     'roles' => ['Admin', 'SuperAdmin'],
                     'requires_module' => 'dte-sv-mh',
+                    'can' => 'dte-books',
                 ],
             ],
         ],
@@ -258,12 +286,14 @@ return [
                     'label' => 'Usuarios',
                     'route' => 'users.index',
                     'active' => ['users.*'],
+                    'roles' => ['Admin', 'SuperAdmin'],
                 ],
                 [
                     'icon' => '💱',
                     'label' => 'Monedas',
                     'route' => 'currencies.index',
                     'active' => ['currencies.*'],
+                    'can' => 'monedas',
                 ],
             ],
         ],

@@ -66,6 +66,7 @@
                             <div class="flex flex-wrap items-center gap-2">
                                 <a href="{{ route('users.show', $user->id) }}" class="rounded-md border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-700 transition hover:bg-sky-100">Ver</a>
                                 <a href="{{ route('users.edit', $user->id) }}" class="rounded-md border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700 transition hover:bg-amber-100">Editar</a>
+                                <a href="{{ route('users.permissions.edit', $user->id) }}" class="rounded-md border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-semibold text-violet-700 transition hover:bg-violet-100">Permisos</a>
                                 <form action="{{ route('users.destroy', $user->id) }}" method="POST" class="inline">
                                     @csrf
                                     @method('DELETE')

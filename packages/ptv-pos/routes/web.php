@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Stockia\PTVPos\Http\Controllers\PTVPosController;
 use Stockia\PTVPos\Http\Controllers\PTVPosAdminController;
 
-Route::middleware(['web', 'auth', 'company.selected', 'role:Vendedor,Admin,SuperAdmin'])
+Route::middleware(['web', 'auth', 'company.selected', 'role:Vendedor,Admin,SuperAdmin', 'can:ptvpos'])
     ->prefix('ptv-pos')
     ->name('ptvpos.')
     ->group(function () {
@@ -26,7 +26,7 @@ Route::middleware(['web', 'auth', 'company.selected', 'role:Vendedor,Admin,Super
         Route::post('/close', [PTVPosController::class, 'storeClose'])->name('close.store');
     });
 
-Route::middleware(['web', 'auth', 'company.selected', 'role:Admin,SuperAdmin'])
+Route::middleware(['web', 'auth', 'company.selected', 'role:Admin,SuperAdmin', 'can:ptvpos-admin'])
     ->prefix('ptv-pos/admin')
     ->name('ptvpos.admin.')
     ->group(function () {
