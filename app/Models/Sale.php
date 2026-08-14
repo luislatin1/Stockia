@@ -10,6 +10,7 @@ use App\Models\Company;
 use App\Traits\BelongsToCompany;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Stockia\Sales\Models\Commission;
 
 class Sale extends Model
 {

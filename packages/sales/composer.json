@@ -1,0 +1,30 @@
+{
+  "name": "stockia/sales",
+  "description": "Sales module (Comisiones + Garantias) for Stockia",
+  "type": "library",
+  "license": "proprietary",
+  "version": "0.1.0",
+  "require": {
+    "php": "^8.2",
+    "illuminate/support": "^12.0",
+    "illuminate/routing": "^12.0",
+    "illuminate/database": "^12.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "Stockia\\Sales\\": "src/"
+    }
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "Stockia\\Sales\\Providers\\SalesServiceProvider"
+      ]
+    },
+    "stockia": {
+      "module_key": "sales"
+    }
+  },
+  "minimum-stability": "stable",
+  "prefer-stable": true
+}

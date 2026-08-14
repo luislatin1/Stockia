@@ -1,9 +1,10 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace Stockia\Sales\Http\Controllers;
 
-use App\Models\Warranty;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Controller;
+use Stockia\Sales\Models\Warranty;
 use Symfony\Component\HttpFoundation\Response;
 
 class WarrantyController extends Controller
@@ -32,7 +33,7 @@ class WarrantyController extends Controller
 
         $warranties = $query->latest()->paginate(25)->withQueryString();
 
-        return view('warranties.index', compact('warranties'));
+        return view('sales::warranties.index', compact('warranties'));
     }
 
     public function show(Warranty $warranty)
@@ -40,7 +41,7 @@ class WarrantyController extends Controller
         $this->ensureAccess($warranty);
         $warranty->load(['product', 'customer', 'sale']);
 
-        return view('warranties.show', compact('warranty'));
+        return view('sales::warranties.show', compact('warranty'));
     }
 
     public function claim(Request $request, Warranty $warranty)

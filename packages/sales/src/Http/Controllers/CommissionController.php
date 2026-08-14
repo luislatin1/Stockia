@@ -1,10 +1,11 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace Stockia\Sales\Http\Controllers;
 
-use App\Models\Commission;
 use App\Models\CompanyUser;
 use App\Models\User;
+use Illuminate\Routing\Controller;
+use Stockia\Sales\Models\Commission;
 use Symfony\Component\HttpFoundation\Response;
 
 class CommissionController extends Controller
@@ -24,7 +25,7 @@ class CommissionController extends Controller
             }], 'amount')
             ->get();
 
-        return view('commissions.index', compact('vendedores'));
+        return view('sales::commissions.index', compact('vendedores'));
     }
 
     public function show(User $user)
@@ -41,7 +42,7 @@ class CommissionController extends Controller
             ->latest()
             ->paginate(25);
 
-        return view('commissions.show', compact('user', 'commissions'));
+        return view('sales::commissions.show', compact('user', 'commissions'));
     }
 
     public function pay(Commission $commission)

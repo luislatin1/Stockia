@@ -1,7 +1,11 @@
 <?php
 
-namespace App\Models;
+namespace Stockia\Sales\Models;
 
+use App\Models\Customer;
+use App\Models\Product;
+use App\Models\Sale;
+use App\Models\SaleItem;
 use App\Traits\BelongsToCompany;
 use Illuminate\Database\Eloquent\Model;
 

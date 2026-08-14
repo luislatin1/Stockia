@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Stockia\Sales\Models\Warranty;
 
 class SaleItem extends Model
 {

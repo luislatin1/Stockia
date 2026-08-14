@@ -9,6 +9,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use App\Models\Company;
 use App\Models\CompanyUser;
+use Stockia\Sales\Models\Commission;
 
 class User extends Authenticatable
 {
