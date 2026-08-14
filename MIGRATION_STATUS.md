@@ -134,7 +134,22 @@ Trabajo distinto al de arriba también. Resumen:
 
 **Pendiente sin resolver, en el radar para la próxima sesión (por tamaño):**
 1. ✅ **Resuelto 2026-08-13** — Los 3 ZIP de `ExportPlugins/` (`ptv-pos.zip`, `sales-quotes.zip`, `sv-dte-laravel12.zip`) se regeneraron desde el código fuente actual (confirmado: `sales-quotes.zip` ya incluye Apartados) y quedaron listos para commitear. No existía un script para esto — el proceso manual con `Compress-Archive` quedó documentado en [`MODULOS.md`](MODULOS.md) sección 6 para no tener que redescubrirlo la próxima vez.
-2. **Convertir `sales`/`inventory`/`accounting`/`dte-sv-mh` en paquetes reales** — ver `MODULOS.md` sección 6 para el mapa completo antes de empezar.
+2. ✅ **Resuelto 2026-08-13/14** — `sales`, `inventory`, `accounting` y `dte-sv-mh` ya son paquetes Composer reales bajo `packages/`. Ver sección 10 abajo y `MODULOS.md` sección 6 para el detalle completo.
 3. Que un contador valide el formato exacto de columnas de los Libros IVA contra la plantilla oficial vigente de Hacienda.
+4. Bug encontrado durante la extracción de `dte-sv-mh` (no arreglado, ver sección 10): `DteEmissionService::emitForSale()` falla en modo `simulacion`/`real` al insertar `response_payload` (array PHP crudo) en una columna JSON de `dte_send_attempts`.
 
 **Para retomar de esta sesión:** ver [`MODULOS.md`](MODULOS.md) secciones 4 y 6.
+
+## 10. Sesión 2026-08-13/14 — Empaquetado completo: los 6 módulos son paquetes reales
+
+Continuación directa del punto 2 pendiente de la sección 9. Resumen:
+
+- **`accounting`, `inventory`, `sales`, `dte-sv-mh`** se extrajeron de `app/` a `packages/<nombre>/` (composer.json, `src/`, migraciones, vistas, rutas y Service Provider propios), siguiendo el mismo patrón que ya usaban `ptv-pos`/`sales-quotes`. Orden: de menor a mayor acoplamiento con Core.
+- **Hallazgo de diseño importante:** `DteCalculationService` (cálculo de IVA 13%) no es parte opcional de DTE — `SaleController::store()` lo usa para el total de cualquier venta. Se decidió que el cálculo de IVA se queda permanentemente en Core (incluida la migración `prepare_dte_core_schema` que agrega las columnas fiscales); solo la integración con el Ministerio de Hacienda (emisión, correlativos, panel admin, libros IVA, clientes DTE) se empaquetó como lo opcional/toggleable.
+- **Bug de gating arreglado:** ni `SaleController` ni `packages/ptv-pos`'s `PTVPosController` chequeaban `Module::isEnabled('dte-sv-mh')` antes de emitir el DTE — desactivar el módulo no hacía nada. Ambos ahora sí lo chequean, y se agregó la entrada faltante en `ModuleGateServiceProvider::GATED_PREFIXES`.
+- **Bug preexistente encontrado, no arreglado** (fuera de alcance): en modo `simulacion`/`real`, `DteEmissionService` intenta insertar un array PHP sin `json_encode()` en la columna JSON `dte_send_attempts.response_payload` — MySQL lo rechaza. Nunca se había disparado antes porque no había ventas reales en la BD de dev. Verificado con una venta de prueba en modo `contingencia` (que sí funcionó de punta a punta) y confirmado el bug con una venta de prueba en modo `simulacion`.
+- **Limpieza:** el patrón intermedio `app/Modules/<Nombre>` (usado antes de que estos 4 módulos tuvieran paquete propio) quedó huérfano y se eliminó por completo.
+- Verificado end-to-end por fase: rutas registradas con el nuevo namespace, `php artisan view:cache` compila las ~200 vistas sin error, hooks `Sale::booted()`/`SaleItem::booted()` siguen generando `Commission`/`Warranty` correctamente, catálogos DTE se re-seedean desde su nueva ruta empaquetada (`packages/dte-sv-mh/database/data/dte/`), emisión de DTE probada de punta a punta en transacciones revertidas (sin dejar residuo en la BD de dev).
+- Los 4 ZIP nuevos/actualizados (`accounting.zip`, `inventory.zip`, `sales.zip`, `dte-sv-mh.zip`, más `ptv-pos.zip` reexportado porque también se tocó) quedaron listos para commitear.
+
+**Para retomar de esta sesión:** ver `MODULOS.md` sección 6 para el detalle completo de qué se movió y qué se quedó en Core, y el punto 4 de la lista de pendientes arriba para el bug de `dte_send_attempts` sin arreglar.
