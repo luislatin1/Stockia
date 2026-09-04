@@ -198,7 +198,8 @@
       "Bash(cd \"C:\\\\laragonOld\\\\www\\\\digital\\\\pos\" && find . -maxdepth 2 -iname \"*.sql\" 2>/dev/null)",
       "Bash(cd \"C:\\\\laragonOld\\\\www\\\\digital\\\\pos\\\\db\" && ls -la)",
       "Bash(cd \"C:\\\\laragonOld\\\\www\\\\digital\\\\pos\" && grep -c \"^INSERT INTO modulo VALUES\" \"pos-2023-10-20 1945-_backup.sql\")",
-      "Bash(cd \"C:\\\\laragonOld\\\\www\\\\digital\\\\pos\" && grep \"^INSERT INTO menu VALUES\" \"pos-2023-10-20 1945-_backup.sql\" | wc -l)"
+      "Bash(cd \"C:\\\\laragonOld\\\\www\\\\digital\\\\pos\" && grep \"^INSERT INTO menu VALUES\" \"pos-2023-10-20 1945-_backup.sql\" | wc -l)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://stockia.test:8081/sales)"
     ],
     "additionalDirectories": [
       "C:\\Users\\LUIS~1.LAT\\AppData\\Local\\Temp\\claude\\c--laragonOld-www-Stockia\\27ae11ba-dee7-43ba-bf74-13adfec08d43\\scratchpad",

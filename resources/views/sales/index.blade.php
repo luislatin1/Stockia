@@ -11,15 +11,28 @@
                 <a href="{{ route('sales.export.excel') }}" class="rounded border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-100">
                     Exportar Excel
                 </a>
-                <a href="{{ route('ptvpos.pos') }}" class="rounded bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">
-                    Ir a Punto de Venta
-                </a>
-                <button type="button" disabled title="Deshabilitado: las ventas deben registrarse desde POS." class="cursor-not-allowed rounded border border-gray-300 bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-500">
-                    + Nueva Venta (deshabilitado)
-                </button>
+                @if(\App\Models\Module::isEnabled('ptv-pos'))
+                    <a href="{{ route('ptvpos.pos') }}" class="rounded bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">
+                        Ir a Punto de Venta
+                    </a>
+                @endif
             </div>
         @endif
     </div>
+
+    @if($view === 'live' && ! \App\Models\Module::isEnabled('ptv-pos'))
+        <div class="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+            <p class="font-semibold">El módulo PTV-POS está desactivado.</p>
+            <p>Las ventas solo pueden registrarse desde el Punto de Venta, así que no podrás generar ventas nuevas hasta activarlo.</p>
+            @if(currentRole() === 'SuperAdmin')
+                <a href="{{ route('settings.modules.index') }}" class="mt-2 inline-block rounded bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-700">
+                    Ir a Ajustes &rarr; Módulos
+                </a>
+            @else
+                <p class="mt-1 text-xs">Pide a un administrador que lo active en Ajustes.</p>
+            @endif
+        </div>
+    @endif
 
     <div class="flex items-center gap-2 border-b border-gray-200">
         <a href="{{ route('sales.index') }}"
