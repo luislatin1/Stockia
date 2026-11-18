@@ -208,3 +208,47 @@ Trabajo nuevo, no es continuación de lo de arriba. Hasta esta sesión, Stockia 
 - Todo verificado a mano contra la BD real de Quezalteca con datos de prueba creados y borrados al final — no quedó nada de prueba en `products`/`sales`/`pos_sessions`/`pos_registers`, y los 6 módulos siguen igual que antes (todos desactivados).
 
 **Para retomar:** ver [`HANDOFF_API.md`](HANDOFF_API.md) — tiene el detalle técnico completo, cómo probar cada endpoint, y la lista priorizada de qué sigue (cerrar caja/checkout por API en ptv-pos, extender el molde a los otros 5 paquetes, CORS/expiración de tokens antes de exponerlo a un cliente externo real).
+
+## 15. Sesión 2026-11-18 — Instancia de evaluación en WSL (compartida por internet)
+
+Objetivo: dejar una copia funcionando para que un compañero la evalúe y pida cambios. **No es producción.**
+
+**Dónde y cómo corre**
+- WSL `Ubuntu-22.04`, carpeta `~/proyectos/stockia`, clonada de GitHub y **siguiendo `master`**.
+- PHP **8.3** (php8.3-fpm, PPA ondrej) instalado junto al PHP 8.1 por defecto del sistema → siempre llamar `php8.3` explícito. El `composer` del PATH es el de Windows (`/mnt/c/composer`); usar `php8.3 /mnt/c/composer/composer.phar`.
+- Apache, vhost propio en el puerto **8081** → php8.3-fpm. El puerto 80 de esa misma WSL es otro proyecto (no tocar).
+- MariaDB, BD y usuario `stockia`; la contraseña vive en `~/.stockia-db-pass` (fuera del repo).
+- Acceso público con **Cloudflare quick tunnel**: `cloudflared tunnel --url http://localhost:8081`. La URL (`*.trycloudflare.com`) es aleatoria y **cambia cada vez que se reinicia** el túnel; hay que volver a compartirla.
+
+**Datos y configuración**
+- Datos: **copia de la BD real de Quezalteca** (dump de Laragon del 2026-11-18, decisión explícita del usuario). Se importó sin cambios de esquema (91 tablas).
+- `.env` copiado del de Windows, reutilizando el mismo `APP_KEY` (necesario para descifrar datos cifrados), con `APP_ENV=production`, `APP_DEBUG=false`.
+- **Los 6 módulos están activados en esta copia** (en la BD de Laragon siguen todos desactivados). El DTE sigue en `DTE_MODE=simulacion`, ambiente `00`, sin credenciales de MH → no se emite nada real a Hacienda.
+- El vhost hace dos cosas solo para esta instancia, sin tocar código: pone `HTTPS=on` cuando llega `X-Forwarded-Proto: https` (la app no tiene `trustProxies`, sin esto los assets salen como `http://` y se rompen tras el túnel) y **bloquea `/register`** (403). Los usuarios se crean desde Usuarios → Crear.
+- `/docs/api` (Swagger) da 403 porque Scramble lo cierra en `production`.
+- `MAIL_MAILER=log` → "¿Olvidaste tu contraseña?" no envía nada. Resetear contraseñas con `deploy/wsl/reset-pass.sh <email>`.
+- Crear usuarios dummy: el correo solo se valida por formato (cualquier dominio sirve) y no hay verificación de cuenta (`MustVerifyEmail` desactivado). Usar dominios inexistentes (`.test`, `example.com`).
+
+**Scripts** (`deploy/wsl/`, se corren desde Windows con `wsl -d Ubuntu-22.04 --exec bash /mnt/c/laragonOld/www/Stockia/deploy/wsl/<script>`; los de root con `sudo bash ...` desde una terminal de Ubuntu porque `sudo` pide contraseña):
+1. `setup-root.sh` (sudo) — PHP 8.3, MariaDB + BD/usuario, Node 20, cloudflared, vhost :8081. Agrega el PPA a mano porque la API de Launchpad (`add-apt-repository`) dio 503.
+2. `vhost-tunnel.sh` (sudo) — reescribe el vhost con `HTTPS=on` + bloqueo de `/register`. Correr después del 1.
+3. `import-db.sh <dump.sql>` — importa el dump (convierte collations `utf8mb4_0900_*` de MySQL 8 a MariaDB si aparecen) y escribe `DB_PASSWORD` en `.env`.
+4. `finalize.sh` — permisos de `storage`, `storage:link`, `migrate --force`, `optimize`, prueba HTTP.
+5. `modules.sh [enable]` — muestra (o activa todos) los módulos y los usuarios.
+6. `reset-pass.sh <email>` — contraseña aleatoria nueva para ese usuario.
+
+Gotcha: `wsl -d X -- bash -lc '... $VAR ...'` expande las variables en el shell de afuera (llegan vacías). Usar `--exec bash script.sh`.
+
+**Actualizar la instancia cuando haya cambios en `master`** (dentro de `~/proyectos/stockia`):
+```bash
+git pull
+php8.3 /mnt/c/composer/composer.phar install --no-dev --optimize-autoloader
+npm ci && npm run build
+php8.3 artisan migrate --force && php8.3 artisan optimize
+```
+
+**Riesgo a recordar:** cualquiera con la URL del túnel ve el login de una copia con datos reales. Compartirla solo con quien evalúa y detener `cloudflared` cuando no se use. Si se publica en un servidor real detrás de proxy, agregar `trustProxies` en `bootstrap/app.php` en lugar del truco del vhost.
+
+**Pendiente nuevo (detectado al revisar roles para las pruebas):**
+- **Comisiones de un Admin que vende no se ven.** Un Admin/SuperAdmin puede vender (ventas, POS y cotizaciones aceptan los 3 roles). Si tiene `comision_porcentaje` asignado en la empresa, `Sale::booted()` ([`app/Models/Sale.php`](app/Models/Sale.php)) **sí genera** su registro de comisión, pero `CommissionController::index()` ([`packages/sales/src/Http/Controllers/CommissionController.php`](packages/sales/src/Http/Controllers/CommissionController.php)) solo lista usuarios con rol `Vendedor` → esas comisiones quedan en la BD sin poder verse ni pagarse desde la pantalla. Arreglo probable: listar a todo usuario de la empresa con `comision_porcentaje > 0` o con comisiones registradas, no filtrar por rol. Confirmar con el negocio si un Admin debe cobrar comisión.
+- Nota relacionada (no es bug): el filtro "solo ves tus propias ventas" aplica solo al rol `Vendedor`; un Admin ve todas. Para evaluar la experiencia de vendedor usar un usuario con rol `Vendedor`.
