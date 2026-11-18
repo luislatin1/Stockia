@@ -1,0 +1,14 @@
+{
+  "nombre": "Tipo de persona",
+  "version_referencia": "1.2",
+  "datos": [
+    {
+      "codigo": "1",
+      "descripcion": "Persona Natural"
+    },
+    {
+      "codigo": "2",
+      "descripcion": "Persona Jurídica"
+    }
+  ]
+}

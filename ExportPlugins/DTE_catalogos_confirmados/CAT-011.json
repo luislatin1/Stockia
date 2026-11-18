@@ -1,0 +1,22 @@
+{
+  "nombre": "Tipo de ítem",
+  "version_referencia": "1.2",
+  "datos": [
+    {
+      "codigo": "1",
+      "descripcion": "Bienes"
+    },
+    {
+      "codigo": "2",
+      "descripcion": "Servicios"
+    },
+    {
+      "codigo": "3",
+      "descripcion": "Ambos (Bienes y Servicios, incluye los dos inherente a los Productos o servicios)"
+    },
+    {
+      "codigo": "4",
+      "descripcion": "Otros tributos por ítem"
+    }
+  ]
+}

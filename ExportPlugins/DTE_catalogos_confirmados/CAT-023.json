@@ -1,0 +1,34 @@
+{
+  "nombre": "Tipo de Documento en Contingencia",
+  "version_referencia": "1.2",
+  "datos": [
+    {
+      "codigo": "01",
+      "descripcion": "Factura Electrónico"
+    },
+    {
+      "codigo": "03",
+      "descripcion": "Comprobante de Crédito Fiscal Electrónico"
+    },
+    {
+      "codigo": "04",
+      "descripcion": "Nota de Remisión Electrónica"
+    },
+    {
+      "codigo": "05",
+      "descripcion": "Nota de Crédito Electrónica"
+    },
+    {
+      "codigo": "06",
+      "descripcion": "Nota de Débito Electrónica"
+    },
+    {
+      "codigo": "11",
+      "descripcion": "Factura de Exportación Electrónica"
+    },
+    {
+      "codigo": "14",
+      "descripcion": "Factura de Sujeto Excluido Electrónica"
+    }
+  ]
+}

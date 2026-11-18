@@ -1,0 +1,14 @@
+{
+  "nombre": "Ambiente de destino",
+  "version_referencia": "1.2",
+  "datos": [
+    {
+      "codigo": "00",
+      "descripcion": "Modo prueba"
+    },
+    {
+      "codigo": "01",
+      "descripcion": "Modo producción"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "nombre": "Modelo de Facturación",
+  "version_referencia": "1.2",
+  "datos": [
+    {
+      "codigo": "1",
+      "descripcion": "Modelo Facturación previo"
+    },
+    {
+      "codigo": "2",
+      "descripcion": "Modelo Facturación diferido"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "nombre": "Tipo de Generación del Documento",
+  "version_referencia": "1.2",
+  "datos": [
+    {
+      "codigo": "1",
+      "descripcion": "Físico"
+    },
+    {
+      "codigo": "2",
+      "descripcion": "Electrónico"
+    }
+  ]
+}

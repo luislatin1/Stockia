@@ -1,0 +1,18 @@
+{
+  "nombre": "Tipo de Donación",
+  "version_referencia": "1.2",
+  "datos": [
+    {
+      "codigo": "1",
+      "descripcion": "Efectivo"
+    },
+    {
+      "codigo": "2",
+      "descripcion": "Bien"
+    },
+    {
+      "codigo": "3",
+      "descripcion": "Servicio"
+    }
+  ]
+}
