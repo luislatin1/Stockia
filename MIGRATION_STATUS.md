@@ -209,9 +209,27 @@ Trabajo nuevo, no es continuación de lo de arriba. Hasta esta sesión, Stockia 
 
 **Para retomar:** ver [`HANDOFF_API.md`](HANDOFF_API.md) — tiene el detalle técnico completo, cómo probar cada endpoint, y la lista priorizada de qué sigue (cerrar caja/checkout por API en ptv-pos, extender el molde a los otros 5 paquetes, CORS/expiración de tokens antes de exponerlo a un cliente externo real).
 
-## 15. Sesión 2026-11-18 — Instancia de evaluación en WSL (compartida por internet)
+## 15. Sesión 2026-11-18 — Instancia de evaluación (compartida por internet)
 
 Objetivo: dejar una copia funcionando para que un compañero la evalúe y pida cambios. **No es producción.**
+
+> **Actualización (mismo día): la instancia se movió de WSL a un servidor Ubuntu en la LAN** porque WSL consumía demasiada memoria en la PC de desarrollo. La instancia de WSL descrita abajo queda **apagada** (no borrada). Lo vigente es la sección 15.1.
+
+### 15.1 Servidor Ubuntu 24.04 — `192.168.16.191` (vigente)
+
+- Acceso: SSH `soportecorp@192.168.16.191` (llave dedicada en la PC de desarrollo: `~/.ssh/id_ed25519_stockia`; usar el `ssh` de Git Bash). `sudo` pide contraseña → los pasos de root los corre el usuario.
+- App en **`/var/www/stockia`**, clonada de GitHub siguiendo `master`. PHP **8.3 nativo** de 24.04 (aquí `php` y `composer` del sistema sirven, sin PPA), Apache en el **puerto 80** → php8.3-fpm, MariaDB (`stockia`, contraseña en `~/.stockia-db-pass`), Node 20.
+- Mismo vhost que en WSL: `HTTPS=on` desde `X-Forwarded-Proto` y `/register` bloqueado.
+- Datos: dump de Laragon del 2026-11-18 (copia real de Quezalteca), los 6 módulos activos, `DTE_MODE=simulacion`. El dump y el `.env` subidos para importar se borraron del servidor al terminar.
+- **Túnel como servicio systemd** `stockia-tunnel` (quick tunnel, arranca solo con el servidor). La URL cambia en cada reinicio del servicio; obtenerla con:
+  ```bash
+  journalctl -u stockia-tunnel --no-pager | grep -oE 'https://[a-z0-9-]+\.trycloudflare\.com' | tail -1
+  ```
+  Detener/arrancar: `sudo systemctl stop|start stockia-tunnel`.
+- Scripts en `deploy/server/`: `setup-root.sh` (sudo: paquetes, BD, vhost, servicio del túnel) e `install-app.sh <dump.sql> <.env origen>` (sin sudo: `.env`, importación, módulos, cache, prueba HTTP). Orden: `setup-root.sh` → `git clone` + `composer install --no-dev` + `npm ci && npm run build` → `install-app.sh` → `sudo systemctl start stockia-tunnel`.
+- Actualizar con cambios de `master`: en `/var/www/stockia`, `git pull && composer install --no-dev --optimize-autoloader && npm ci && npm run build && php artisan migrate --force && php artisan optimize`.
+
+### 15.2 WSL Ubuntu-22.04 (apagada, histórico)
 
 **Dónde y cómo corre**
 - WSL `Ubuntu-22.04`, carpeta `~/proyectos/stockia`, clonada de GitHub y **siguiendo `master`**.
