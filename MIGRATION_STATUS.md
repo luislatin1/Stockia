@@ -195,3 +195,16 @@ El usuario reportó que Bancos y Cuentas no cargaban. Causa raíz: al extraer es
 - Autorización de precio / niveles de precio (sección 11) — decisión explícita del usuario de no tocarlo por ahora.
 
 **Para retomar:** empezar por el punto 1 (pruebas) ya que protege todo lo construido hasta ahora; luego el punto 2 si el negocio confirma que aplica el modelo de vendedor de ruta. Ver `MODULOS.md` secciones 4bis, 6 y 7 para el contexto técnico completo de todo lo construido en las últimas 2 sesiones.
+
+## 14. Sesión 2026-11-18 — API REST (Postman/Swagger)
+
+Trabajo nuevo, no es continuación de lo de arriba. Hasta esta sesión, Stockia prácticamente no tenía API: `routes/api.php` era un solo endpoint roto (Sanctum no estaba instalado). Se construyó de cero:
+
+- **Sanctum real** + puente de contexto (`ResolveApiCompanyContext`) que deja empresa/bodega en `session()` por request a partir de headers `X-Company-Id`/`X-Warehouse-Id` — así todo el código existente (scoping por empresa, permisos, accessors de stock) funciona igual para web y API sin tocarlo.
+- **Swagger/OpenAPI** vía `dedoc/scramble` (`/docs/api`), importable directo en Postman.
+- **API de núcleo**: Productos y Ventas (`routes/api.php`). La creación de ventas se extrajo a `app/Actions/Sales/CreateSale.php`, usada por web y API por igual (único refactor del plan).
+- **API de un paquete real** (`ptv-pos`): estado de caja + abrir caja, como prueba de que el mismo molde funciona dentro de un módulo gateado por `Module::isEnabled()`.
+- 2 bugs reales encontrados y arreglados en el camino: scoping por vendedor faltante en ventas de la API, y el rate limiter `api` (nunca se había registrado en este proyecto).
+- Todo verificado a mano contra la BD real de Quezalteca con datos de prueba creados y borrados al final — no quedó nada de prueba en `products`/`sales`/`pos_sessions`/`pos_registers`, y los 6 módulos siguen igual que antes (todos desactivados).
+
+**Para retomar:** ver [`HANDOFF_API.md`](HANDOFF_API.md) — tiene el detalle técnico completo, cómo probar cada endpoint, y la lista priorizada de qué sigue (cerrar caja/checkout por API en ptv-pos, extender el molde a los otros 5 paquetes, CORS/expiración de tokens antes de exponerlo a un cliente externo real).

@@ -28,8 +28,14 @@ class EnsureCompanySelected
             if ($userId) {
                 $hasCompany = \App\Models\CompanyUser::where('user_id', $userId)->exists();
                 if (! $hasCompany) {
+                    if ($request->expectsJson()) {
+                        return response()->json(['message' => 'Tu usuario no tiene ninguna empresa configurada.'], 422);
+                    }
                     return redirect()->route('setup.step1');
                 }
+            }
+            if ($request->expectsJson()) {
+                return response()->json(['message' => 'Debes seleccionar una empresa para continuar.'], 422);
             }
             return redirect()->route('company.select')
                 ->with('error', 'Debes seleccionar una empresa para continuar.');
@@ -42,17 +48,26 @@ class EnsureCompanySelected
 
         if (! $companyUser) {
             session()->forget(['current_company_id', 'current_warehouse_id']);
+            if ($request->expectsJson()) {
+                return response()->json(['message' => 'Tu usuario no tiene acceso a la empresa seleccionada.'], 422);
+            }
             return redirect()->route('company.select')
                 ->with('error', 'Tu usuario no tiene acceso a la empresa seleccionada.');
         }
 
         if (! $warehouseId) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => 'Debes seleccionar un almacen para continuar.'], 422);
+            }
             return redirect()->route('warehouse.select')
                 ->with('error', 'Debes seleccionar un almacen para continuar.');
         }
 
         if ($companyUser->warehouses->isEmpty()) {
             session()->forget('current_warehouse_id');
+            if ($request->expectsJson()) {
+                return response()->json(['message' => 'El almacen seleccionado no esta asignado a tu usuario.'], 422);
+            }
             return redirect()->route('warehouse.select')
                 ->with('error', 'El almacen seleccionado no esta asignado a tu usuario.');
         }

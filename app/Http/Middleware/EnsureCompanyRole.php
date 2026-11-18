@@ -15,6 +15,9 @@ class EnsureCompanyRole
         $user = $request->user();
 
         if (! $user || ! $companyId) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => 'Debes seleccionar una empresa para continuar.'], 422);
+            }
             return redirect()->route('company.select')
                 ->with('error', 'Debes seleccionar una empresa para continuar.');
         }
@@ -24,6 +27,9 @@ class EnsureCompanyRole
             ->value('role');
 
         if (! in_array($role, $roles)) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => 'No tienes permisos para acceder a este modulo.'], 403);
+            }
             return redirect()->route('dashboard')
                 ->with('error', 'No tienes permisos para acceder a este modulo.');
         }

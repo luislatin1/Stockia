@@ -7,6 +7,7 @@ use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use App\Http\Middleware\SetCurrentCompany;
 use App\Http\Middleware\EnsureCompanySelected;
+use App\Http\Middleware\ResolveApiCompanyContext;
 use Stockia\DteSvMh\Http\Middleware\ValidarDocumentoDte;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -26,6 +27,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => \App\Http\Middleware\EnsureCompanyRole::class,
             'company.selected' => EnsureCompanySelected::class,
             'dte.document' => ValidarDocumentoDte::class,
+            'api.company' => ResolveApiCompanyContext::class,
         ]);
 
     

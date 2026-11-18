@@ -6,8 +6,11 @@ use App\Models\Company;
 use App\Models\CompanyUser;
 use App\Models\Permission;
 use App\Policies\CompanyPolicy;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\RateLimiter;
 use Stockia\DteSvMh\Services\Contracts\AuthInterface;
 use Stockia\DteSvMh\Services\Contracts\InvalidationInterface;
 use Stockia\DteSvMh\Services\Contracts\SendInterface;
@@ -63,6 +66,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Usado por el middleware "throttle:api" de routes/api.php (core y
+        // paquetes como ptv-pos) — nunca se había registrado porque la API
+        // no se usaba de verdad hasta ahora.
+        RateLimiter::for('api', function (Request $request) {
+            return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
+        });
+
         foreach (Permission::CATALOG as $key => $definition) {
             if (! ($definition['overridable'] ?? true)) {
                 continue;

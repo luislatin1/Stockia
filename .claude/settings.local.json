@@ -1,6 +1,9 @@
 {
   "permissions": {
     "allow": [
+      "Bash(git *)",
+      "Bash(gh *)",
+      "Bash(find *)",
       "Bash(Get-ChildItem -Name)",
       "mcp__claude_ai_Postman__getAuthenticatedUser",
       "mcp__claude_ai_Postman__getWorkspaces",

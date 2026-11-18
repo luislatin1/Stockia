@@ -2,24 +2,22 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Sales\CreateSale;
+use App\Exceptions\SaleValidationException;
 use App\Http\Controllers\Controller;
 use App\Models\InventoryMovement;
 use App\Models\LegacySale;
 use App\Models\NonSellableProduct;
 use App\Models\CompanyUser;
 use App\Models\Customer;
-use App\Models\Module;
 use App\Models\Sale;
-use App\Models\SaleItem;
 use App\Models\Product;
 use App\Models\SalePayment;
-use App\Services\Dte\DteCalculationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Hash;
 use Stockia\DteSvMh\Models\Dte;
-use Stockia\DteSvMh\Services\DteEmissionService;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -236,7 +234,7 @@ class SaleController extends Controller
         return view('sales.edit', compact('sale'));
     }
 
-    public function store(Request $request)
+    public function store(Request $request, CreateSale $createSale)
     {
         [$companyId, $warehouseId] = $this->currentContext();
 
@@ -251,206 +249,28 @@ class SaleController extends Controller
             'dias_credito' => ['nullable', 'integer', 'min:1', 'required_if:es_credito,1'],
         ]);
 
-        if (! empty($validated['customer_id'])) {
-            $customer = Customer::where('id', (int) $validated['customer_id'])
-                ->where('company_id', $companyId)
-                ->first();
-            if (! $customer) {
-                return back()->withErrors('Cliente inválido para la empresa actual.');
-            }
-        }
-
-        if (($validated['tipo_dte'] ?? null) === '03' && empty($validated['customer_id'])) {
-            return back()->withErrors('Para CCF (03) debes seleccionar un cliente contribuyente.')->withInput();
-        }
-
-        $productsPayload = $validated['products'] ?? [];
-        $hasItems = collect($productsPayload)->contains(fn ($qty) => (int) $qty > 0);
-
-        if (! $hasItems) {
-            return back()->withErrors('Debes agregar al menos un producto con cantidad mayor a cero.');
-        }
-
-        $requestedProductIds = collect($productsPayload)
-            ->filter(fn ($qty) => (int) $qty > 0)
-            ->keys()
-            ->map(fn ($id) => (int) $id)
-            ->values();
-
-        $availableCount = Product::where('company_id', $companyId)
-            ->whereIn('id', $requestedProductIds)
-            ->whereHas('warehouses', function ($query) use ($warehouseId) {
-                $query->where('warehouses.id', $warehouseId);
-            })
-            ->count();
-
-        if ($availableCount !== $requestedProductIds->count()) {
-            return back()->withErrors('Uno o más productos no pertenecen a la empresa o al almacén actual.');
-        }
-
-        $products = Product::where('company_id', $companyId)
-            ->whereIn('id', $requestedProductIds)
-            ->get()
-            ->keyBy('id');
-
-        $lineItems = [];
-
-        foreach ($productsPayload as $productId => $quantity) {
-            $quantity = (int) $quantity;
-            $productId = (int) $productId;
-
-            if ($quantity <= 0) {
-                continue;
-            }
-
-            $product = $products->get($productId);
-
-            if (! $product) {
-                return back()->withErrors('Uno o más productos no fueron encontrados.');
-            }
-
-            $lineItems[] = [
-                'product' => $product,
-                'quantity' => $quantity,
-                'unit_price' => (float) $product->price,
-                'discount' => 0,
-                'afecto_iva' => (bool) ($product->afecto_iva ?? true),
-                'category' => (bool) ($product->afecto_iva ?? true) ? 'gravada' : 'exenta',
-                'tipo_item' => (int) ($product->tipo_item ?? 1),
-                'uni_medida' => isset($product->uni_medida) ? (int) $product->uni_medida : null,
-                'product_id' => (int) $product->id,
-            ];
-        }
-
-        $calculator = app(DteCalculationService::class);
-        $calc = $calculator->calculate($lineItems, [
-            'aplica_retencion_iva' => false,
-            'retencion_renta' => 0,
-        ]);
-        $totals = $calc['totals'];
-        $normalizedItems = $calc['items'];
-
-        $subtotal = (float) $totals['subtotal'];
-        $taxTotal = (float) $totals['iva'];
-        $grandTotal = (float) $totals['total'];
-        $cashReceived = round((float) ($validated['cash_received'] ?? 0), 2);
-        $esCredito = $request->boolean('es_credito');
-
-        if (! $esCredito && $cashReceived < $grandTotal) {
-            return back()->withErrors('El efectivo recibido no cubre el total de la venta.');
-        }
-
-        if ($esCredito && $cashReceived > $grandTotal) {
-            return back()->withErrors('El anticipo no puede ser mayor al total de la venta.');
-        }
-
-        $changeAmount = $esCredito ? 0.0 : round($cashReceived - $grandTotal, 2);
-        $saldoPendiente = $esCredito ? round($grandTotal - $cashReceived, 2) : 0.0;
-        $diasCredito = $esCredito ? (int) $validated['dias_credito'] : null;
-        $fechaVencimiento = $esCredito ? now()->addDays($diasCredito) : null;
-
-        $saleId = DB::transaction(function () use (
-            $products,
-            $normalizedItems,
-            $warehouseId,
-            $companyId,
-            $totals,
-            $cashReceived,
-            $changeAmount,
-            $validated,
-            $esCredito,
-            $saldoPendiente,
-            $diasCredito,
-            $fechaVencimiento
-        ) {
-            $sale = Sale::create([
-                'company_id' => $companyId,
-                'customer_id' => $validated['customer_id'] ?? null,
-                'warehouse_id' => $warehouseId,
-                'user_id' => auth()->id(),
-                'status' => 'completed',
-                'tipo_dte' => $validated['tipo_dte'] ?? $this->resolveTipoDte((string) $validated['document_type']),
-                'numero_interno' => null,
-                'gravadas' => $totals['gravadas'],
-                'exentas' => $totals['exentas'],
-                'no_sujetas' => $totals['no_sujetas'],
-                'iva' => $totals['iva'],
-                'retencion_iva' => $totals['retencion_iva'],
-                'retencion_renta' => $totals['retencion_renta'],
-                'descuento_total' => $totals['descuento_total'],
-                'subtotal' => $totals['subtotal'],
-                'tax_total' => $totals['iva'],
-                'total' => $totals['total'],
-                'payment_method' => $esCredito ? 'credit' : 'cash',
-                'cash_received' => $cashReceived,
-                'change_amount' => $changeAmount,
-                'document_type' => $validated['document_type'],
-                'dias_credito' => $diasCredito,
-                'fecha_vencimiento' => $fechaVencimiento,
-                'saldo_pendiente' => $saldoPendiente,
-            ]);
-
-            $sale->update([
-                'numero_interno' => sprintf('V-%06d', (int) $sale->id),
-            ]);
-
-            foreach ($normalizedItems as $lineItem) {
-                $product = $products->get((int) $lineItem['product_id']);
-                if (! $product) {
-                    throw new \RuntimeException('Producto inválido en detalle de venta.');
-                }
-                $saleItem = new SaleItem([
-                    'sale_id' => $sale->id,
-                    'product_id' => $product->id,
-                    'quantity' => $lineItem['quantity'],
-                    'price' => $lineItem['price'],
-                    'precio_unitario' => $lineItem['precio_unitario'],
-                    'descuento' => $lineItem['descuento'],
-                    'monto_gravado' => $lineItem['monto_gravado'],
-                    'monto_exento' => $lineItem['monto_exento'],
-                    'monto_no_sujeto' => $lineItem['monto_no_sujeto'],
-                    'iva_item' => $lineItem['iva_item'],
-                    'total_item' => $lineItem['total_item'],
-                    'tipo_item' => $lineItem['tipo_item'],
-                    'uni_medida' => $lineItem['uni_medida'],
-                    'subtotal' => $lineItem['subtotal'],
-                ]);
-                // Ya tenemos $product y $sale en memoria: se los pasamos al modelo
-                // para que el evento `created` (garantías) no dispare 2 consultas más por línea.
-                $saleItem->setRelation('product', $product);
-                $saleItem->setRelation('sale', $sale);
-                $saleItem->save();
-
-                InventoryMovement::create([
-                    'company_id' => $companyId,
-                    'warehouse_id' => $warehouseId,
-                    'product_id' => $product->id,
-                    'type' => 'out',
-                    'quantity' => $lineItem['quantity'],
-                    'reference_type' => 'sale',
-                    'reference_id' => $sale->id,
-                    'user_id' => auth()->id(),
-                ]);
-            }
-
-            return (int) $sale->id;
-        });
-
-        $warning = null;
         try {
-            $sale = Sale::find($saleId);
-            if ($sale && Module::isEnabled('dte-sv-mh')) {
-                app(DteEmissionService::class)->emitForSale($sale);
-            }
-        } catch (\Throwable $e) {
-            $warning = 'Venta guardada, pero DTE no emitido: ' . $e->getMessage();
+            $sale = $createSale->handle([
+                'company_id' => $companyId,
+                'warehouse_id' => $warehouseId,
+                'user_id' => (int) auth()->id(),
+                'products' => $validated['products'] ?? [],
+                'document_type' => $validated['document_type'],
+                'customer_id' => $validated['customer_id'] ?? null,
+                'tipo_dte' => $validated['tipo_dte'] ?? null,
+                'cash_received' => $validated['cash_received'] ?? 0,
+                'es_credito' => $request->boolean('es_credito'),
+                'dias_credito' => $validated['dias_credito'] ?? null,
+            ]);
+        } catch (SaleValidationException $e) {
+            return back()->withErrors($e->getMessage())->withInput();
         }
 
         $redirect = redirect()->route('sales.index')
             ->with('success', 'Venta registrada correctamente');
 
-        if ($warning) {
-            $redirect->with('warning', $warning);
+        if ($sale->dte_warning ?? null) {
+            $redirect->with('warning', $sale->dte_warning);
         }
 
         return $redirect;
@@ -916,10 +736,5 @@ class SaleController extends Controller
         return redirect()
             ->route('sales.index')
             ->with('success', 'Venta cancelada correctamente');
-    }
-
-    private function resolveTipoDte(string $documentType): ?string
-    {
-        return $documentType === 'factura' ? '01' : null;
     }
 }

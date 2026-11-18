@@ -14,6 +14,7 @@ class PTVPosServiceProvider extends ServiceProvider
         }
 
         $this->loadRoutesFrom(__DIR__ . '/../../routes/web.php');
+        $this->loadRoutesFrom(__DIR__ . '/../../routes/api.php');
         $this->loadViewsFrom(__DIR__ . '/../../resources/views', 'ptvpos');
         $this->loadMigrationsFrom(__DIR__ . '/../../database/migrations');
     }
