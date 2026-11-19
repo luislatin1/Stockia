@@ -2,6 +2,7 @@
 
 namespace Stockia\DteSvMh\Validators;
 
+use App\Support\FiscalId;
 use Exception;
 
 class ValidadorDocumentoSalvador
@@ -11,16 +12,15 @@ class ValidadorDocumentoSalvador
         $numero = trim($numero);
 
         switch ($tipoDocumento) {
-            case '13': // DUI
-                if (! preg_match('/^\d{8}-\d{1}$/', $numero)) {
-                    throw new Exception('Formato DUI inválido. Debe ser ########-#');
+            case '13': // DUI: en DTE 2.0 son 9 dígitos; se acepta escrito con o sin guion
+                if (FiscalId::duiDigits($numero) === null) {
+                    throw new Exception('DUI inválido. Debe tener 9 dígitos (########-#).');
                 }
                 break;
 
-            case '36': // NIT
-                $limpio = preg_replace('/[^0-9]/', '', $numero);
-                if (strlen((string) $limpio) !== 14) {
-                    throw new Exception('NIT inválido. Debe contener 14 dígitos.');
+            case '36': // NIT: 14 dígitos, o 9 (formato antiguo); con o sin guiones
+                if (FiscalId::nitDigits($numero) === null) {
+                    throw new Exception('NIT inválido. Debe tener 14 dígitos (o 9 en formato antiguo).');
                 }
                 break;
 
@@ -39,6 +39,16 @@ class ValidadorDocumentoSalvador
 
             default:
                 throw new Exception('Tipo de documento no permitido.');
+        }
+
+        return true;
+    }
+
+    /** NRC: sin guion ni ceros a la izquierda, de 2 a 8 dígitos (Normativa v2.0, Anexo IV). */
+    public static function validarNrc(?string $nrc): bool
+    {
+        if (FiscalId::nrcDigits($nrc) === null) {
+            throw new Exception('NRC inválido. Debe tener de 2 a 8 dígitos (######-#).');
         }
 
         return true;

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\FiscalId;
 use App\Traits\BelongsToCompany;
 use Illuminate\Database\Eloquent\Model;
 
@@ -21,6 +22,16 @@ class Provider extends Model
         'direccion',
         'dias_credito_default',
     ];
+
+    /** Guarda NIT/NRC/DUI con guiones cuando son válidos; los valores dudosos no se tocan. */
+    protected static function booted(): void
+    {
+        static::saving(function (self $p) {
+            $p->nit = FiscalId::normalizarNit($p->nit);
+            $p->nrc = FiscalId::normalizarNrc($p->nrc);
+            $p->dui = FiscalId::normalizarDui($p->dui);
+        });
+    }
 
     public function products()
     {

@@ -3,6 +3,7 @@
 namespace Stockia\DteSvMh\Services;
 
 use App\Models\Sale;
+use App\Support\FiscalId;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Stockia\DteSvMh\Models\Dte;
@@ -265,6 +266,24 @@ class DteEmissionService
         $customer = $sale->customer;
         $this->assertReceiverRules($sale, $customer);
 
+        // El JSON del DTE exige NIT/NRC/documento SIN guiones (Normativa v2.0, Anexo IV).
+        // En la base quedan con guiones; aquí se derivan, y si no son válidos se niega
+        // la emisión con un mensaje claro en vez de enviar basura a Hacienda.
+        $emisorNit = FiscalId::nitDigits($company->nit ?: $company->tax_id);
+        if ($emisorNit === null) {
+            throw new \RuntimeException("El NIT del emisor no es válido ('".($company->nit ?: $company->tax_id)."'): debe tener 14 dígitos (o 9). Corríjalo en Administración Central.");
+        }
+
+        $emisorNrc = FiscalId::nrcDigits($company->nrc);
+        if ($emisorNrc === null) {
+            throw new \RuntimeException("El NRC del emisor no es válido ('".$company->nrc."'): debe tener de 2 a 8 dígitos. Corríjalo en Administración Central.");
+        }
+
+        $receptorDocumento = $customer
+            ? FiscalId::documentoParaDte($customer->tipo_documento, $customer->numero_documento)
+            : null;
+        $receptorNrc = $customer && trim((string) $customer->nrc) !== '' ? FiscalId::nrcDigits($customer->nrc) : null;
+
         $items = $sale->items->values()->map(function ($item, $index) {
             return [
                 'numItem' => $index + 1,
@@ -290,8 +309,8 @@ class DteEmissionService
             'numero_control' => $numeroControl,
             'codigo_generacion' => $codigoGeneracion,
             'emisor' => [
-                'nit' => $company->nit ?: $company->tax_id,
-                'nrc' => $company->nrc,
+                'nit' => $emisorNit,
+                'nrc' => $emisorNrc,
                 'nombre' => $company->nombre_razon_social ?: $company->legal_name ?: $company->name,
                 'nombreComercial' => $company->nombre_comercial ?: $company->name,
                 'codActividad' => $company->cod_actividad,
@@ -306,9 +325,9 @@ class DteEmissionService
                 ],
             ],
             'receptor' => [
-                'tipoDocumento' => $customer?->tipo_documento ?: '13',
-                'numDocumento' => $customer?->numero_documento ?: '00000000-0',
-                'nrc' => $customer?->nrc,
+                'tipoDocumento' => $customer ? $customer->tipo_documento : null,
+                'numDocumento' => $receptorDocumento,
+                'nrc' => $receptorNrc,
                 'nombre' => $customer?->nombre ?: 'Consumidor Final',
                 'telefono' => $customer?->telefono,
                 'correo' => $customer?->correo,
@@ -371,11 +390,18 @@ class DteEmissionService
     private function assertReceiverRules(Sale $sale, $customer): void
     {
         $tipoDte = (string) $sale->tipo_dte;
-        $tipoDocumento = (string) ($customer?->tipo_documento ?: '13');
-        $numeroDocumento = (string) ($customer?->numero_documento ?: '00000000-0');
 
-        ValidadorDocumentoSalvador::validar($tipoDocumento, $numeroDocumento);
-        ValidadorCoherenciaDte::validar($tipoDte, $tipoDocumento);
+        // Consumidor final sin identificar: el receptor va en null (permitido cuando el
+        // monto es menor al legal). Antes se inventaba el DUI 00000000-0, que v2 rechaza.
+        if ($customer) {
+            $tipoDocumento = (string) $customer->tipo_documento;
+            ValidadorDocumentoSalvador::validar($tipoDocumento, (string) $customer->numero_documento);
+            ValidadorCoherenciaDte::validar($tipoDte, $tipoDocumento);
+
+            if (trim((string) $customer->nrc) !== '') {
+                ValidadorDocumentoSalvador::validarNrc((string) $customer->nrc);
+            }
+        }
 
         if ($tipoDte === '03') {
             if (! $customer) {

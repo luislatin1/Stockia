@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Support\FiscalId;
 use App\Traits\BelongsToCompany;
 
 class Customer extends Model
@@ -28,6 +29,15 @@ class Customer extends Model
     protected $casts = [
         'es_contribuyente' => 'boolean',
     ];
+
+    /** Número de documento y NRC en formato con guiones cuando son válidos (evita duplicados 0123-4 / 01234). */
+    protected static function booted(): void
+    {
+        static::saving(function (self $c) {
+            $c->numero_documento = FiscalId::normalizarDocumento($c->tipo_documento, $c->numero_documento);
+            $c->nrc = FiscalId::normalizarNrc($c->nrc);
+        });
+    }
 
     public function company()
     {

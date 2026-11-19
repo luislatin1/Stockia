@@ -81,3 +81,40 @@ Artisan::command('dte:reenviar-contingencia {--company_id=}', function () {
     $this->info("DTE reenviados desde contingencia: {$processed}");
     return 0;
 })->purpose('Reenvía DTE en estado CONTINGENCIA usando el flujo configurado');
+
+Artisan::command('dte:revisar-identificadores {--limit=10 : ejemplos a mostrar por grupo}', function () {
+    // Solo lectura. Cuenta y lista NIT/NRC/DUI que DTE 2.0 rechazaría, para corregirlos antes de emitir.
+    $limit = (int) $this->option('limit');
+    $checks = [
+        ['companies', 'nit', 'NIT', fn ($v, $r) => \App\Support\FiscalId::nitDigits($v)],
+        ['companies', 'nrc', 'NRC', fn ($v, $r) => \App\Support\FiscalId::nrcDigits($v)],
+        ['providers', 'nit', 'NIT', fn ($v, $r) => \App\Support\FiscalId::nitDigits($v)],
+        ['providers', 'nrc', 'NRC', fn ($v, $r) => \App\Support\FiscalId::nrcDigits($v)],
+        ['providers', 'dui', 'DUI', fn ($v, $r) => \App\Support\FiscalId::duiDigits($v)],
+        ['customers', 'numero_documento', 'Documento', fn ($v, $r) => \App\Support\FiscalId::documentoParaDte($r->tipo_documento, $v)],
+        ['customers', 'nrc', 'NRC', fn ($v, $r) => \App\Support\FiscalId::nrcDigits($v)],
+    ];
+
+    $rows = [];
+    $detalle = [];
+    foreach ($checks as [$table, $col, $label, $fn]) {
+        $ok = $empty = $bad = 0;
+        foreach (\Illuminate\Support\Facades\DB::table($table)->select('id', $col, ...($table === 'customers' ? ['tipo_documento'] : []))->get() as $r) {
+            $v = trim((string) $r->$col);
+            if ($v === '') { $empty++; continue; }
+            if ($fn($v, $r) !== null) { $ok++; continue; }
+            $bad++;
+            if (count($detalle["$table.$col"] ?? []) < $limit) {
+                $detalle["$table.$col"][] = "#{$r->id} '{$v}'";
+            }
+        }
+        $rows[] = ["$table.$col", $label, $ok, $empty, $bad];
+    }
+
+    $this->table(['Campo', 'Tipo', 'Válidos', 'Vacíos', 'Inválidos'], $rows);
+    foreach ($detalle as $campo => $ej) {
+        $this->line("<comment>{$campo}</comment> inválidos (ejemplos): ".implode(', ', $ej));
+    }
+
+    return 0;
+})->purpose('Reporta NIT/NRC/DUI mal formados que DTE 2.0 rechazaría (solo lectura)');
