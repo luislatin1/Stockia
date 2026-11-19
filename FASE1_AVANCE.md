@@ -27,6 +27,13 @@ Salvaguarda añadida: en **modo real** no se emite si el establecimiento o el pu
 ## Para aplicar en una instalación
 `php artisan migrate`. Las migraciones del paquete DTE **solo se cargan con el módulo `dte-sv-mh` activado** (diseño existente de `DteSvMhServiceProvider`): en la BD de desarrollo todos los módulos están en `enabled=0`, así que ahí solo correrían las 2 migraciones del núcleo. Activar el módulo y luego migrar.
 
+## Servidor de evaluación (192.168.16.191)
+Desplegado el 2026-11-19 sobre la instancia compartida: **ahora sigue la rama `fase1-dte-v2`, no `master`** (commit `3bf41d9`). Migraciones aplicadas sin errores; emisión simulada verificada ahí (con rollback).
+- Punto de retorno del servidor: commit previo `eab8faf` (guardado en `~/backups/head_pre-fase1.txt`) y respaldo `~/backups/stockia_pre-fase1_20261119_2218.sql`.
+- Volver: `git checkout master` en `/var/www/stockia`, restaurar el respaldo y `php artisan optimize`.
+- Próximos despliegues: `bash deploy/server/update.sh [rama]` (respaldo + pull + composer + build + migrate).
+- Falta Docker en el servidor (necesario para el firmador en la Fase 2; requiere sudo).
+
 ## Pendiente de la Fase 1
 1. **Jerarquía distrito→municipio** (`dte_distritos.municipio_codigo` está en NULL). Mientras tanto la UI filtra por departamento y Hacienda validará la combinación.
 2. **Códigos reales** de establecimiento y punto de venta de cada cliente, y marcarlos como confirmados.
