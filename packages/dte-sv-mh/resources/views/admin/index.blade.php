@@ -34,6 +34,11 @@
             <p class="mt-1 text-sm text-gray-500">CRUD completo para documentos CAT-022, NRC y datos fiscales de receptor.</p>
         </a>
 
+        <a href="{{ route('dte.establecimientos.index') }}" class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-indigo-300">
+            <h2 class="text-lg font-semibold text-gray-900">Establecimientos y puntos de venta</h2>
+            <p class="mt-1 text-sm text-gray-500">Códigos fiscales del número de control (M/B/S/P + 3 dígitos) y su dirección con distrito.</p>
+        </a>
+
         <a href="{{ route('core.admin.index') }}" class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-indigo-300">
             <h2 class="text-lg font-semibold text-gray-900">Emisor y Certificado</h2>
             <p class="mt-1 text-sm text-gray-500">Ajusta datos fiscales del emisor y configuración base de certificado.</p>
@@ -68,13 +73,18 @@
             </div>
 
             <div>
-                <label class="mb-1 block text-sm font-medium text-gray-700">Establecimiento</label>
-                <input name="establecimiento" value="{{ old('establecimiento', $settings->establecimiento ?? '0001') }}" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+                <label class="mb-1 block text-sm font-medium text-gray-700">Numeración del número de control</label>
+                <select name="numeracion_modo" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+                    <option value="centralizada" @selected(old('numeracion_modo', $settings->numeracion_modo ?? 'centralizada') === 'centralizada')>Centralizada (un consecutivo para toda la empresa)</option>
+                    <option value="por_establecimiento" @selected(old('numeracion_modo', $settings->numeracion_modo ?? '') === 'por_establecimiento')>Por establecimiento (consecutivo independiente)</option>
+                </select>
+                <p class="mt-1 text-xs text-gray-500">Nunca por punto de venta ni por tipo de documento. Se reinicia cada ejercicio impositivo.</p>
             </div>
 
-            <div>
-                <label class="mb-1 block text-sm font-medium text-gray-700">Punto de venta</label>
-                <input name="punto_venta" value="{{ old('punto_venta', $settings->punto_venta ?? '0001') }}" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+            <div class="flex items-end">
+                <a href="{{ route('dte.establecimientos.index') }}" class="text-sm font-semibold text-indigo-600 hover:text-indigo-800">
+                    Administrar establecimientos y puntos de venta &rarr;
+                </a>
             </div>
 
             <div>
@@ -88,7 +98,7 @@
             </div>
 
             <div>
-                <label class="mb-1 block text-sm font-medium text-gray-700">Signer URL (real)</label>
+                <label class="mb-1 block text-sm font-medium text-gray-700">URL del firmador (real)</label>
                 <input name="signer_url" value="{{ old('signer_url', $settings->signer_url) }}" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
             </div>
 
@@ -97,9 +107,19 @@
                 <input name="api_user" value="{{ old('api_user', $settings->api_user) }}" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
             </div>
 
-            <div class="md:col-span-2">
+            <div>
                 <label class="mb-1 block text-sm font-medium text-gray-700">Password API (real)</label>
-                <input type="password" name="api_password" value="{{ old('api_password', $settings->api_password) }}" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+                <input type="password" name="api_password" value="" autocomplete="new-password"
+                       placeholder="{{ $settings->api_password ? 'Guardada. Escriba para reemplazarla.' : '13 a 25 caracteres, con número y carácter especial' }}"
+                       class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+            </div>
+
+            <div>
+                <label class="mb-1 block text-sm font-medium text-gray-700">Contraseña de la llave privada (firmador)</label>
+                <input type="password" name="signer_password" value="" autocomplete="new-password"
+                       placeholder="{{ $settings->signer_password ? 'Guardada. Escriba para reemplazarla.' : 'La del certificado de firma de Hacienda' }}"
+                       class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+                <p class="mt-1 text-xs text-gray-500">El certificado vive en el firmador de este cliente, no en Stockia.</p>
             </div>
 
             <div class="md:col-span-2">

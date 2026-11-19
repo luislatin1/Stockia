@@ -37,11 +37,25 @@ class DteEmissionService
 
         $mode = $this->factory->mode($settings);
 
-        $correlative = app(DteCorrelativeService::class)->next(
+        $emisor = app(DteEmitterResolver::class)->forSale($sale);
+
+        // En modo real, los códigos de establecimiento y punto de venta deben
+        // ser los asignados por Hacienda; en simulación/contingencia se permite
+        // usar los provisionales.
+        if ($mode === 'real' && (! $emisor['establecimiento']->codigo_confirmado || ! $emisor['punto_venta']->codigo_confirmado)) {
+            throw new \RuntimeException(
+                'Modo real: confirme con Hacienda los códigos de establecimiento '
+                .$emisor['establecimiento']->codigo.' y punto de venta '.$emisor['punto_venta']->codigo
+                .' en DTE > Establecimientos antes de emitir.'
+            );
+        }
+
+        $correlative = app(DteNumberingService::class)->next(
             (int) $sale->company_id,
+            $emisor['establecimiento'],
+            $emisor['punto_venta'],
             (string) $sale->tipo_dte,
-            (string) $settings->establecimiento,
-            (string) $settings->punto_venta
+            (string) ($settings->numeracion_modo ?: DteNumberingService::MODO_CENTRALIZADA),
         );
 
         $codigoGeneracion = class_exists(\TuEmpresa\SvDte\Helpers\CodigoGeneracion::class)
@@ -219,8 +233,6 @@ class DteEmissionService
                 'enabled' => true,
                 'integration_mode' => config('dte.mode', 'simulacion'),
                 'ambiente' => config('dte.ambiente', '00'),
-                'establecimiento' => '0001',
-                'punto_venta' => '0001',
                 'api_user' => config('dte.api_user'),
                 'api_password' => config('dte.api_password'),
                 'auth_url' => config('dte.auth_url'),

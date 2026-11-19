@@ -6,6 +6,7 @@ use App\Models\CompanyUser;
 use App\Models\Currency;
 use App\Models\Warehouse;
 use Illuminate\Http\RedirectResponse;
+use App\Support\UbicacionCatalogo;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -28,12 +29,15 @@ class CoreAdminController extends Controller
         $currencies = Currency::orderBy('code')->get();
         [$departments, $municipalities, $establishmentTypes] = $this->catalogs();
 
+        $distritos = UbicacionCatalogo::distritos();
+
         return view('core.admin.index', compact(
             'company',
             'warehouses',
             'currencies',
             'departments',
             'municipalities',
+            'distritos',
             'establishmentTypes'
         ));
     }
@@ -75,6 +79,7 @@ class CoreAdminController extends Controller
             'correo' => ['nullable', 'email', 'max:120'],
             'departamento' => $departmentRules,
             'municipio' => ['nullable', 'string', 'size:4'],
+            'distrito' => ['nullable', 'string', 'size:2'],
             'direccion_complemento' => ['nullable', 'string', 'max:255'],
             'fiscal_address' => ['nullable', 'string', 'max:255'],
             'fiscal_email' => ['nullable', 'email', 'max:255'],
@@ -100,6 +105,10 @@ class CoreAdminController extends Controller
 
             if ($department !== '' && $municipality !== '' && ! $this->isValidMunicipalityForDepartment($department, $municipality)) {
                 $validator->errors()->add('municipio', 'El municipio seleccionado no corresponde al departamento.');
+            }
+
+            if (! UbicacionCatalogo::distritoValido($department, $municipality, (string) $request->input('distrito', ''))) {
+                $validator->errors()->add('distrito', 'El distrito no corresponde al departamento/municipio seleccionado.');
             }
         });
 

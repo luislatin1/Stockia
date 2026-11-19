@@ -41,8 +41,9 @@ class DteCustomerController extends Controller
     public function create(): View
     {
         [$departments, $municipalities, $documentTypes] = $this->catalogs();
+        $distritos = \App\Support\UbicacionCatalogo::distritos();
 
-        return view('dte::customers.create', compact('departments', 'municipalities', 'documentTypes'));
+        return view('dte::customers.create', compact('departments', 'municipalities', 'documentTypes', 'distritos'));
     }
 
     public function store(Request $request): RedirectResponse
@@ -75,8 +76,9 @@ class DteCustomerController extends Controller
     {
         $this->ensureCompanyContext($customer);
         [$departments, $municipalities, $documentTypes] = $this->catalogs();
+        $distritos = \App\Support\UbicacionCatalogo::distritos();
 
-        return view('dte::customers.edit', compact('customer', 'departments', 'municipalities', 'documentTypes'));
+        return view('dte::customers.edit', compact('customer', 'departments', 'municipalities', 'documentTypes', 'distritos'));
     }
 
     public function update(Request $request, Customer $customer): RedirectResponse
@@ -128,6 +130,7 @@ class DteCustomerController extends Controller
             'nombre' => ['required', 'string', 'max:255'],
             'departamento' => ['nullable', 'string', 'max:2'],
             'municipio' => ['nullable', 'string', 'max:4'],
+            'distrito' => ['nullable', 'string', 'size:2'],
             'direccion' => ['nullable', 'string', 'max:255'],
             'telefono' => ['nullable', 'string', 'max:30'],
             'correo' => ['nullable', 'email', 'max:120'],

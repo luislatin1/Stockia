@@ -4,12 +4,19 @@ namespace App\Services\Dte;
 
 class DteCalculationService
 {
-    private const IVA_RATE = 0.13;
-    private const RET_IVA_RATE = 0.01;
     private const EPSILON = 0.02;
+
+    public function __construct(private readonly TaxRateService $taxRates = new TaxRateService())
+    {
+    }
 
     public function calculate(array $items, array $options = []): array
     {
+        // Las tasas se toman con la vigencia de la fecha de la operación.
+        $fecha = $options['fecha'] ?? null;
+        $ivaRate = $this->taxRates->rate(TaxRateService::IVA, $fecha);
+        $retIvaRate = $this->taxRates->rate(TaxRateService::RET_IVA, $fecha);
+
         $gravadas = 0.0;
         $exentas = 0.0;
         $noSujetas = 0.0;
@@ -47,7 +54,7 @@ class DteCalculationService
                 $gravadas += $lineBase;
             }
 
-            $ivaItem = ($montoGravado > 0 && $afectoIva) ? $this->round2($montoGravado * self::IVA_RATE) : 0.0;
+            $ivaItem = ($montoGravado > 0 && $afectoIva) ? $this->round2($montoGravado * $ivaRate) : 0.0;
             $iva += $ivaItem;
             $descuentoTotal += $discount;
 
@@ -68,7 +75,7 @@ class DteCalculationService
             ];
         }
 
-        $retencionIva = ! empty($options['aplica_retencion_iva']) ? $this->round2($gravadas * self::RET_IVA_RATE) : 0.0;
+        $retencionIva = ! empty($options['aplica_retencion_iva']) ? $this->round2($gravadas * $retIvaRate) : 0.0;
         $retencionRenta = $this->round2((float) ($options['retencion_renta'] ?? 0));
         $subtotal = $this->round2($gravadas + $exentas + $noSujetas);
         $totalPagar = $this->round2($subtotal + $iva - $retencionIva - $retencionRenta);

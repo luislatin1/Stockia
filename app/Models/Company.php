@@ -23,6 +23,7 @@ class Company extends Model
         'correo',
         'departamento',
         'municipio',
+        'distrito',
         'direccion_complemento',
         'certificado_firma',
         'certificado_expira_en',

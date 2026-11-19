@@ -55,6 +55,18 @@
         </select>
     </div>
 
+    <div>
+        <label class="mb-1 block text-sm font-medium text-gray-700">Distrito</label>
+        <select name="distrito" id="distrito" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+            <option value="">Seleccionar</option>
+            @foreach($distritos as $distrito)
+                <option value="{{ $distrito->codigo }}" data-dept="{{ $distrito->departamento_codigo }}" @selected((string) old('distrito', $customer->distrito ?? '') === (string) $distrito->codigo)>
+                    {{ $distrito->codigo }} - {{ $distrito->nombre }}
+                </option>
+            @endforeach
+        </select>
+    </div>
+
     <div class="md:col-span-2">
         <label class="mb-1 block text-sm font-medium text-gray-700">Dirección</label>
         <input name="direccion" value="{{ old('direccion', $customer->direccion ?? '') }}" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
@@ -106,7 +118,18 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     };
 
-    dept.addEventListener('change', applyFilter);
+    const dist = document.getElementById('distrito');
+    const applyDistrict = () => {
+        if (!dist) return;
+        Array.from(dist.options).forEach((opt) => {
+            if (!opt.value) return;
+            opt.hidden = !dept.value || opt.dataset.dept !== dept.value;
+        });
+        if (dist.selectedOptions.length && dist.selectedOptions[0].hidden) dist.value = '';
+    };
+
+    dept.addEventListener('change', () => { applyFilter(); applyDistrict(); });
     applyFilter();
+    applyDistrict();
 });
 </script>

@@ -17,6 +17,7 @@ class Customer extends Model
         'nombre',
         'departamento',
         'municipio',
+        'distrito',
         'direccion',
         'telefono',
         'correo',

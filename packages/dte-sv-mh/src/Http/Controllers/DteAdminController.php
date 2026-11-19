@@ -38,8 +38,6 @@ class DteAdminController extends Controller
                 'enabled' => true,
                 'integration_mode' => config('dte.mode', 'simulacion'),
                 'ambiente' => '00',
-                'establecimiento' => '0001',
-                'punto_venta' => '0001',
                 'use_dummy_certificate' => true,
                 'dummy_certificate_text' => 'CERTIFICADO-DUMMY',
                 'static_token' => 'TOKEN-DUMMY',
@@ -79,13 +77,13 @@ class DteAdminController extends Controller
             'enabled' => ['nullable', 'boolean'],
             'integration_mode' => ['required', 'in:simulacion,real,contingencia'],
             'ambiente' => ['required', 'string', 'size:2'],
-            'establecimiento' => ['required', 'string', 'max:4'],
-            'punto_venta' => ['required', 'string', 'max:4'],
+            'numeracion_modo' => ['required', 'in:centralizada,por_establecimiento'],
             'api_user' => ['nullable', 'string', 'max:255'],
             'api_password' => ['nullable', 'string', 'max:2000'],
             'auth_url' => ['nullable', 'url', 'max:500'],
             'send_url' => ['nullable', 'url', 'max:500'],
             'signer_url' => ['nullable', 'url', 'max:500'],
+            'signer_password' => ['nullable', 'string', 'max:500'],
             'use_dummy_certificate' => ['nullable', 'boolean'],
             'dummy_certificate_text' => ['nullable', 'string', 'max:10000'],
             'static_token' => ['nullable', 'string', 'max:255'],
@@ -104,16 +102,20 @@ class DteAdminController extends Controller
             $staticResponse = $decoded;
         }
 
+        // Un campo de contraseña vacío significa "conservar la actual", no "borrarla".
+        $secrets = array_filter([
+            'api_password' => $validated['api_password'] ?? null,
+            'signer_password' => $validated['signer_password'] ?? null,
+        ], fn ($value) => $value !== null && $value !== '');
+
         DteSetting::updateOrCreate(
             ['company_id' => $companyId],
-            [
+            $secrets + [
                 'enabled' => $request->boolean('enabled', true),
                 'integration_mode' => $validated['integration_mode'],
                 'ambiente' => $validated['ambiente'],
-                'establecimiento' => str_pad((string) $validated['establecimiento'], 4, '0', STR_PAD_LEFT),
-                'punto_venta' => str_pad((string) $validated['punto_venta'], 4, '0', STR_PAD_LEFT),
+                'numeracion_modo' => $validated['numeracion_modo'],
                 'api_user' => $validated['api_user'] ?? null,
-                'api_password' => $validated['api_password'] ?? null,
                 'auth_url' => $validated['auth_url'] ?? null,
                 'send_url' => $validated['send_url'] ?? null,
                 'signer_url' => $validated['signer_url'] ?? null,

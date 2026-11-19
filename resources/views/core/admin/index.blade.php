@@ -40,6 +40,21 @@ document.addEventListener('DOMContentLoaded', function () {
 
     department.addEventListener('change', filterMunicipalities);
     filterMunicipalities();
+
+    // Distrito (CAT-008): se filtra por departamento; el catalogo oficial no trae su municipio.
+    const district = document.getElementById('distrito');
+    if (district) {
+        const filterDistricts = () => {
+            Array.from(district.options).forEach((option) => {
+                if (option.value === '') return;
+                option.hidden = department.value === '' || option.getAttribute('data-departamento') !== department.value;
+            });
+            const selected = district.options[district.selectedIndex];
+            if (selected && selected.value !== '' && selected.hidden) district.value = '';
+        };
+        department.addEventListener('change', filterDistricts);
+        filterDistricts();
+    }
 });
 </script>
 @endsection
@@ -205,6 +220,19 @@ document.addEventListener('DOMContentLoaded', function () {
                                 </option>
                             @endforeach
                         </select>
+                    </div>
+
+                    <div>
+                        <label for="distrito" class="mb-1 block text-sm font-medium text-gray-700">Distrito</label>
+                        <select id="distrito" name="distrito" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                            <option value="">Selecciona distrito</option>
+                            @foreach ($distritos as $distrito)
+                                <option value="{{ $distrito->codigo }}" data-departamento="{{ $distrito->departamento_codigo }}" @selected((string) old('distrito', $company?->distrito) === (string) $distrito->codigo)>
+                                    {{ $distrito->codigo }} - {{ $distrito->nombre }}
+                                </option>
+                            @endforeach
+                        </select>
+                        <p class="mt-1 text-xs text-gray-500">Requerido por DTE 2.0 en la direccion del emisor.</p>
                     </div>
 
                     <div>

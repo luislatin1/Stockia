@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Stockia\DteSvMh\Http\Controllers\DteAdminController;
 use Stockia\DteSvMh\Http\Controllers\DteCustomerController;
+use Stockia\DteSvMh\Http\Controllers\DteEstablecimientoController;
 use Stockia\DteSvMh\Http\Controllers\DteVatBooksController;
 
 Route::middleware(['web', 'auth', 'company.selected', 'role:Admin,SuperAdmin'])
@@ -12,6 +13,12 @@ Route::middleware(['web', 'auth', 'company.selected', 'role:Admin,SuperAdmin'])
         Route::middleware(['can:dte-admin'])->group(function () {
             Route::get('/admin', [DteAdminController::class, 'index'])->name('admin.index');
             Route::patch('/admin/settings', [DteAdminController::class, 'updateSettings'])->name('admin.settings.update');
+
+            Route::get('/establecimientos', [DteEstablecimientoController::class, 'index'])->name('establecimientos.index');
+            Route::post('/establecimientos', [DteEstablecimientoController::class, 'store'])->name('establecimientos.store');
+            Route::patch('/establecimientos/{establecimiento}', [DteEstablecimientoController::class, 'update'])->name('establecimientos.update');
+            Route::post('/establecimientos/{establecimiento}/puntos-venta', [DteEstablecimientoController::class, 'storePuntoVenta'])->name('establecimientos.puntos-venta.store');
+            Route::patch('/puntos-venta/{puntoVenta}', [DteEstablecimientoController::class, 'updatePuntoVenta'])->name('puntos-venta.update');
         });
 
         Route::middleware(['can:dte-customers'])->group(function () {

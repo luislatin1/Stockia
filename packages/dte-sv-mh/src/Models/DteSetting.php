@@ -16,11 +16,13 @@ class DteSetting extends Model
         'ambiente',
         'establecimiento',
         'punto_venta',
+        'numeracion_modo',
         'api_user',
         'api_password',
         'auth_url',
         'send_url',
         'signer_url',
+        'signer_password',
         'use_dummy_certificate',
         'dummy_certificate_text',
         'static_token',
@@ -29,7 +31,12 @@ class DteSetting extends Model
         'static_response',
     ];
 
+    /** Nunca se serializan: son credenciales. */
+    protected $hidden = ['api_password', 'signer_password'];
+
     protected $casts = [
+        'api_password' => 'encrypted',
+        'signer_password' => 'encrypted',
         'enabled' => 'boolean',
         'use_dummy_certificate' => 'boolean',
         'static_response' => 'array',
