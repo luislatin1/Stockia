@@ -44,3 +44,36 @@ Medida en el servidor con datos reales (venta simulada, con rollback): **29 erro
 ## Pendiente de terceros
 - Confirmar con el contador el **monto legal** a partir del cual el receptor debe identificarse.
 - Códigos reales de establecimiento/punto de venta, distrito→municipio, credenciales y certificado del ambiente de pruebas, Docker en el servidor.
+
+## Cómo retomar en otra sesión
+
+**Estado:** rama `fase1-dte-v2`, todo comiteado y subido (último commit: ver `git log`). Punto de retorno previo a todo el trabajo: etiqueta `pre-fase1-dte`. El servidor de evaluación sigue **esta rama**, no `master`.
+
+**Arranque rápido (PC de desarrollo)**
+1. Levantar MySQL de Laragon (suele estar apagado). Si hace falta por línea de comandos: `mysqld.exe --defaults-file=C:\laragonOld\bin\mysql\mysql-8.4.3-winx64\my.ini`. La app usa `DB_HOST=127.0.0.2`.
+2. `php artisan test` → deben pasar los 84 tests (usan SQLite en memoria; no tocan la BD real).
+3. La BD de desarrollo **no** tiene aplicadas las migraciones de la Fase 1: todos sus módulos están en `enabled=0` y las migraciones del paquete DTE solo se cargan con el módulo activo. El servidor sí las tiene. Para probar con datos completos, usar el servidor o activar el módulo `dte-sv-mh` en una copia de la BD.
+4. Respaldos locales: `storage/app/backups/` (ignorado por git; contiene datos reales de cliente).
+
+**Servidor (192.168.16.191)**: `ssh -i ~/.ssh/id_ed25519_stockia soportecorp@192.168.16.191` desde Git Bash. Desplegar: subir la rama y ejecutar allí `cd /var/www/stockia && bash deploy/server/update.sh` (respaldo + pull + composer + build + migrate + optimize). Respaldos en `~/backups/`. Volver a `master`: ver `FASE1_AVANCE.md`.
+
+**Archivos que existen solo en esta PC (no están en git)**
+- `ExportPlugins/DTE v2/`: documentos oficiales (PDF, Excel, zips del firmador y de los esquemas), 264 MB. Respaldar aparte si se quiere conservar.
+- `ExportPlugins/DTE v2/ocr_texto/`: texto OCR del Manual Técnico y de la Normativa, y `ocr.ps1` (OCR con Windows, sin instalar nada: `powershell.exe -File ocr.ps1 -Pdf <pdf> -Out <txt>`). El OCR tiene errores de caracteres; no citarlo como texto oficial sin cotejar el PDF. Los Anexos II–V de la Normativa (estructura y validaciones por campo) están ahí pero **no se han leído completos**; en el Anexo IV están las reglas de cálculo y catálogo que Hacienda valida además del esquema.
+
+**Tropiezos conocidos del entorno**
+- En el shell Bash de la herramienta, varios heredocs en una misma llamada fallan; escribir archivos con la herramienta de escritura y ejecutar scripts de Python desde archivo.
+- Evitar `\A`/`\S` en cadenas Python al parchear PHP (usar `\` o constantes `::class` con `use`).
+- `.gitattributes` fuerza LF: cualquier archivo cuya huella se compare (esquemas) debe normalizarse a LF.
+- Los `Carbon::parse('2031-01-01')` sin zona son UTC; las reglas fiscales usan hora de El Salvador (`config('dte.timezone')`).
+
+**Decisiones tomadas (no reabrir sin motivo)**
+- Un firmador oficial **por cliente** (el certificado y la llave quedan en su infraestructura).
+- Identificadores: guardados con guiones, derivados sin guiones para el DTE; sin columna duplicada.
+- Numeración centralizada o por establecimiento, nunca por punto de venta ni por tipo.
+- El modo real no emite con códigos de establecimiento/punto de venta sin confirmar.
+
+**Preguntas abiertas para terceros**
+1. Contador: monto legal a partir del cual el receptor debe identificarse; fecha límite real de migración de cada cliente (la del 1-dic-2026 es de fuentes no oficiales); tasas de `tax_rates`; si los tiquetes siguen siendo válidos (Normativa regla 15, desde 1-ene-2025).
+2. Hacienda/portal de emisores: códigos reales de establecimiento y punto de venta; jerarquía distrito→municipio; credenciales y certificado del ambiente de pruebas.
+3. Sistemas: instalar Docker en el servidor (necesita sudo) para el firmador oficial; el servicio de firma escucha en el puerto 8113.
