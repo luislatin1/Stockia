@@ -1,0 +1,171 @@
+{
+  "fuente": "svfe-json-schemas (2).zip, publicado por la DGII en factura.gob.sv (archivos del 2026-07-27)",
+  "nota": "Copia de los esquemas oficiales (solo se normalizaron finales de línea CRLF a LF; el contenido JSON es idéntico). La sha256 es del contenido con LF. El Manual Técnico aclara que son una guía estructural referencial: cumplirlos no exime de las reglas lógicas y de cálculo de la Normativa. No editar: al cambiar un esquema, agregar el archivo nuevo y una versión nueva en este manifiesto.",
+  "esquemas": {
+    "01": {
+      "tipo": "documento",
+      "nombre": "Factura",
+      "versiones": {
+        "2": {
+          "archivo": "fe-f-v2.json",
+          "sha256": "2887ff3ccf5594eb1f49dcec1ce8bba134a86462f900069de1365d18ff997aff",
+          "vigente_desde": null
+        }
+      }
+    },
+    "03": {
+      "tipo": "documento",
+      "nombre": "Comprobante de Crédito Fiscal",
+      "versiones": {
+        "4": {
+          "archivo": "fe-ccf-v4.json",
+          "sha256": "2c2db8b3f6144bdd0d128ec2babecd38f277f8493458a06cf1b2be7b816fba32",
+          "vigente_desde": null
+        }
+      }
+    },
+    "04": {
+      "tipo": "documento",
+      "nombre": "Nota de Remisión",
+      "versiones": {
+        "4": {
+          "archivo": "fe-nr-v4.json",
+          "sha256": "4620688814a8e764caacfc460df73cb450fb9fa6912dd74e7a0017bc6936d80e",
+          "vigente_desde": null
+        }
+      }
+    },
+    "05": {
+      "tipo": "documento",
+      "nombre": "Nota de Crédito",
+      "versiones": {
+        "4": {
+          "archivo": "fe-nc-v4.json",
+          "sha256": "f663902030a9ef28ddb8cef7d1e93fa286c1852465175e25d524e3fedb5419d2",
+          "vigente_desde": null
+        }
+      }
+    },
+    "06": {
+      "tipo": "documento",
+      "nombre": "Nota de Débito",
+      "versiones": {
+        "4": {
+          "archivo": "fe-nd-v4.json",
+          "sha256": "3b4ffdd4dded315217c365325135d3aede0a67b84bd051c932698c5e5e0c3ca4",
+          "vigente_desde": null
+        }
+      }
+    },
+    "07": {
+      "tipo": "documento",
+      "nombre": "Comprobante de Retención",
+      "versiones": {
+        "2": {
+          "archivo": "fe-cr-v2.json",
+          "sha256": "9c2faf7a40a0e9d71e54e157402f61689c265910ff27ccbf08a6e3868542231a",
+          "vigente_desde": null
+        }
+      }
+    },
+    "08": {
+      "tipo": "documento",
+      "nombre": "Comprobante de Liquidación",
+      "versiones": {
+        "2": {
+          "archivo": "fe-cl-v2.json",
+          "sha256": "e8af85e2fc5e6f7401c16ca5bc23627d770c5313fcb996af842d9a748dddc067",
+          "vigente_desde": null
+        }
+      }
+    },
+    "09": {
+      "tipo": "documento",
+      "nombre": "Documento Contable de Liquidación",
+      "versiones": {
+        "2": {
+          "archivo": "fe-dcl-v2.json",
+          "sha256": "a1b86f95446d0b0e374da0d9d888d79a4c2eef28f8a1105674e87013b94d7407",
+          "vigente_desde": null
+        }
+      }
+    },
+    "11": {
+      "tipo": "documento",
+      "nombre": "Factura de Exportación",
+      "versiones": {
+        "3": {
+          "archivo": "fe-fex-v3.json",
+          "sha256": "9539e63b4aa80272a835e1e5e28435b466f17ef1ff8c768f81be156844d57977",
+          "vigente_desde": null
+        }
+      }
+    },
+    "14": {
+      "tipo": "documento",
+      "nombre": "Factura de Sujeto Excluido",
+      "versiones": {
+        "2": {
+          "archivo": "fe-fse-v2.json",
+          "sha256": "21b20ae93f85795db3731ee853504edca9998f7f340defd0b6745659840bc75d",
+          "vigente_desde": null
+        }
+      }
+    },
+    "15": {
+      "tipo": "documento",
+      "nombre": "Comprobante de Donación",
+      "versiones": {
+        "2": {
+          "archivo": "fe-cd-v2.json",
+          "sha256": "736e9c7dc45bbee017a86aa33348b6f65bad85a36b477540dbf95b1229aa2da5",
+          "vigente_desde": null
+        }
+      }
+    },
+    "invalidacion": {
+      "tipo": "evento",
+      "nombre": "Evento de Invalidación",
+      "versiones": {
+        "3": {
+          "archivo": "invalidacion-schema-v3.json",
+          "sha256": "1ce117cb01b59da309dcbb237cc011e0c4539b3effe9cdd3c2b7794ea631693a",
+          "vigente_desde": null
+        }
+      }
+    },
+    "contingencia": {
+      "tipo": "evento",
+      "nombre": "Evento de Contingencia",
+      "versiones": {
+        "4": {
+          "archivo": "contingencia-schema-v4.json",
+          "sha256": "03fc357397dc7aaa4a8b44f887497dd1ead3a04eb71ec043bb2c0cda485bb149",
+          "vigente_desde": null
+        }
+      }
+    },
+    "retorno": {
+      "tipo": "evento",
+      "nombre": "Evento de Retorno",
+      "versiones": {
+        "1": {
+          "archivo": "fe-eret-v1.json",
+          "sha256": "b845e98ca8acaa4e5829acdc36cb046d97ec87e71c823252895bdf907fdafb35",
+          "vigente_desde": null
+        }
+      }
+    },
+    "operaciones_especiales": {
+      "tipo": "evento",
+      "nombre": "Evento de Operaciones Especiales",
+      "versiones": {
+        "1": {
+          "archivo": "fe-eop-v1.json",
+          "sha256": "16c494520e5c75d6d51b86cc081db758913414570134129995e4213e64c859c6",
+          "vigente_desde": null
+        }
+      }
+    }
+  }
+}
