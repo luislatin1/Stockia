@@ -63,7 +63,7 @@ Medida en el servidor con datos reales (venta simulada, con rollback): **29 erro
 
 **Tropiezos conocidos del entorno**
 - En el shell Bash de la herramienta, varios heredocs en una misma llamada fallan; escribir archivos con la herramienta de escritura y ejecutar scripts de Python desde archivo.
-- Evitar `\A`/`\S` en cadenas Python al parchear PHP (usar `\` o constantes `::class` con `use`).
+- Al parchear PHP desde Python, las barras invertidas de los espacios de nombres (como en `App\Support`) se interpretan como escapes: duplicarlas, usar cadenas crudas o escribir los archivos con la herramienta de escritura.
 - `.gitattributes` fuerza LF: cualquier archivo cuya huella se compare (esquemas) debe normalizarse a LF.
 - Los `Carbon::parse('2031-01-01')` sin zona son UTC; las reglas fiscales usan hora de El Salvador (`config('dte.timezone')`).
 
