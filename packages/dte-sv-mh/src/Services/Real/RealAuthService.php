@@ -2,75 +2,81 @@
 
 namespace Stockia\DteSvMh\Services\Real;
 
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Stockia\DteSvMh\Models\DteSetting;
 use Stockia\DteSvMh\Services\Contracts\AuthInterface;
 
+/**
+ * Autenticación contra la API de Seguridad (Manual Técnico §1.1 y §4.1).
+ * POST {servidor}/seguridad/auth, application/x-www-form-urlencoded, campos `user` y `pwd`.
+ * Éxito: {status:"OK", body:{token:"Bearer eyJ…"}}. El token ya trae el prefijo "Bearer" y se envía tal cual en
+ * `Authorization`. Dura 48 h en pruebas y 24 h en producción: se guarda y se reutiliza (no se autentica por envío).
+ * La contraseña (13–25 caracteres) nunca se registra en logs ni en respuestas.
+ */
 class RealAuthService implements AuthInterface
 {
+    /** Margen antes del vencimiento para pedir un token nuevo. */
+    private const MARGEN_SEGUNDOS = 3600;
+
     public function authenticate(DteSetting $settings): array
     {
-        $existing = DB::table('dte_tokens')
+        $url = MhEndpoints::auth($settings); // también valida la separación de ambientes
+
+        $vigente = DB::table('dte_tokens')
             ->where('company_id', $settings->company_id)
             ->where('ambiente', $settings->ambiente)
-            ->where('expires_at', '>', now()->addMinute())
-            ->latest('id')
-            ->first();
+            ->where('expires_at', '>', now()->addSeconds(self::MARGEN_SEGUNDOS))
+            ->latest('id')->first();
 
-        if ($existing) {
-            DB::table('dte_tokens')
-                ->where('id', $existing->id)
-                ->update(['last_used_at' => now(), 'updated_at' => now()]);
+        if ($vigente) {
+            DB::table('dte_tokens')->where('id', $vigente->id)->update(['last_used_at' => now(), 'updated_at' => now()]);
 
-            return [
-                'status' => 'OK',
-                'body' => [
-                    'token' => (string) $existing->token,
-                    'expiraEn' => max(60, now()->diffInSeconds($existing->expires_at)),
-                ],
-            ];
+            return ['status' => 'OK', 'body' => ['token' => (string) $vigente->token, 'expiraEn' => max(60, now()->diffInSeconds($vigente->expires_at))]];
         }
 
-        if (! $settings->auth_url) {
-            throw new \RuntimeException('Modo real configurado sin auth_url.');
+        if (! $settings->api_user || ! $settings->api_password) {
+            throw new \RuntimeException('Configure el usuario y la contraseña de la API de Hacienda en DTE > Administración (modo real).');
         }
 
-        $auth = Http::timeout(15)->post($settings->auth_url, [
-            'user' => $settings->api_user,
-            'password' => $settings->api_password,
-            'ambiente' => $settings->ambiente,
-        ]);
-
-        if (! $auth->successful()) {
-            throw new \RuntimeException('No fue posible obtener token MH.');
+        try {
+            $resp = Http::asForm()
+                ->withHeaders(['User-Agent' => MhEndpoints::USER_AGENT])
+                ->timeout(15)
+                ->post($url, ['user' => $settings->api_user, 'pwd' => $settings->api_password]);
+        } catch (ConnectionException $e) {
+            throw new \RuntimeException('No fue posible conectar con el servicio de autenticación de Hacienda.');
         }
 
-        $payload = $auth->json() ?: [];
-        $token = (string) ($payload['token'] ?? $payload['access_token'] ?? '');
-        if ($token === '') {
-            throw new \RuntimeException('Respuesta de autenticación sin token.');
+        $json = $resp->json() ?: [];
+        $token = (string) ($json['body']['token'] ?? '');
+        if (! $resp->successful() || strtoupper((string) ($json['status'] ?? '')) !== 'OK' || $token === '') {
+            $detalle = $json['message'] ?? $json['body']['mensaje'] ?? $json['error'] ?? 'credenciales rechazadas';
+            throw new \RuntimeException('Hacienda rechazó la autenticación: '.(is_array($detalle) ? implode(' | ', $detalle) : $detalle).'.');
         }
 
-        $expiresIn = (int) ($payload['expires_in'] ?? 3600);
-        $expiresAt = now()->addSeconds($expiresIn);
+        if (! str_starts_with($token, 'Bearer ')) {
+            $token = 'Bearer '.$token;
+        }
 
+        $vigencia = (string) $settings->ambiente === '01' ? 24 * 3600 : 48 * 3600;
+        DB::table('dte_tokens')->where('company_id', $settings->company_id)->where('ambiente', $settings->ambiente)->delete();
         DB::table('dte_tokens')->insert([
             'company_id' => $settings->company_id,
             'ambiente' => $settings->ambiente,
             'token' => $token,
-            'expires_at' => $expiresAt,
+            'expires_at' => now()->addSeconds($vigencia),
             'last_used_at' => now(),
             'created_at' => now(),
             'updated_at' => now(),
         ]);
 
-        return [
-            'status' => 'OK',
-            'body' => [
-                'token' => $token,
-                'expiraEn' => $expiresIn,
-            ],
-        ];
+        return ['status' => 'OK', 'body' => ['token' => $token, 'expiraEn' => $vigencia]];
+    }
+
+    public function olvidar(DteSetting $settings): void
+    {
+        DB::table('dte_tokens')->where('company_id', $settings->company_id)->where('ambiente', $settings->ambiente)->delete();
     }
 }

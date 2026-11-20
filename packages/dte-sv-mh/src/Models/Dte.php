@@ -43,4 +43,23 @@ class Dte extends Model
     {
         return $this->belongsTo(Sale::class);
     }
+
+    /**
+     * Archivo DTE que se entrega al receptor (Normativa Anexo I 4.1 y Manual Técnico §6.5): la estructura de datos
+     * íntegra más `firmaElectronica` (JWS) y `selloRecibido`. Nombre de archivo: nombreArchivo().
+     */
+    public function archivoDte(): array
+    {
+        $firmado = is_array($this->json_firmado) ? $this->json_firmado : [];
+
+        return ($this->json_original ?? []) + [
+            'firmaElectronica' => $firmado['jsonFirmado'] ?? null,
+            'selloRecibido' => $this->sello_recepcion,
+        ];
+    }
+
+    public function nombreArchivo(): string
+    {
+        return $this->codigo_generacion.'.json';
+    }
 }

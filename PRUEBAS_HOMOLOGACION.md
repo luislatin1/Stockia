@@ -61,12 +61,13 @@ Antes hay que volver el modo de integración a Real (o Simulación).
 |---|---|---|
 | 1 | Credenciales y **certificado del ambiente de pruebas** (ambiente `00`) de cada cliente | pendiente (de terceros) |
 | 2 | **Firmador oficial** por cliente (Docker en el servidor, puerto 8113) | pendiente (necesita sudo) |
-| 3 | **Capa real de transmisión** según el Manual Técnico de Integración (ya recibido, OCR en `ExportPlugins/DTE v2/ocr_texto/`; contrato resumido en `FASE0_HALLAZGOS.md` §1): autenticación, firma, recepción 1 a 1 y por lote, consulta, política de reintentos, contingencia y anulación | **por construir** (la información ya está) |
+| 3 | **Capa real de transmisión** según el Manual Técnico de Integración (ya recibido, OCR en `ExportPlugins/DTE v2/ocr_texto/`; contrato resumido en `FASE0_HALLAZGOS.md` §1): autenticación, firma, recepción 1 a 1 y por lote, consulta, política de reintentos, contingencia y anulación | **construida y probada con respuestas simuladas** (ver FASE2_AVANCE 2.11); falta probarla contra Hacienda |
 | 4 | Códigos de **establecimiento y punto de venta asignados por Hacienda** confirmados (`codigo_confirmado`) | pendiente |
 | 5 | Datos del emisor completos: distrito, teléfono y correo (hoy vacíos en la empresa real) | pendiente |
 | 6 | **Responsable de eventos** (nombre y documento) en DTE > Administración | pendiente |
 | 7 | Exportación: tipo, recinto, régimen, INCOTERMS en DTE > Administración (si el cliente exporta) | pendiente |
-| 8 | Comando que **firme y transmita** los JSON exportados y registre sello/estado de cada uno | por construir junto con el 3 |
+| 8 | Comando que **firme y transmita** los JSON exportados y registre sello/estado de cada uno | pospuesto: se construye al tener firmador y credenciales de pruebas (las piezas ya existen) |
+| 9 | `php artisan dte:diagnostico-conexion` en verde | sirve hoy para ver qué falta |
 
 ## Cómo se correrá la prueba real (propuesta)
 

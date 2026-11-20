@@ -105,6 +105,28 @@ Se ejecuta desde el ajuste administrativo de ventas (`SaleController::storeAdmin
 - Interfaz: tabla "Contingencias" en DTE > Administración con botones evento/lote; `dte:reenviar-contingencia` hace evento + lote y avisa lo que no pudo. Fechas de la contingencia guardadas en UTC explícito (la app cambia la zona por empresa en cada petición web).
 - **Límites:** (a) los documentos emitidos en contingencia se "firman" con la firma simulada hasta que exista el firmador real (deben firmarse de verdad al emitirlos); (b) el plazo de 24 h del evento no se vigila automáticamente (no sabemos cuándo cesó la causa: lo marca quien lo ejecuta); (c) el endpoint del evento y del lote en modo real usa `send_url`: el contrato correcto está en el Manual Técnico de Integración (`/fesv/contingencia`, `/fesv/recepcionlote`; ver FASE0_HALLAZGOS §1) y falta implementarlo; (d) solo tipo 1 de contingencia en la emisión automática (no hay selector de causa). 191 tests pasan.
 
+### 2.11 Capa real de transmisión (construida 2026-11-21, SIN credenciales: probada solo con respuestas simuladas)
+Contrato tomado del Manual Técnico de Integración v2.0 (OCR) y del código del firmador oficial (`svfe-api-firmador.zip`). Todo el comportamiento se verifica con `Http::fake` y respuestas calcadas de los ejemplos del manual (`tests/Feature/Dte/CapaRealTest.php`, 33 pruebas); **nunca se ha hablado con Hacienda real**.
+- **URLs** (`MhEndpoints`): pruebas `apitest.dtes.mh.gob.sv`, producción `api.dtes.mh.gob.sv`, rutas exactas sin barra final; `auth_url`/`send_url` de la configuración mandan si se llenan. **Guarda de ambientes:** ambiente 00 contra el servidor de producción (o 01 contra pruebas) se bloquea.
+- **Autenticación** (`RealAuthService`): `POST /seguridad/auth` en formulario (`user`, `pwd`), token Bearer guardado y reutilizado (48 h pruebas / 24 h producción); un 401 renueva el token una vez. La contraseña nunca aparece en mensajes.
+- **Firma** (`RealSigner`): firmador local `POST http://127.0.0.1:8113/firmardocumento/` con `{nit, activo, passwordPri, dteJson}`; el firmador responde siempre 200 con `status OK|ERROR`. Stockia solo guarda la contraseña de la llave (cifrada); el certificado vive en el firmador.
+- **Recepción** (`RealSendService`): `POST /fesv/recepciondte` con `{ambiente, idEnvio, version, tipoDte, documento(JWS), codigoGeneracion}`; `PROCESADO` → ACEPTADO con sello, `RECHAZADO` → motivo con código, descripción y observaciones. **Política de reintentos (§3.3):** sin respuesta en 8 s (o 5xx) → consulta `consultadte` → si ya llegó no reenvía, si no reenvía; máximo 2 reenvíos; agotados → `SIN_RESPUESTA` y el DTE queda **PENDIENTE** (firmado) y se retransmite con `php artisan dte:reintentar-pendientes`.
+- **Contingencia real:** los documentos se firman de verdad si hay llave configurada; el evento va a `/fesv/contingencia`; el lote va a `/fesv/recepcionlote` (máx. 100 por lote, tabla `dte_lotes`) y su resultado se **consulta** (`consultadtelote/{código}`) porque Hacienda procesa en minutos: se puede reintentar la consulta hasta cerrar la contingencia. Un documento firmado en simulación no se manda en modo real.
+- **Invalidación real:** el evento se firma y va a `/fesv/anulardte`; si Hacienda lo rechaza el documento sigue vigente.
+- **Diagnóstico:** `php artisan dte:diagnostico-conexion [--autenticar] [--firmar-prueba]` lista qué falta (API, llave, responsable, datos del emisor, códigos de establecimiento, firmador local) sin enviar documentos; lo no configurado sale como FALTA.
+- Archivo DTE entregable (`Dte::archivoDte()` / `nombreArchivo()`): estructura + `firmaElectronica` + `selloRecibido`, `<codigoGeneracion>.json`.
+
+**Pospuesto por no tener credenciales ni firmador** (queda listo para cuando existan):
+1. Probar contra el **ambiente de pruebas real**: es el único modo de confirmar nombres de campos, códigos y validaciones; el contrato sale de OCR y puede tener errores.
+2. Instalar el **firmador** (Docker, necesita sudo) y firmar con un certificado de pruebas.
+3. La **transmisión de los 360 documentos de homologación** (comando que firme y envíe los JSON exportados).
+4. **Conversión automática a contingencia** cuando se agotan los reintentos (hoy queda PENDIENTE: pasar a contingencia es decisión de negocio) y **programar** `dte:reintentar-pendientes` y la consulta de lotes (hoy se ejecutan a mano).
+5. Reenvío de un **rechazo corregido** dentro de 24 h con el mismo código de generación (flujo guiado).
+6. **Evento de Retorno:** el manual no dice por qué ruta se transmite; se envía por `recepciondte` con `tipoDte 18` (supuesto sin confirmar).
+7. **QR y representación gráfica** (PDF con la leyenda de pruebas sin valor legal), validación de **holgura de fecha** (30 min el último día del período) y manejo de **contraseña de API expirada** (códigos 107/108).
+8. Restricción de **jurisdicción de hospedaje** del Manual §6.4 (revisar dónde corre el servidor de cada cliente).
+224 tests pasan.
+
 **Supuestos por cotejar con el Anexo IV/catálogos (no verificados contra el PDF):**
 - (Verificado después contra el catálogo: CAT-017 `01` y CAT-018 `01` correctos.) Stockia solo distingue efectivo/crédito; tarjeta, transferencia, etc. salen como efectivo hasta que existan en el POS.
 - Los totales del DTE se recalculan desde el ítem (precio × 1,13); pueden diferir centavos de `sales.total`. El DTE manda para Hacienda.

@@ -87,6 +87,14 @@ Artisan::command('dte:reenviar-contingencia {--company_id=}', function () {
     return $servicio->avisosContingencia() === [] ? 0 : 1;
 })->purpose('Regulariza las contingencias: transmite el evento y, con su sello, el lote de documentos');
 
+Artisan::command('dte:reintentar-pendientes {--company_id=}', function () {
+    $companyId = $this->option('company_id');
+    $n = app(DteEmissionService::class)->reintentarPendientes($companyId !== null ? (int) $companyId : null);
+
+    $this->info("DTE pendientes que cambiaron de estado: {$n}");
+    return 0;
+})->purpose('Retransmite los DTE sin respuesta de Hacienda (consulta antes de reenviar)');
+
 Artisan::command('dte:revisar-identificadores {--limit=10 : ejemplos a mostrar por grupo}', function () {
     // Solo lectura. Cuenta y lista NIT/NRC/DUI que DTE 2.0 rechazaría, para corregirlos antes de emitir.
     $limit = (int) $this->option('limit');

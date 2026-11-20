@@ -87,16 +87,14 @@ class DteEmissionService
     private function procesar(Dte $dte, array $payload, Sale $sale, DteSetting $settings, string $mode): Dte
     {
         if ($mode === 'contingencia') {
+            $firmado = $this->firmarFueraDeLinea($payload, $sale, $settings);
             $dte->update([
                 'estado' => 'CONTINGENCIA',
-                'json_firmado' => [
-                    'jsonFirmado' => base64_encode((string) json_encode($payload)),
-                    'firmaSimulada' => hash('sha256', (string) json_encode($payload)),
-                    'fechaFirma' => now()->toDateTimeString(),
-                ],
+                'json_firmado' => $firmado,
                 'respuesta_hacienda' => [
                     'estado' => 'CONTINGENCIA',
                     'mensaje' => 'DTE emitido en contingencia, pendiente de reenvío.',
+                    'aviso' => $firmado['aviso'] ?? null,
                 ],
             ]);
 
@@ -109,6 +107,7 @@ class DteEmissionService
         $sender = $this->factory->sender($settings);
 
         $signed = $signer->sign($payload, $sale, $settings);
+        $signed['id_envio'] = (int) $dte->id; // idEnvio: correlativo a discreción del emisor (Manual Técnico §4.2.1)
         $sendResult = $sender->send($signed, $settings);
 
         DB::table('dte_send_attempts')->insert([
@@ -125,12 +124,87 @@ class DteEmissionService
         $dte->update([
             'json_firmado' => $signed,
             'sello_recepcion' => $sendResult['sello'] ?? null,
-            'respuesta_hacienda' => $sendResult['response'] ?? null,
-            'estado' => $sendResult['status'] ?? 'RECHAZADO',
+            'respuesta_hacienda' => $sendResult['response'] ?? ($sendResult['status'] === 'SIN_RESPUESTA' ? ['estado' => 'PENDIENTE', 'mensaje' => $sendResult['error']] : null),
+            // Sin respuesta tras los reintentos: el documento queda PENDIENTE (firmado) para retransmitirse.
+            'estado' => match ($sendResult['status'] ?? 'RECHAZADO') {
+                'SIN_RESPUESTA' => 'PENDIENTE',
+                default => $sendResult['status'] ?? 'RECHAZADO',
+            },
             'fecha_envio' => now(),
         ]);
 
         return $dte->fresh();
+    }
+
+    /**
+     * Firma un documento emitido en contingencia. Con el firmador configurado se firma de verdad (el firmador es un
+     * servicio local, no necesita internet); si no, queda una firma simulada marcada como tal y el envío real del lote
+     * la rechazará de forma explícita.
+     */
+    private function firmarFueraDeLinea(array $payload, Sale $sale, DteSetting $settings): array
+    {
+        $aviso = 'Firma simulada: el firmador no está configurado.';
+        // La URL del firmador tiene valor por defecto (127.0.0.1:8113): basta con la contraseña de la llave.
+        if ($settings->signer_password) {
+            try {
+                return (new \Stockia\DteSvMh\Services\Real\RealSigner())->sign($payload, $sale, $settings);
+            } catch (\RuntimeException $e) {
+                $aviso = 'Firma simulada: '.$e->getMessage();
+            }
+        }
+
+        return [
+            'jsonFirmado' => base64_encode((string) json_encode($payload)),
+            'firmaSimulada' => hash('sha256', (string) json_encode($payload)),
+            'fechaFirma' => now()->toDateTimeString(),
+            'payload' => $payload,
+            'aviso' => $aviso,
+        ];
+    }
+
+    /**
+     * Retransmite los documentos PENDIENTES (sin respuesta de Hacienda). Antes de reenviar consulta si ya llegaron
+     * (Manual Técnico §3.3). Devuelve cuántos cambiaron de estado.
+     */
+    public function reintentarPendientes(?int $companyId = null): int
+    {
+        $cambiados = 0;
+        $query = Dte::withoutGlobalScopes()->where('estado', 'PENDIENTE')->whereNotNull('json_firmado')->orderBy('id');
+        if ($companyId) {
+            $query->where('company_id', $companyId);
+        }
+
+        foreach ($query->get() as $dte) {
+            $firmado = is_array($dte->json_firmado) ? $dte->json_firmado : [];
+            if (empty($firmado['jsonFirmado']) || isset($firmado['firmaSimulada']) && $this->factory->mode($this->resolveSettings((int) $dte->company_id)) === 'real') {
+                continue;
+            }
+            $settings = $this->resolveSettings((int) $dte->company_id);
+            $firmado['payload'] ??= $dte->json_original;
+            $firmado['id_envio'] = (int) $dte->id;
+
+            $resultado = $this->factory->sender($settings)->send($firmado, $settings);
+            $intento = (int) DB::table('dte_send_attempts')->where('dte_id', $dte->id)->max('attempt_no') + 1;
+            DB::table('dte_send_attempts')->insert([
+                'dte_id' => $dte->id, 'attempt_no' => $intento, 'status' => (string) ($resultado['status'] ?? 'ERROR'),
+                'error_message' => $resultado['error'] ?? null,
+                'response_payload' => isset($resultado['response']) ? json_encode($resultado['response']) : null,
+                'attempted_at' => now(), 'created_at' => now(), 'updated_at' => now(),
+            ]);
+
+            if (($resultado['status'] ?? null) === 'SIN_RESPUESTA') {
+                continue;
+            }
+            $dte->update([
+                'estado' => $resultado['status'] ?? 'RECHAZADO',
+                'sello_recepcion' => $resultado['sello'] ?? null,
+                'respuesta_hacienda' => $resultado['response'] ?? null,
+                'fecha_envio' => now(),
+            ]);
+            $cambiados++;
+        }
+
+        return $cambiados;
     }
 
     /**
@@ -523,7 +597,7 @@ class DteEmissionService
         $contexto->company_id = $company->id;
         $contexto->setRelation('company', $company);
         $firmado = $this->factory->signer($settings)->sign($evento, $contexto, $settings);
-        $envio = $this->factory->sender($settings)->send($firmado, $settings);
+        $envio = $this->factory->eventos($settings)->enviarContingencia($firmado, $settings);
 
         $aceptado = ($envio['status'] ?? null) === 'ACEPTADO' && ! empty($envio['sello']);
         DB::table('dte_contingencias')->where('id', $contingenciaId)->update([
@@ -566,51 +640,115 @@ class DteEmissionService
         }
 
         $settings = $this->resolveSettings((int) $cont->company_id);
-        if ($this->factory->mode($settings) === 'contingencia') {
+        $mode = $this->factory->mode($settings);
+        if ($mode === 'contingencia') {
             throw new \RuntimeException('Cambie el modo de integración a Real (o Simulación) para transmitir el lote.');
         }
-        $sender = $this->factory->sender($settings);
-        $processed = 0;
 
-        foreach ($this->pendientesDeContingencia($contingenciaId) as $dte) {
-            $signed = is_array($dte->json_firmado) ? $dte->json_firmado : ['payload' => $dte->json_original];
-            if (! isset($signed['payload'])) {
-                $signed['payload'] = $dte->json_original;
+        $company = \App\Models\Company::withoutGlobalScopes()->findOrFail($cont->company_id);
+        $nit = FiscalId::nitDigits($company->nit ?: $company->tax_id);
+        if ($nit === null) {
+            throw new \RuntimeException('El NIT del emisor no es válido (Administración Central).');
+        }
+
+        // Documentos que ya viajan en un lote enviado (se consulta su resultado; no se reenvían).
+        $yaEnLotes = DB::table('dte_lotes')->where('contingencia_id', $contingenciaId)->pluck('dtes')
+            ->flatMap(fn ($j) => (array) json_decode($j, true))->map(fn ($v) => (int) $v)->all();
+
+        $porEnviar = $this->pendientesDeContingencia($contingenciaId)->reject(fn ($d) => in_array((int) $d->id, $yaEnLotes, true));
+        $lotes = $this->factory->lote($settings);
+
+        // Hasta 100 documentos por lote (Manual Técnico §3.4); la respuesta NO es inmediata.
+        foreach ($porEnviar->chunk(\Stockia\DteSvMh\Services\Contracts\LoteInterface::MAXIMO_POR_LOTE) as $grupo) {
+            $firmados = $grupo->map(function ($d) use ($mode) {
+                $f = is_array($d->json_firmado) ? $d->json_firmado : [];
+                if ($mode === 'real' && (isset($f['firmaSimulada']) || empty($f['jsonFirmado']))) {
+                    throw new \RuntimeException("El documento {$d->numero_control} se firmó en simulación y Hacienda lo rechazaría: configure el firmador y emita de nuevo.");
+                }
+                $f['payload'] ??= $d->json_original;
+
+                return $f;
+            })->values()->all();
+
+            $idEnvio = strtoupper((string) Str::uuid());
+            $r = $lotes->enviarLote($firmados, $settings, $nit, $idEnvio);
+
+            if (! $r['recibido']) {
+                throw new \RuntimeException('Hacienda no recibió el lote: '.($r['error'] ?? 'sin detalle').'. Los documentos siguen pendientes.');
             }
 
-            $sendResult = $sender->send($signed, $settings);
-            $attemptNo = (int) DB::table('dte_send_attempts')->where('dte_id', $dte->id)->max('attempt_no') + 1;
-
-            DB::table('dte_send_attempts')->insert([
-                'dte_id' => $dte->id,
-                'attempt_no' => $attemptNo,
-                'status' => (string) ($sendResult['status'] ?? 'ERROR'),
-                'error_message' => $sendResult['error'] ?? null,
-                'response_payload' => isset($sendResult['response']) ? json_encode($sendResult['response']) : null,
-                'attempted_at' => now(),
-                'created_at' => now(),
-                'updated_at' => now(),
+            DB::table('dte_lotes')->insert([
+                'contingencia_id' => $contingenciaId, 'id_envio' => $idEnvio, 'codigo_lote' => $r['codigoLote'], 'estado' => 'ENVIADO',
+                'dtes' => json_encode($grupo->pluck('id')->map(fn ($v) => (int) $v)->all()),
+                'respuesta' => json_encode($r['response']), 'enviado_at' => now('UTC'), 'created_at' => now(), 'updated_at' => now(),
             ]);
+        }
 
-            $dte->update([
-                'estado' => $sendResult['status'] ?? 'RECHAZADO',
-                'sello_recepcion' => $sendResult['sello'] ?? null,
-                'respuesta_hacienda' => $sendResult['response'] ?? null,
-                'fecha_envio' => now(),
+        return $this->consultarLotesContingencia($contingenciaId);
+    }
+
+    /**
+     * Consulta el resultado de los lotes enviados y actualiza cada documento con su sello (o su rechazo).
+     * En producción Hacienda tarda minutos por lote: se puede llamar de nuevo hasta que todos estén resueltos.
+     * Devuelve los documentos resueltos en esta consulta.
+     */
+    public function consultarLotesContingencia(int $contingenciaId): int
+    {
+        $cont = DB::table('dte_contingencias')->find($contingenciaId);
+        if (! $cont) {
+            throw new \RuntimeException('Contingencia no encontrada.');
+        }
+        $settings = $this->resolveSettings((int) $cont->company_id);
+        $lotes = $this->factory->lote($settings);
+        $resueltos = 0;
+
+        foreach (DB::table('dte_lotes')->where('contingencia_id', $contingenciaId)->where('estado', 'ENVIADO')->orderBy('id')->get() as $lote) {
+            $res = $lotes->consultarLote($settings, (string) $lote->codigo_lote);
+            $ids = array_map('intval', (array) json_decode($lote->dtes, true));
+            $pendientes = 0;
+
+            foreach (Dte::withoutGlobalScopes()->whereIn('id', $ids)->get() as $dte) {
+                if ($dte->estado !== 'CONTINGENCIA') {
+                    continue; // ya resuelto en una consulta anterior
+                }
+                $codigo = $dte->codigo_generacion;
+                $sello = $res['procesados'][$codigo] ?? null;
+                $rechazo = $res['rechazados'][$codigo] ?? null;
+
+                if ($sello === null && $rechazo === null) {
+                    $pendientes++;
+
+                    continue;
+                }
+
+                $estado = $sello !== null ? 'ACEPTADO' : 'RECHAZADO';
+                $intento = (int) DB::table('dte_send_attempts')->where('dte_id', $dte->id)->max('attempt_no') + 1;
+                DB::table('dte_send_attempts')->insert([
+                    'dte_id' => $dte->id, 'attempt_no' => $intento, 'status' => $estado, 'error_message' => $rechazo,
+                    'response_payload' => json_encode(['lote' => $lote->codigo_lote, 'sello' => $sello]),
+                    'attempted_at' => now(), 'created_at' => now(), 'updated_at' => now(),
+                ]);
+                $dte->update([
+                    'estado' => $estado,
+                    'sello_recepcion' => $sello,
+                    'respuesta_hacienda' => ['estado' => $estado, 'lote' => $lote->codigo_lote, 'mensaje' => $rechazo],
+                    'fecha_envio' => now(),
+                ]);
+                DB::table('dte_contingencia_dtes')->where('contingencia_id', $contingenciaId)->where('dte_id', $dte->id)
+                    ->update(['reenviado' => true, 'reenviado_at' => now(), 'updated_at' => now()]);
+                $resueltos++;
+            }
+
+            DB::table('dte_lotes')->where('id', $lote->id)->update([
+                'estado' => $pendientes === 0 ? 'PROCESADO' : 'ENVIADO', 'consultado_at' => now('UTC'), 'updated_at' => now(),
             ]);
-
-            DB::table('dte_contingencia_dtes')
-                ->where('contingencia_id', $contingenciaId)->where('dte_id', $dte->id)
-                ->update(['reenviado' => true, 'reenviado_at' => now(), 'updated_at' => now()]);
-
-            $processed++;
         }
 
         if ($this->pendientesDeContingencia($contingenciaId)->isEmpty()) {
             DB::table('dte_contingencias')->where('id', $contingenciaId)->update(['estado' => 'CERRADA', 'updated_at' => now()]);
         }
 
-        return $processed;
+        return $resueltos;
     }
 
     /**

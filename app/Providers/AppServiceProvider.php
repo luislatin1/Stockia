@@ -46,7 +46,7 @@ class AppServiceProvider extends ServiceProvider
 
         $this->app->bind(SendInterface::class, function () use ($mode) {
             if ($mode === 'real') {
-                return new RealSendService(app(AuthInterface::class));
+                return new RealSendService(app(AuthInterface::class), new \Stockia\DteSvMh\Services\Real\RealTransmisionService(app(AuthInterface::class)));
             }
 
             return new FakeSendService();
@@ -54,7 +54,7 @@ class AppServiceProvider extends ServiceProvider
 
         $this->app->bind(InvalidationInterface::class, function () use ($mode) {
             if ($mode === 'real') {
-                return new RealInvalidationService(app(AuthInterface::class));
+                return new RealInvalidationService(app(AuthInterface::class), app(SignerInterface::class));
             }
 
             return new FakeInvalidationService();

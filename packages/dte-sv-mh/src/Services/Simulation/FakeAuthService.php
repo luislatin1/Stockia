@@ -17,4 +17,8 @@ class FakeAuthService implements AuthInterface
             ],
         ];
     }
+
+    public function olvidar(DteSetting $settings): void
+    {
+    }
 }
