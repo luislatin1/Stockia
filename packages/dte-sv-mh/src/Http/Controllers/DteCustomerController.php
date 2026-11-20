@@ -123,7 +123,7 @@ class DteCustomerController extends Controller
             $uniqueDoc = $uniqueDoc->ignore($ignoreId);
         }
 
-        return $request->validate([
+        $data = $request->validate([
             'tipo_documento' => ['required', 'string', 'size:2', Rule::in($this->availableDocumentTypeCodes())],
             'numero_documento' => ['required', 'string', 'max:20', $uniqueDoc],
             'nrc' => ['nullable', 'string', 'max:20'],
@@ -139,6 +139,15 @@ class DteCustomerController extends Controller
             'correo' => ['nullable', 'email', 'max:120'],
             'es_contribuyente' => ['nullable', 'boolean'],
         ]);
+
+        // Hacienda trabaja con la tripleta departamento/municipio/distrito (Decreto 762).
+        if (! empty($data['distrito']) && ! \App\Support\UbicacionCatalogo::distritoValido($data['departamento'] ?? null, $data['municipio'] ?? null, $data['distrito'])) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'distrito' => 'El distrito no corresponde al departamento/municipio.',
+            ]);
+        }
+
+        return $data;
     }
 
     private function ensureCompanyContext(Customer $customer): void

@@ -79,6 +79,11 @@ class UbicacionCatalogo
             return true;
         }
 
+        // Sin municipio no hay tripleta que comparar (el DTE se bloquea después si falta).
+        if ($municipio === null || $municipio === '') {
+            return true;
+        }
+
         // Los clientes guardan el municipio con 2 caracteres; las empresas, con 4.
         $municipio = (string) $municipio;
         if (strlen($municipio) === 2) {

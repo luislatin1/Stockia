@@ -23,7 +23,7 @@ Rama `fase1-dte-v2` · desplegada en el servidor de evaluación · detalle de la
 - Cuerpo a 8 decimales, resumen a 2 calculado desde el ítem; `totalLetras` real; fecha/hora en hora de El Salvador; `tipoModelo`/`tipoOperacion` 1 (normal) o 2 (contingencia); `condicionOperacion` 1/2 y `pagos` (contado: forma `01`; crédito: sin forma, monto 0, plazo `01` días + periodo = días de crédito).
 - Receptor: Factura admite `null` (consumidor final); CCF exige NIT, NRC, actividad, dirección. Emisor con `distrito`, `codEstable`/`codPuntoVenta` (códigos internos M001/P001).
 - Migración nueva: `customers.cod_actividad` y `desc_actividad` (el CCF los exige). Falta captarlos en el formulario de clientes.
-- 95 tests pasan (11 del constructor, todos validan contra el esquema oficial).
+- 100 tests pasan (15 del constructor, todos validan contra el esquema oficial).
 
 **Prueba contra el histórico (2026-11-20, BD de desarrollo, solo lectura):** `php artisan dte:probar-historico` (opciones `--limit`, `--company`, `--desde`, `--sin-esquema`). Repite cada venta de `legacy_sales` (tickets no anulados) como Factura 01 con emisor/receptor sintéticos, valida contra el esquema oficial y compara el total con la suma de líneas originales. Resultado: **95.147 ventas / 409.184 líneas, 0 fallos de esquema, 0 descuadres** (344 s). Excluidas: 26 líneas con cantidad o subtotal ≤ 0 y 1 venta sin líneas utilizables. Limitación: prueba ítems y cálculo, no datos reales de emisor/receptor ni CCF. Con el módulo apagado (BD de desarrollo) el comando no se registra; se ejecutó con un script que lo registra a mano.
 - Hallazgo: el validador marcaba como inválido 4,35 (múltiplo de 0,01) porque opis comprueba `multipleOf` con `fmod` en coma flotante (7 de cada 2.000 ventas). Corregido en `DteSchemaValidator` comprobando por decimales; sigue rechazando 1,125.
@@ -31,8 +31,21 @@ Rama `fase1-dte-v2` · desplegada en el servidor de evaluación · detalle de la
 
 **Desplegado y probado en el servidor (2026-11-20, commit 65d877c, migración de `customers` aplicada):** histórico (3.000 ventas) 0 fallos; emisión simulada con rollback de Factura 01 y CCF 03 con la empresa real: sin datos completos el esquema bloquea (faltan `distrito`, `telefono`, `correo` del emisor, como se sabía); completándolos dentro de la transacción ambos salen ACEPTADO (simulación) con total 113,00. Comprobado que el rollback no dejó nada (0 ventas, 0 DTE, 0 clientes). **Para emitir de verdad falta capturar distrito, teléfono y correo de la empresa en Administración Central.**
 
+### Material nuevo en `ExportPlugins/DTE v2/nuevo/` (revisado 2026-11-20)
+Contenido: `dte-2.0-referencia-oficial.zip` (manual funcional completo en texto, normativa OCR solo págs. 1-35, catálogos CAT-001..033 v1.1 como **transcripción de terceros**, 15 esquemas, resumen de reglas), `mapa_distrito_municipio_departamento.csv`, `validacion_catalogos.md`. Solo en esta PC (no en git).
+- **Esquemas:** los 15 JSON son **idénticos** (sha256) a los que ya versionamos: sin novedad.
+- **Verificado contra el catálogo:** CAT-017 `01` = billetes y monedas, CAT-018 `01` = días, CAT-016 (1 contado, 2 crédito, 3 otro), CAT-006 `22` = retención IVA 1 %. Los supuestos de 2.2 eran correctos.
+- **Aprovechado:** el CSV trae la relación distrito→municipio que CAT-008 no tiene. Coincide al 100 % con lo cargado (262 distritos, 44 municipios, mismos códigos y nombres). Migración `2026_11_20_110000_fill_distrito_municipio` llena `dte_distritos.municipio_codigo` y desde ahora se valida la tripleta departamento/municipio/distrito también en clientes. Límite: la relación es de terceros (decreto, por nombre); que Hacienda rechace una tripleta incoherente **no está confirmado**.
+- **Útil para después:** NC/ND v4 no llevan `codEstable`/`codPuntoVenta` en el emisor; pruebas mínimas de transmisión (Factura 90, CCF 75, NC 50, ND 25); plazos de invalidación y de contingencia (24 h evento, 72 h lote); Manual Tecnológico (firma, endpoints, reintentos) **sigue sin recibirse**.
+- **No aporta:** Normativa págs. 36-137 (Anexos II-IV) siguen sin texto utilizable aparte del OCR que ya teníamos; catálogos no cotejados código por código.
+
+### 2.3 Nota de Crédito (05) y Nota de Débito (06) — constructor hecho 2026-11-20
+- `DteV2Builder` ahora arma 05 y 06 (JSON v4): receptor con `tipoDocumento`/`numDocumento`, `documentoRelacionado` obligatorio (hoy solo CCF 03, por código de generación, fecha de emisión del original), `numeroDocumento` por ítem, sin `codEstable`/`codPuntoVenta` ni `otrosDocumentos`, ítems con `ivaPerci`/`totalIva`/`ivaRete`, resumen sin `subTotal` ni `pagos`, `codigoRetencionMH` (`22` si hay retención) y `numPagoElectronico` solo en la ND. 100 tests pasan; ambos validan contra el esquema oficial.
+- **Falta (no es el constructor):** el flujo de negocio. `sale_adjustments` existe pero ningún código lo usa; `emitForSale` busca el DTE por venta y devolvería el original. Hay que decidir: tabla/columna que ligue la nota al DTE original (con sello), qué pantalla la dispara (devolución → NC; recargo → ND), efecto en inventario y cuentas por cobrar, y que solo se pueda sobre un DTE ACEPTADO. Las notas sobre Factura 01 no existen (se usa Evento de Retorno/invalidación).
+- Supuesto sin verificar: el IVA por ítem de la nota es ventaGravada × 13 % (regla del Anexo IV leída del OCR), y el tributo 20 del resumen es totalGravada × 13 %.
+
 **Supuestos por cotejar con el Anexo IV/catálogos (no verificados contra el PDF):**
-- CAT-017 forma de pago `01` = billetes y monedas; CAT-018 plazo `01` = días. Stockia solo distingue efectivo/crédito; tarjeta, transferencia, etc. salen como efectivo hasta que existan en el POS.
+- (Verificado después contra el catálogo: CAT-017 `01` y CAT-018 `01` correctos.) Stockia solo distingue efectivo/crédito; tarjeta, transferencia, etc. salen como efectivo hasta que existan en el POS.
 - Los totales del DTE se recalculan desde el ítem (precio × 1,13); pueden diferir centavos de `sales.total`. El DTE manda para Hacienda.
 - Retención de renta: se rechaza la emisión si es > 0 (el esquema de Factura/CCF no la tiene). Percepción de IVA: siempre 0.
 - Solo 01 y 03. Faltan 05, 06, 11, 14 (FEX v3, FSE v2, notas v4, etc.).
@@ -58,7 +71,7 @@ Medida en el servidor con datos reales (venta simulada, con rollback): **29 erro
 
 ## Siguiente
 1. Identificación obligatoria sobre el monto legal (pendiente del contador). Migrar y probar con datos reales de emisor/cliente en el servidor (la migración de `customers` aún no está aplicada en ningún lado).
-2. Constructores de Nota de Crédito/Débito (05/06), Exportación, Sujeto Excluido.
+2. Flujo de negocio de NC/ND (ver 2.3), constructores de Exportación y Sujeto Excluido.
 3. Firma (firmador oficial por cliente), transmisión, reintentos y eventos.
 
 ## Pendiente de planear (después de terminar las fases de facturación)

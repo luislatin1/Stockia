@@ -29,18 +29,28 @@ class DteV2Builder
     public function build(array $ctx): array
     {
         $tipo = (string) $ctx['tipo_dte'];
-        if (! in_array($tipo, ['01', '03'], true)) {
-            throw new \InvalidArgumentException("El constructor v2 aún no soporta el tipo de DTE {$tipo} (solo 01 y 03).");
+        if (! in_array($tipo, ['01', '03', '05', '06'], true)) {
+            throw new \InvalidArgumentException("El constructor v2 aún no soporta el tipo de DTE {$tipo} (solo 01, 03, 05 y 06).");
+        }
+        $esNota = in_array($tipo, ['05', '06'], true);
+        if ($esNota) {
+            $this->validarRelacionados($ctx['documentos_relacionados'] ?? []);
         }
 
         $tasa = (float) ($ctx['tasa_iva'] ?? 0.13);
-        $items = $this->cuerpo($tipo, $ctx['items'] ?? [], $tasa);
+        $items = $this->cuerpo($tipo, $ctx['items'] ?? [], $tasa, $ctx);
         $resumen = $this->resumen($tipo, $items, $ctx, $tasa);
+
+        $emisor = $ctx['emisor'];
+        if ($esNota) {
+            // Los esquemas v4 de NC y ND no llevan códigos internos de establecimiento en el emisor.
+            unset($emisor['codEstable'], $emisor['codPuntoVenta']);
+        }
 
         $dte = [
             'identificacion' => $this->identificacion($tipo, $ctx),
-            'documentoRelacionado' => null,
-            'emisor' => $ctx['emisor'],
+            'documentoRelacionado' => $esNota ? $this->relacionados($ctx['documentos_relacionados']) : null,
+            'emisor' => $emisor,
             'receptor' => $ctx['receptor'] ?? null,
             'otrosDocumentos' => null,
             'ventaTercero' => null,
@@ -48,6 +58,10 @@ class DteV2Builder
             'resumen' => $resumen,
             'apendice' => null,
         ];
+
+        if ($esNota) {
+            unset($dte['otrosDocumentos']); // no existe en los esquemas de NC y ND
+        }
 
         return $dte;
     }
@@ -59,7 +73,7 @@ class DteV2Builder
         $conting = $ctx['contingencia'] ?? null;
 
         return [
-            'version' => $tipo === '03' ? 4 : 2,
+            'version' => $tipo === '01' ? 2 : 4,
             'ambiente' => (string) $ctx['ambiente'],
             'tipoDte' => $tipo,
             'numeroControl' => (string) $ctx['numero_control'],
@@ -72,13 +86,45 @@ class DteV2Builder
             'fecEmi' => $fecha->format('Y-m-d'),
             'horEmi' => $fecha->format('H:i:s'),
             'tipoMoneda' => 'USD',
-        ];
+        ] + (in_array($tipo, ['05', '06'], true) ? ['fusion' => null] : []);
+    }
+
+    /** NC/ND se emiten sobre un CCF con sello (la Normativa relaciona solo DTE con Sello de Recepción). */
+    private function validarRelacionados(array $docs): void
+    {
+        if ($docs === []) {
+            throw new \RuntimeException('La nota requiere al menos un documento relacionado.');
+        }
+        if (count($docs) > 50) {
+            throw new \RuntimeException('Una nota admite como máximo 50 documentos relacionados.');
+        }
+        foreach ($docs as $d) {
+            if (($d['tipo_documento'] ?? null) !== '03') {
+                throw new \RuntimeException('Por ahora las notas solo se emiten sobre Comprobantes de Crédito Fiscal (03).');
+            }
+            if (! preg_match('/^[A-F0-9]{8}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{12}$/', strtoupper((string) ($d['numero'] ?? '')))) {
+                throw new \RuntimeException('El documento relacionado debe identificarse por su código de generación (UUID).');
+            }
+        }
+        if (count(array_unique(array_column($docs, 'tipo_documento'))) > 1) {
+            throw new \RuntimeException('Solo se pueden relacionar documentos del mismo tipo.');
+        }
+    }
+
+    private function relacionados(array $docs): array
+    {
+        return array_map(fn ($d) => [
+            'tipoDocumento' => (string) $d['tipo_documento'],
+            'tipoGeneracion' => (int) ($d['tipo_generacion'] ?? 2), // CAT-007: 2 = electrónico
+            'numeroDocumento' => strtoupper((string) $d['numero']),
+            'fechaEmision' => (string) $d['fecha'],
+        ], array_values($docs));
     }
 
     /**
      * @return array<int, array{linea: array, gravada: float, exenta: float, no_suj: float, iva: float, descu: float}>
      */
-    private function cuerpo(string $tipo, array $items, float $tasa): array
+    private function cuerpo(string $tipo, array $items, float $tasa, array $ctx = []): array
     {
         if ($items === []) {
             throw new \RuntimeException('El documento no tiene ítems.');
@@ -88,6 +134,9 @@ class DteV2Builder
         }
 
         $factor = $tipo === '01' ? 1 + $tasa : 1.0;
+        $esNota = in_array($tipo, ['05', '06'], true);
+        $tasaRete = (float) ($ctx['tasa_retencion_iva'] ?? 0);
+        $docItem = strtoupper((string) ($ctx['documentos_relacionados'][0]['numero'] ?? ''));
         $salida = [];
 
         foreach (array_values($items) as $i => $it) {
@@ -118,18 +167,32 @@ class DteV2Builder
                 'ventaNoSuj' => $noSuj,
                 'ventaExenta' => $exenta,
                 'ventaGravada' => $gravada,
-                'tributos' => $tipo === '03' && $gravada > 0 ? ['20'] : null,
+                'tributos' => $tipo !== '01' && $gravada > 0 ? ['20'] : null,
                 'psv' => 0.0,
                 'noGravado' => 0.0,
             ];
+
+            if ($esNota) {
+                unset($linea['psv']);
+                $linea['numeroDocumento'] = strtoupper((string) ($it['documento'] ?? $docItem));
+            }
 
             $iva = 0.0;
             if ($tipo === '01') {
                 $iva = $gravada > 0 ? $this->r8($gravada / (1 + $tasa) * $tasa) : 0.0;
                 $linea['ivaItem'] = $iva;
             }
+            $rete = 0.0;
+            if ($esNota) {
+                // En CCF/NC/ND el IVA por ítem es ventas gravadas × 13 % (Anexo IV).
+                $iva = $gravada > 0 ? $this->r8($gravada * $tasa) : 0.0;
+                $rete = $gravada > 0 ? $this->r8($gravada * $tasaRete) : 0.0;
+                $linea['ivaPerci'] = 0.0;
+                $linea['totalIva'] = $iva;
+                $linea['ivaRete'] = $rete;
+            }
 
-            $salida[] = ['linea' => $linea, 'gravada' => $gravada, 'exenta' => $exenta, 'no_suj' => $noSuj, 'iva' => $iva, 'descu' => $descu];
+            $salida[] = ['linea' => $linea, 'gravada' => $gravada, 'exenta' => $exenta, 'no_suj' => $noSuj, 'iva' => $iva, 'descu' => $descu, 'rete' => $rete];
         }
 
         return $salida;
@@ -143,6 +206,11 @@ class DteV2Builder
         $totalDescu = $this->r2(array_sum(array_column($items, 'descu')));
 
         $subTotalVentas = $this->r2($totalNoSuj + $totalExenta + $totalGravada);
+
+        if (in_array($tipo, ['05', '06'], true)) {
+            return $this->resumenNota($items, $ctx, $tasa, compact('totalNoSuj', 'totalExenta', 'totalGravada', 'totalDescu', 'subTotalVentas'));
+        }
+
         $subTotal = $subTotalVentas; // sin descuentos globales: Stockia descuenta por ítem
         $ivaRete = $this->r2((float) ($ctx['iva_retenido'] ?? 0));
 
@@ -189,6 +257,43 @@ class DteV2Builder
         $resumen['pagos'] = $this->pagos($resumen['condicionOperacion'], $pagar, $ctx);
         $resumen['numPagoElectronico'] = null;
         $resumen['observaciones'] = null;
+
+        return $resumen;
+    }
+
+    /** Resumen de Nota de Crédito (05) y Nota de Débito (06), esquemas v4: sin subTotal ni pagos. */
+    private function resumenNota(array $items, array $ctx, float $tasa, array $t): array
+    {
+        $tributo = $t['totalGravada'] > 0 ? $this->r2($t['totalGravada'] * $tasa) : 0.0;
+        $ivaRete = $this->r2(array_sum(array_column($items, 'rete')));
+        $monto = $this->r2($t['subTotalVentas'] + $tributo);
+        $pagar = max(0.0, $this->r2($monto - $ivaRete));
+
+        $resumen = [
+            'totalNoSuj' => $t['totalNoSuj'],
+            'totalExenta' => $t['totalExenta'],
+            'totalGravada' => $t['totalGravada'],
+            'subTotalVentas' => $t['subTotalVentas'],
+            'totalDescu' => $t['totalDescu'],
+            'tributos' => $t['totalGravada'] > 0
+                ? [['codigo' => '20', 'descripcion' => 'Impuesto al Valor Agregado 13%', 'valor' => $tributo]]
+                : null,
+            'montoTotalOperacion' => $monto,
+            'ivaPerci' => 0.0,
+            'totalIva' => $this->r2(array_sum(array_column($items, 'iva'))),
+            'ivaRete' => $ivaRete,
+            'totalNoGravado' => 0.0,
+            'totalPagar' => $pagar,
+            'totalLetras' => $this->aLetras($pagar),
+            'condicionOperacion' => $pagar == 0.0 ? 1 : (int) ($ctx['condicion_operacion'] ?? 1),
+            'observaciones' => $this->texto($ctx['observaciones'] ?? null, 3000),
+            // CAT-006: 22 = retención de IVA 1 %.
+            'codigoRetencionMH' => $ivaRete > 0 ? '22' : null,
+        ];
+
+        if (($ctx['tipo_dte'] ?? null) === '06') {
+            $resumen['numPagoElectronico'] = null; // solo existe en la Nota de Débito
+        }
 
         return $resumen;
     }

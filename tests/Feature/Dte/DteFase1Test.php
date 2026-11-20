@@ -217,4 +217,14 @@ class DteFase1Test extends TestCase
         $c->update(['distrito' => '03']);
         $this->assertSame('03', $c->fresh()->distrito);
     }
+
+    public function test_cada_distrito_conoce_su_municipio_y_la_tripleta_se_valida(): void
+    {
+        $this->assertSame(0, DB::table('dte_distritos')->whereNull('municipio_codigo')->count());
+        // Ahuachapán (01): el distrito 01 pertenece a Ahuachapán Centro (14), no a Norte (13).
+        $this->assertTrue(\App\Support\UbicacionCatalogo::distritoValido('01', '14', '01'));
+        $this->assertTrue(\App\Support\UbicacionCatalogo::distritoValido('01', '0114', '01'));
+        $this->assertFalse(\App\Support\UbicacionCatalogo::distritoValido('01', '13', '01'));
+        $this->assertFalse(\App\Support\UbicacionCatalogo::distritoValido('02', '14', '01'));
+    }
 }

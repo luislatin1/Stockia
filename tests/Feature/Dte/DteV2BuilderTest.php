@@ -145,7 +145,7 @@ class DteV2BuilderTest extends TestCase
     public function test_tipos_no_soportados_se_rechazan(): void
     {
         $this->expectException(\InvalidArgumentException::class);
-        (new DteV2Builder())->build($this->ctx('05', [$this->item(1, 1.00)]));
+        (new DteV2Builder())->build($this->ctx('07', [$this->item(1, 1.00)]));
     }
 
     public function test_el_validador_no_marca_como_invalido_un_monto_de_dos_decimales_por_error_de_coma_flotante(): void
@@ -164,5 +164,77 @@ class DteV2BuilderTest extends TestCase
         $dte = (new DteV2Builder())->build($this->ctx('01', [$this->item(1, 1.00)]));
         $dte['resumen']['totalPagar'] = 1.125;
         $this->assertNotSame([], $this->validar($dte, '01'));
+    }
+
+    /** Contexto de una nota (05/06) sobre un CCF: receptor con tipoDocumento/numDocumento y documento relacionado. */
+    private function ctxNota(string $tipo, array $items, array $extra = []): array
+    {
+        $c = $this->ctx('03', $items);
+        $r = $c['receptor'];
+        $c['tipo_dte'] = $tipo;
+        $c['numero_control'] = "DTE-{$tipo}-M001P001-000000000000003";
+        $c['receptor'] = [
+            'tipoDocumento' => '36', 'numDocumento' => $r['nit'], 'nrc' => $r['nrc'], 'nombre' => $r['nombre'],
+            'codActividad' => $r['codActividad'], 'descActividad' => $r['descActividad'], 'nombreComercial' => null,
+            'direccion' => $r['direccion'], 'telefono' => $r['telefono'], 'correo' => $r['correo'],
+        ];
+        $c['documentos_relacionados'] = [[
+            'tipo_documento' => '03', 'tipo_generacion' => 2,
+            'numero' => 'b1b2c3d4-e5f6-4789-9abc-def012345678', 'fecha' => '2026-11-10',
+        ]];
+
+        return array_merge($c, $extra);
+    }
+
+    public function test_nota_de_credito_cumple_el_esquema_v4(): void
+    {
+        $dte = (new DteV2Builder())->build($this->ctxNota('05', [$this->item(2, 50.00), $this->item(1, 7.50, 0, 'exenta')]));
+
+        $this->assertSame([], $this->validar($dte, '05'));
+        $this->assertSame(4, $dte['identificacion']['version']);
+        $this->assertArrayNotHasKey('codEstable', $dte['emisor']);
+        $this->assertSame('B1B2C3D4-E5F6-4789-9ABC-DEF012345678', $dte['documentoRelacionado'][0]['numeroDocumento']);
+        $this->assertSame('B1B2C3D4-E5F6-4789-9ABC-DEF012345678', $dte['cuerpoDocumento'][0]['numeroDocumento']);
+        $this->assertSame(13.0, $dte['cuerpoDocumento'][0]['totalIva']);
+        $this->assertSame(0.0, $dte['cuerpoDocumento'][1]['totalIva']);
+        $this->assertSame(100.0, $dte['resumen']['totalGravada']);
+        $this->assertSame(13.0, $dte['resumen']['totalIva']);
+        $this->assertSame(120.5, $dte['resumen']['totalPagar']);
+        $this->assertArrayNotHasKey('pagos', $dte['resumen']);
+        $this->assertNull($dte['resumen']['codigoRetencionMH']);
+    }
+
+    public function test_nota_de_debito_cumple_el_esquema_v4(): void
+    {
+        $dte = (new DteV2Builder())->build($this->ctxNota('06', [$this->item(1, 25.00)]));
+
+        $this->assertSame([], $this->validar($dte, '06'));
+        $this->assertSame('06', $dte['identificacion']['tipoDte']);
+        $this->assertSame(28.25, $dte['resumen']['totalPagar']);
+    }
+
+    public function test_nota_con_retencion_de_iva_resta_y_marca_el_codigo(): void
+    {
+        $dte = (new DteV2Builder())->build($this->ctxNota('05', [$this->item(1, 200.00)], ['tasa_retencion_iva' => 0.01]));
+
+        $this->assertSame([], $this->validar($dte, '05'));
+        $this->assertSame(2.0, $dte['cuerpoDocumento'][0]['ivaRete']);
+        $this->assertSame(2.0, $dte['resumen']['ivaRete']);
+        $this->assertSame('22', $dte['resumen']['codigoRetencionMH']);
+        $this->assertSame(224.0, $dte['resumen']['totalPagar']);
+    }
+
+    public function test_nota_exige_documento_relacionado_ccf_con_uuid(): void
+    {
+        $b = new DteV2Builder();
+        foreach ([[], [['tipo_documento' => '01', 'numero' => 'B1B2C3D4-E5F6-4789-9ABC-DEF012345678', 'fecha' => '2026-11-10']],
+            [['tipo_documento' => '03', 'numero' => 'no-es-uuid', 'fecha' => '2026-11-10']]] as $docs) {
+            try {
+                $b->build($this->ctxNota('05', [$this->item(1, 1.00)], ['documentos_relacionados' => $docs]));
+                $this->fail('Debió rechazar el documento relacionado');
+            } catch (\RuntimeException $e) {
+                $this->assertNotSame('', $e->getMessage());
+            }
+        }
     }
 }
