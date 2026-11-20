@@ -149,9 +149,31 @@ class DteSchemaValidator
             'format' => $una(($args['format'] ?? '') === 'date'
                 ? 'no es una fecha válida (AAAA-MM-DD)'
                 : "formato inválido ('".($args['format'] ?? '?')."')"),
+            // El validador comprueba multipleOf con fmod() en coma flotante y marca como inválido
+            // 4.35 (múltiplo de 0.01). Aquí se comprueba por decimales, como lo haría un BigDecimal.
+            'multipleOf' => $this->esMultiploDecimal($e->data()->value(), (float) ($args['divisor'] ?? 0))
+                ? []
+                : $una('debe ser múltiplo de '.($args['divisor'] ?? '?')),
             'pattern' => $una('no cumple el formato esperado: '.$this->recortar((string) ($args['pattern'] ?? ''))),
             default => $una($formateador->formatErrorMessage($e)),
         };
+    }
+
+    /** ¿$valor tiene como máximo los decimales que implica $divisor (0.01 → 2, 1e-8 → 8)? */
+    private function esMultiploDecimal(mixed $valor, float $divisor): bool
+    {
+        if (! is_int($valor) && ! is_float($valor)) {
+            return true; // otro tipo: ya lo reporta la regla de tipo
+        }
+        if ($divisor <= 0) {
+            return true;
+        }
+        $decimales = (int) max(0, round(-log10($divisor)));
+        if (abs($divisor - 10 ** -$decimales) > 1e-12) {
+            return fmod((float) $valor, $divisor) < 1e-9; // divisor que no es potencia de 10
+        }
+
+        return round((float) $valor, $decimales) === (float) $valor;
     }
 
     private function listar(array|string $valor): string

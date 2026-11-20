@@ -147,4 +147,22 @@ class DteV2BuilderTest extends TestCase
         $this->expectException(\InvalidArgumentException::class);
         (new DteV2Builder())->build($this->ctx('05', [$this->item(1, 1.00)]));
     }
+
+    public function test_el_validador_no_marca_como_invalido_un_monto_de_dos_decimales_por_error_de_coma_flotante(): void
+    {
+        // 4.35 y 3.39 fallan con fmod() en coma flotante aunque sean múltiplos exactos de 0.01.
+        foreach ([[1, 4.35 / 1.13], [3, 1.13 / 1.13]] as [$cant, $precio]) {
+            $dte = (new DteV2Builder())->build($this->ctx('01', [$this->item($cant, $precio)]));
+            $this->assertSame([], $this->validar($dte, '01'));
+        }
+        $dte = (new DteV2Builder())->build($this->ctx('01', [$this->item(1, 4.35 / 1.13)]));
+        $this->assertSame(4.35, $dte['resumen']['totalPagar']);
+    }
+
+    public function test_un_monto_con_tres_decimales_si_se_rechaza(): void
+    {
+        $dte = (new DteV2Builder())->build($this->ctx('01', [$this->item(1, 1.00)]));
+        $dte['resumen']['totalPagar'] = 1.125;
+        $this->assertNotSame([], $this->validar($dte, '01'));
+    }
 }

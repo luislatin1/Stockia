@@ -131,6 +131,9 @@ class DteCustomerController extends Controller
             'departamento' => ['nullable', 'string', 'max:2'],
             'municipio' => ['nullable', 'string', 'max:4'],
             'distrito' => ['nullable', 'string', 'size:2'],
+            // Actividad económica (CAT-019): la exige el CCF v4 para el receptor.
+            'cod_actividad' => ['nullable', 'string', 'regex:/^[0-9]{5,6}$/'],
+            'desc_actividad' => ['nullable', 'string', 'min:5', 'max:150', 'required_with:cod_actividad'],
             'direccion' => ['nullable', 'string', 'max:255'],
             'telefono' => ['nullable', 'string', 'max:30'],
             'correo' => ['nullable', 'email', 'max:120'],

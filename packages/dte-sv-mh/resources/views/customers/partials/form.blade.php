@@ -67,6 +67,19 @@
         </select>
     </div>
 
+    <div>
+        <label class="mb-1 block text-sm font-medium text-gray-700">Código de actividad económica (CAT-019)</label>
+        <input name="cod_actividad" inputmode="numeric" maxlength="6" value="{{ old('cod_actividad', $customer->cod_actividad ?? '') }}" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+        <p class="mt-1 text-xs text-gray-500">5 o 6 dígitos. Obligatorio para emitir Crédito Fiscal (03).</p>
+        @error('cod_actividad')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+    </div>
+
+    <div>
+        <label class="mb-1 block text-sm font-medium text-gray-700">Actividad económica</label>
+        <input name="desc_actividad" maxlength="150" value="{{ old('desc_actividad', $customer->desc_actividad ?? '') }}" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+        @error('desc_actividad')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+    </div>
+
     <div class="md:col-span-2">
         <label class="mb-1 block text-sm font-medium text-gray-700">Dirección</label>
         <input name="direccion" value="{{ old('direccion', $customer->direccion ?? '') }}" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">

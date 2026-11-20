@@ -23,7 +23,11 @@ Rama `fase1-dte-v2` · desplegada en el servidor de evaluación · detalle de la
 - Cuerpo a 8 decimales, resumen a 2 calculado desde el ítem; `totalLetras` real; fecha/hora en hora de El Salvador; `tipoModelo`/`tipoOperacion` 1 (normal) o 2 (contingencia); `condicionOperacion` 1/2 y `pagos` (contado: forma `01`; crédito: sin forma, monto 0, plazo `01` días + periodo = días de crédito).
 - Receptor: Factura admite `null` (consumidor final); CCF exige NIT, NRC, actividad, dirección. Emisor con `distrito`, `codEstable`/`codPuntoVenta` (códigos internos M001/P001).
 - Migración nueva: `customers.cod_actividad` y `desc_actividad` (el CCF los exige). Falta captarlos en el formulario de clientes.
-- 93 tests pasan (9 del constructor, todos validan contra el esquema oficial).
+- 95 tests pasan (11 del constructor, todos validan contra el esquema oficial).
+
+**Prueba contra el histórico (2026-11-20, BD de desarrollo, solo lectura):** `php artisan dte:probar-historico` (opciones `--limit`, `--company`, `--desde`, `--sin-esquema`). Repite cada venta de `legacy_sales` (tickets no anulados) como Factura 01 con emisor/receptor sintéticos, valida contra el esquema oficial y compara el total con la suma de líneas originales. Resultado: **95.147 ventas / 409.184 líneas, 0 fallos de esquema, 0 descuadres** (344 s). Excluidas: 26 líneas con cantidad o subtotal ≤ 0 y 1 venta sin líneas utilizables. Limitación: prueba ítems y cálculo, no datos reales de emisor/receptor ni CCF. Con el módulo apagado (BD de desarrollo) el comando no se registra; se ejecutó con un script que lo registra a mano.
+- Hallazgo: el validador marcaba como inválido 4,35 (múltiplo de 0,01) porque opis comprueba `multipleOf` con `fmod` en coma flotante (7 de cada 2.000 ventas). Corregido en `DteSchemaValidator` comprobando por decimales; sigue rechazando 1,125.
+- Formulario de clientes (DTE > Clientes): campos de código y descripción de actividad económica; el CCF se niega con mensaje claro si falta la actividad o la dirección completa del cliente.
 
 **Supuestos por cotejar con el Anexo IV/catálogos (no verificados contra el PDF):**
 - CAT-017 forma de pago `01` = billetes y monedas; CAT-018 plazo `01` = días. Stockia solo distingue efectivo/crédito; tarjeta, transferencia, etc. salen como efectivo hasta que existan en el POS.
@@ -51,10 +55,9 @@ Medida en el servidor con datos reales (venta simulada, con rollback): **29 erro
 - Por regla de la Normativa, los esquemas son "guía estructural referencial": además hay validaciones de cálculo y de catálogo (Anexo IV) que Hacienda ejecuta y que no cubre el esquema.
 
 ## Siguiente
-1. Captar actividad económica del cliente en el formulario; identificación obligatoria sobre el monto legal (pendiente del contador).
-2. Probar el constructor contra las 412.743 líneas históricas (BD de desarrollo, solo lectura) y medir cuántas ventas pasan el esquema.
-3. Constructores de Nota de Crédito/Débito (05/06), Exportación, Sujeto Excluido.
-4. Firma (firmador oficial por cliente), transmisión, reintentos y eventos.
+1. Identificación obligatoria sobre el monto legal (pendiente del contador). Migrar y probar con datos reales de emisor/cliente en el servidor (la migración de `customers` aún no está aplicada en ningún lado).
+2. Constructores de Nota de Crédito/Débito (05/06), Exportación, Sujeto Excluido.
+3. Firma (firmador oficial por cliente), transmisión, reintentos y eventos.
 
 ## Pendiente de planear (después de terminar las fases de facturación)
 

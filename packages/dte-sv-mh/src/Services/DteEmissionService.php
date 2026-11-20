@@ -427,6 +427,14 @@ class DteEmissionService
             if (trim((string) $customer->nrc) === '') {
                 throw new \RuntimeException('CCF (03) requiere NRC del receptor.');
             }
+
+            if (trim((string) $customer->cod_actividad) === '' || trim((string) $customer->desc_actividad) === '') {
+                throw new \RuntimeException("CCF (03): falta la actividad económica del cliente '{$customer->nombre}'. Captúrela en DTE > Clientes.");
+            }
+
+            if (! $customer->departamento || ! $customer->municipio || ! $customer->distrito || trim((string) $customer->direccion) === '') {
+                throw new \RuntimeException("CCF (03): el cliente '{$customer->nombre}' necesita departamento, municipio, distrito y dirección completos.");
+            }
         }
     }
 
