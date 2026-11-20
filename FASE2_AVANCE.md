@@ -41,6 +41,18 @@ Medida en el servidor con datos reales (venta simulada, con rollback): **29 erro
 2. Probarlo contra las 412.743 líneas históricas.
 3. Firma (firmador oficial por cliente), transmisión, reintentos y eventos.
 
+## Pendiente de planear (después de terminar las fases de facturación)
+
+**Módulo de Contabilidad** (idea de Luis, 2026-11-20). Hoy no existe contabilidad real: el módulo "Contabilidad" solo trae Bancos. Existe IVA por venta, `tax_rates`, libros de IVA (desde ventas, no desde DTE aceptados), CxC/CxP operativos. Falta: catálogo de cuentas, partidas (manuales y automáticas), Diario/Mayor, balanza y estados financieros, cierres, activos fijos, datos para F07/F14, asientos de retenciones/percepciones, conciliación bancaria, y valuación de inventario (PEPS o costo promedio) para el costo de ventas.
+
+Criterios ya acordados para planearlo:
+- Va **después** de la facturación: depende del DTE aceptado con sello (la contabilidad e IVA van por fecha de generación, Normativa 10.2), de impuestos con vigencia (ya están) y de la valuación de inventario.
+- Diseño **por eventos** (venta confirmada, DTE aceptado, compra recibida, abono): sin leer tablas ajenas, apagable sin romper el núcleo, igual que los demás módulos.
+- Esfuerzo comparable a la Fase 2 completa; **requiere definir con un contador** qué es "necesario" (catálogo base, política de cierres, NIIF para PYMES) antes de diseñar.
+- Orden sugerido por valor/riesgo: (1) libros de IVA desde DTE aceptados, (2) datos F07 y F14, (3) retenciones, (4) partidas completas, Diario/Mayor y cierres.
+
+Estado: solo idea; no hay diseño ni código. Tarea de planeación pendiente.
+
 ## Pendiente de terceros
 - Confirmar con el contador el **monto legal** a partir del cual el receptor debe identificarse.
 - Códigos reales de establecimiento/punto de venta, distrito→municipio, credenciales y certificado del ambiente de pruebas, Docker en el servidor.
