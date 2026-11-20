@@ -29,6 +29,8 @@ Rama `fase1-dte-v2` · desplegada en el servidor de evaluación · detalle de la
 - Hallazgo: el validador marcaba como inválido 4,35 (múltiplo de 0,01) porque opis comprueba `multipleOf` con `fmod` en coma flotante (7 de cada 2.000 ventas). Corregido en `DteSchemaValidator` comprobando por decimales; sigue rechazando 1,125.
 - Formulario de clientes (DTE > Clientes): campos de código y descripción de actividad económica; el CCF se niega con mensaje claro si falta la actividad o la dirección completa del cliente.
 
+**Desplegado y probado en el servidor (2026-11-20, commit 65d877c, migración de `customers` aplicada):** histórico (3.000 ventas) 0 fallos; emisión simulada con rollback de Factura 01 y CCF 03 con la empresa real: sin datos completos el esquema bloquea (faltan `distrito`, `telefono`, `correo` del emisor, como se sabía); completándolos dentro de la transacción ambos salen ACEPTADO (simulación) con total 113,00. Comprobado que el rollback no dejó nada (0 ventas, 0 DTE, 0 clientes). **Para emitir de verdad falta capturar distrito, teléfono y correo de la empresa en Administración Central.**
+
 **Supuestos por cotejar con el Anexo IV/catálogos (no verificados contra el PDF):**
 - CAT-017 forma de pago `01` = billetes y monedas; CAT-018 plazo `01` = días. Stockia solo distingue efectivo/crédito; tarjeta, transferencia, etc. salen como efectivo hasta que existan en el POS.
 - Los totales del DTE se recalculan desde el ítem (precio × 1,13); pueden diferir centavos de `sales.total`. El DTE manda para Hacienda.
