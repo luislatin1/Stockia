@@ -19,6 +19,8 @@ class Customer extends Model
         'departamento',
         'municipio',
         'distrito',
+        'cod_actividad',
+        'desc_actividad',
         'direccion',
         'telefono',
         'correo',

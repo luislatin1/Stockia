@@ -17,6 +17,20 @@ Rama `fase1-dte-v2` · desplegada en el servidor de evaluación · detalle de la
 - Comando `php artisan dte:esquemas` (lista, verifica integridad, valida archivos o DTE guardados).
 - 84 tests pasan en total.
 
+### 2.2 Constructor DTE v2 (Factura 01 y CCF 03) — hecho 2026-11-20
+- `Stockia\DteSvMh\Builders\DteV2Builder`: función pura (sin Eloquent) que recibe datos normalizados y devuelve el DTE. `DteEmissionService::buildPayload` solo arma el contexto desde la venta y lo invoca; después valida contra el esquema oficial (`DteSchemaValidator::asegurar`) **antes** de crear el registro y firmar.
+- Factura: versión JSON 2, precios **con IVA**, `ivaItem` = (ventaGravada/1,13)×13 % por ítem, `totalIva` en resumen, sin tributos. CCF: versión JSON **4**, precios **sin IVA**, tributo `['20']` por ítem y detalle en el resumen, `ivaPerci`, `ivaRete`.
+- Cuerpo a 8 decimales, resumen a 2 calculado desde el ítem; `totalLetras` real; fecha/hora en hora de El Salvador; `tipoModelo`/`tipoOperacion` 1 (normal) o 2 (contingencia); `condicionOperacion` 1/2 y `pagos` (contado: forma `01`; crédito: sin forma, monto 0, plazo `01` días + periodo = días de crédito).
+- Receptor: Factura admite `null` (consumidor final); CCF exige NIT, NRC, actividad, dirección. Emisor con `distrito`, `codEstable`/`codPuntoVenta` (códigos internos M001/P001).
+- Migración nueva: `customers.cod_actividad` y `desc_actividad` (el CCF los exige). Falta captarlos en el formulario de clientes.
+- 93 tests pasan (9 del constructor, todos validan contra el esquema oficial).
+
+**Supuestos por cotejar con el Anexo IV/catálogos (no verificados contra el PDF):**
+- CAT-017 forma de pago `01` = billetes y monedas; CAT-018 plazo `01` = días. Stockia solo distingue efectivo/crédito; tarjeta, transferencia, etc. salen como efectivo hasta que existan en el POS.
+- Los totales del DTE se recalculan desde el ítem (precio × 1,13); pueden diferir centavos de `sales.total`. El DTE manda para Hacienda.
+- Retención de renta: se rechaza la emisión si es > 0 (el esquema de Factura/CCF no la tiene). Percepción de IVA: siempre 0.
+- Solo 01 y 03. Faltan 05, 06, 11, 14 (FEX v3, FSE v2, notas v4, etc.).
+
 ## Brecha medida (JSON actual de Stockia vs. esquema oficial Factura v2)
 Medida en el servidor con datos reales (venta simulada, con rollback): **29 errores**.
 
@@ -37,9 +51,10 @@ Medida en el servidor con datos reales (venta simulada, con rollback): **29 erro
 - Por regla de la Normativa, los esquemas son "guía estructural referencial": además hay validaciones de cálculo y de catálogo (Anexo IV) que Hacienda ejecuta y que no cubre el esquema.
 
 ## Siguiente
-1. **2.2 Constructor DTE v2** (Factura 01 y CCF 03 primero): cierra los 29 errores, incluyendo cálculo con 8 decimales por ítem y 2 en resumen, `totalLetras` real, fecha/hora en hora de El Salvador, identificación obligatoria sobre el monto legal y `condicionOperacion`/`pagos`.
-2. Probarlo contra las 412.743 líneas históricas.
-3. Firma (firmador oficial por cliente), transmisión, reintentos y eventos.
+1. Captar actividad económica del cliente en el formulario; identificación obligatoria sobre el monto legal (pendiente del contador).
+2. Probar el constructor contra las 412.743 líneas históricas (BD de desarrollo, solo lectura) y medir cuántas ventas pasan el esquema.
+3. Constructores de Nota de Crédito/Débito (05/06), Exportación, Sujeto Excluido.
+4. Firma (firmador oficial por cliente), transmisión, reintentos y eventos.
 
 ## Pendiente de planear (después de terminar las fases de facturación)
 

@@ -6,9 +6,11 @@ use App\Models\Sale;
 use App\Support\FiscalId;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Stockia\DteSvMh\Builders\DteV2Builder;
 use Stockia\DteSvMh\Models\Dte;
 use Stockia\DteSvMh\Models\DteInvalidation;
 use Stockia\DteSvMh\Models\DteSetting;
+use Stockia\DteSvMh\Schemas\DteSchemaValidator;
 use Stockia\DteSvMh\Validators\ValidadorCoherenciaDte;
 use Stockia\DteSvMh\Validators\ValidadorDocumentoSalvador;
 
@@ -63,11 +65,10 @@ class DteEmissionService
             ? \TuEmpresa\SvDte\Helpers\CodigoGeneracion::generar()
             : strtoupper((string) Str::uuid());
 
-        $payload = $this->buildPayload($sale, $settings, $correlative['numero_control'], $codigoGeneracion, $mode);
+        $payload = $this->buildPayload($sale, $settings, $correlative['numero_control'], $codigoGeneracion, $mode, $emisor);
 
-        if (class_exists(\TuEmpresa\SvDte\Validators\DummyValidator::class)) {
-            \TuEmpresa\SvDte\Validators\DummyValidator::validate($payload);
-        }
+        // Esquema oficial de Hacienda: si el documento no cumple, no se crea ni se firma.
+        app(DteSchemaValidator::class)->asegurar($payload, (string) $sale->tipo_dte);
 
         $dte = Dte::create([
             'company_id' => $sale->company_id,
@@ -260,10 +261,12 @@ class DteEmissionService
         DteSetting $settings,
         string $numeroControl,
         string $codigoGeneracion,
-        string $mode
+        string $mode,
+        array $emisorFiscal
     ): array {
         $company = $sale->company;
         $customer = $sale->customer;
+        $tipo = (string) $sale->tipo_dte;
         $this->assertReceiverRules($sale, $customer);
 
         // El JSON del DTE exige NIT/NRC/documento SIN guiones (Normativa v2.0, Anexo IV).
@@ -279,112 +282,121 @@ class DteEmissionService
             throw new \RuntimeException("El NRC del emisor no es válido ('".$company->nrc."'): debe tener de 2 a 8 dígitos. Corríjalo en Administración Central.");
         }
 
-        $receptorDocumento = $customer
-            ? FiscalId::documentoParaDte($customer->tipo_documento, $customer->numero_documento)
-            : null;
-        $receptorNrc = $customer && trim((string) $customer->nrc) !== '' ? FiscalId::nrcDigits($customer->nrc) : null;
+        /** @var \Stockia\DteSvMh\Models\DteEstablecimiento $estab */
+        $estab = $emisorFiscal['establecimiento'];
+        /** @var \Stockia\DteSvMh\Models\DtePuntoVenta $pv */
+        $pv = $emisorFiscal['punto_venta'];
 
-        $items = $sale->items->values()->map(function ($item, $index) {
+        // La dirección del establecimiento manda si la tiene completa; si no, la de la empresa.
+        $usaEstab = $estab->departamento && $estab->municipio && $estab->distrito && trim((string) $estab->direccion) !== '';
+        $emisor = [
+            'nit' => $emisorNit,
+            'nrc' => $emisorNrc,
+            'nombre' => $company->nombre_razon_social ?: $company->legal_name ?: $company->name,
+            'codActividad' => $company->cod_actividad,
+            'descActividad' => $company->desc_actividad,
+            'nombreComercial' => $company->nombre_comercial ?: $company->name,
+            'direccion' => [
+                'departamento' => $usaEstab ? $estab->departamento : $company->departamento,
+                'municipio' => $this->normalizeCodigo($usaEstab ? $estab->municipio : $company->municipio),
+                'distrito' => $this->normalizeCodigo($usaEstab ? $estab->distrito : $company->distrito),
+                'complemento' => $usaEstab ? $estab->direccion : ($company->direccion_complemento ?: $company->fiscal_address),
+            ],
+            'telefono' => $estab->telefono ?: ($company->telefono ?: $company->fiscal_phone),
+            'correo' => $estab->correo ?: ($company->correo ?: $company->fiscal_email),
+            // Códigos internos opcionales del emisor (no confundir con los de Hacienda del número de control).
+            'codEstable' => $estab->codigo,
+            'codPuntoVenta' => $pv->codigo,
+        ];
+
+        $items = $sale->items->values()->map(function ($item) {
+            $categoria = (float) $item->monto_exento > 0 ? 'exenta'
+                : ((float) $item->monto_no_sujeto > 0 ? 'no_sujeta' : 'gravada');
+
             return [
-                'numItem' => $index + 1,
-                'tipoItem' => (int) ($item->tipo_item ?? 1),
-                'numeroDocumento' => null,
                 'codigo' => $item->product->codigo ?? $item->product_id,
-                'codTributo' => null,
                 'descripcion' => $item->product->name ?? 'ITEM',
                 'cantidad' => (float) $item->quantity,
-                'uniMedida' => (int) ($item->uni_medida ?? 59),
-                'precioUni' => (float) $item->precio_unitario,
-                'montoDescu' => (float) $item->descuento,
-                'ventaNoSuj' => (float) $item->monto_no_sujeto,
-                'ventaExenta' => (float) $item->monto_exento,
-                'ventaGravada' => (float) $item->monto_gravado,
-                'tributos' => [],
-                'psv' => 0,
-                'noGravado' => 0,
+                'precio' => (float) $item->precio_unitario,
+                'descuento' => (float) $item->descuento,
+                'categoria' => $categoria,
+                'tipo_item' => (int) ($item->tipo_item ?? 1),
+                'uni_medida' => (int) ($item->uni_medida ?? 59),
             ];
         })->all();
 
-        $input = [
+        $fecha = now(config('dte.timezone', 'America/El_Salvador'));
+        $esCredito = $sale->payment_method === 'credit' || (float) $sale->saldo_pendiente > 0;
+
+        if ((float) $sale->retencion_renta > 0) {
+            throw new \RuntimeException('La retención de renta aún no se transmite en Factura/CCF v2 (el esquema no la incluye).');
+        }
+
+        return (new DteV2Builder())->build([
+            'tipo_dte' => $tipo,
+            'ambiente' => (string) $settings->ambiente,
             'numero_control' => $numeroControl,
             'codigo_generacion' => $codigoGeneracion,
-            'emisor' => [
-                'nit' => $emisorNit,
-                'nrc' => $emisorNrc,
-                'nombre' => $company->nombre_razon_social ?: $company->legal_name ?: $company->name,
-                'nombreComercial' => $company->nombre_comercial ?: $company->name,
-                'codActividad' => $company->cod_actividad,
-                'descActividad' => $company->desc_actividad,
-                'tipoEstablecimiento' => $company->tipo_establecimiento,
-                'telefono' => $company->telefono ?: $company->fiscal_phone,
-                'correo' => $company->correo ?: $company->fiscal_email,
-                'direccion' => [
-                    'departamento' => $company->departamento,
-                    'municipio' => $this->normalizeMunicipioCode($company->municipio),
-                    'complemento' => $company->direccion_complemento ?: $company->fiscal_address,
-                ],
-            ],
-            'receptor' => [
-                'tipoDocumento' => $customer ? $customer->tipo_documento : null,
-                'numDocumento' => $receptorDocumento,
-                'nrc' => $receptorNrc,
-                'nombre' => $customer?->nombre ?: 'Consumidor Final',
-                'telefono' => $customer?->telefono,
-                'correo' => $customer?->correo,
-                'direccion' => [
-                    'departamento' => $customer?->departamento,
-                    'municipio' => $this->normalizeMunicipioCode($customer?->municipio),
-                    'complemento' => $customer?->direccion,
-                ],
-            ],
+            'fecha' => $fecha,
+            'contingencia' => $mode === 'contingencia'
+                ? ['tipo' => 1, 'motivo' => 'Falla de conexión con el Ministerio de Hacienda']
+                : null,
+            'emisor' => $emisor,
+            'receptor' => $this->receptor($tipo, $customer),
             'items' => $items,
-            'totales' => [
-                'totalNoSuj' => (float) $sale->no_sujetas,
-                'totalExenta' => (float) $sale->exentas,
-                'totalGravada' => (float) $sale->gravadas,
-                'subTotalVentas' => (float) $sale->subtotal,
-                'descuNoSuj' => 0,
-                'descuExenta' => 0,
-                'descuGravada' => (float) $sale->descuento_total,
-                'porcentajeDescuento' => 0,
-                'totalDescu' => (float) $sale->descuento_total,
-                'tributos' => [['codigo' => '20', 'descripcion' => 'IVA 13%', 'valor' => (float) $sale->iva]],
-                'subTotal' => (float) $sale->subtotal,
-                'ivaRete1' => (float) $sale->retencion_iva,
-                'reteRenta' => (float) $sale->retencion_renta,
-                'montoTotalOperacion' => (float) $sale->total,
-                'totalPagar' => (float) $sale->total,
-                'totalLetras' => 'TOTAL EN MODO DUMMY',
-            ],
-        ];
+            'tasa_iva' => app(\App\Services\Dte\TaxRateService::class)->rate(\App\Services\Dte\TaxRateService::IVA, $fecha),
+            'iva_retenido' => (float) $sale->retencion_iva,
+            'condicion_operacion' => $esCredito ? 2 : 1,
+            'forma_pago' => '01',
+            'dias_credito' => (int) ($sale->dias_credito ?: 1),
+        ]);
+    }
 
-        if (class_exists(\TuEmpresa\SvDte\Builders\FacturaBuilder::class) && $sale->tipo_dte === '01') {
-            $dte = (new \TuEmpresa\SvDte\Builders\FacturaBuilder())->make($input);
-        } else {
-            $dte = [
-                'identificacion' => [
-                    'version' => 1,
-                    'ambiente' => $settings->ambiente,
-                    'tipoDte' => $sale->tipo_dte,
-                    'numeroControl' => $numeroControl,
-                    'codigoGeneracion' => $codigoGeneracion,
-                    'fecEmi' => now()->format('Y-m-d'),
-                    'horEmi' => now()->format('H:i:s'),
-                    'tipoMoneda' => 'USD',
-                ],
-                'emisor' => $input['emisor'],
-                'receptor' => $input['receptor'],
-                'cuerpoDocumento' => $items,
-                'resumen' => $input['totales'],
+    /** Receptor según el tipo: Factura admite consumidor final (null); CCF exige contribuyente completo. */
+    private function receptor(string $tipo, $customer): ?array
+    {
+        if (! $customer) {
+            return null; // consumidor final sin identificar (solo Factura; el CCF ya se rechazó antes)
+        }
+
+        $nrc = trim((string) $customer->nrc) !== '' ? FiscalId::nrcDigits($customer->nrc) : null;
+        $tieneDireccion = $customer->departamento && $customer->municipio && $customer->distrito && trim((string) $customer->direccion) !== '';
+        $direccion = $tieneDireccion ? [
+            'departamento' => (string) $customer->departamento,
+            'municipio' => $this->normalizeCodigo($customer->municipio),
+            'distrito' => $this->normalizeCodigo($customer->distrito),
+            'complemento' => (string) $customer->direccion,
+        ] : null;
+
+        $telefono = trim((string) $customer->telefono) !== '' ? $customer->telefono : null;
+        $correo = trim((string) $customer->correo) !== '' ? $customer->correo : null;
+
+        if ($tipo === '03') {
+            // CCF v4: receptor completo, identificado por NIT (campo `nit`, no `tipoDocumento`).
+            return [
+                'nit' => FiscalId::nitDigits($customer->numero_documento),
+                'nrc' => $nrc,
+                'nombre' => $customer->nombre,
+                'codActividad' => $customer->cod_actividad,
+                'descActividad' => $customer->desc_actividad,
+                'nombreComercial' => null,
+                'direccion' => $direccion,
+                'telefono' => $telefono,
+                'correo' => $correo,
             ];
         }
 
-        if ($mode === 'contingencia') {
-            $dte['identificacion']['tipoContingencia'] = 1;
-            $dte['identificacion']['motivoContin'] = 'Falla internet simulada';
-        }
-
-        return $dte;
+        return [
+            'tipoDocumento' => $customer->tipo_documento,
+            'numDocumento' => FiscalId::documentoParaDte($customer->tipo_documento, $customer->numero_documento),
+            'nrc' => $nrc,
+            'nombre' => $customer->nombre ?: null,
+            'codActividad' => $customer->cod_actividad ?: null,
+            'descActividad' => $customer->desc_actividad ?: null,
+            'direccion' => $direccion,
+            'telefono' => $telefono,
+            'correo' => $correo,
+        ];
     }
 
     private function assertReceiverRules(Sale $sale, $customer): void
@@ -418,7 +430,7 @@ class DteEmissionService
         }
     }
 
-    private function normalizeMunicipioCode(?string $municipio): ?string
+    private function normalizeCodigo(?string $municipio): ?string
     {
         if ($municipio === null || $municipio === '') {
             return $municipio;

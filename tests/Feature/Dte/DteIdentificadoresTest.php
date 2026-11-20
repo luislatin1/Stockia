@@ -27,6 +27,10 @@ class DteIdentificadoresTest extends TestCase
         return Company::create($extra + [
             'name' => 'Empresa', 'currency_id' => $currency->id,
             'nit' => '0512-280887-101-3', 'nrc' => '23119-4',
+            // Datos que el esquema oficial v2 exige del emisor.
+            'cod_actividad' => '47112', 'desc_actividad' => 'Venta al por menor',
+            'departamento' => '06', 'municipio' => '21', 'distrito' => '01', 'direccion_complemento' => 'Calle Principal 1',
+            'telefono' => '22223333', 'correo' => 'ventas@ejemplo.com.sv',
         ]);
     }
 
@@ -117,9 +121,8 @@ class DteIdentificadoresTest extends TestCase
     {
         $dte = $this->emitir($this->company(), null);
 
-        $this->assertNull($dte->json_original['receptor']['numDocumento']);
-        $this->assertNull($dte->json_original['receptor']['tipoDocumento']);
-        $this->assertStringNotContainsString('00000000', json_encode($dte->json_original['receptor']));
+        // El esquema v2 admite receptor null para consumidor final; nada de DUI inventado.
+        $this->assertNull($dte->json_original['receptor']);
     }
 
     public function test_el_receptor_con_dui_o_nit_va_sin_guiones(): void
