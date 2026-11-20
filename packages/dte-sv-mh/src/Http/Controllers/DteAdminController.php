@@ -59,6 +59,16 @@ class DteAdminController extends Controller
                 ->get(['id', 'tipo_dte', 'numero_control', 'estado', 'created_at'])
             : collect();
 
+        // Contingencias de la empresa con su ciclo: ABIERTA → EVENTO_ENVIADO → CERRADA.
+        $contingencias = Schema::hasTable('dte_contingencias')
+            ? DB::table('dte_contingencias')->where('company_id', $companyId)->latest('id')->limit(10)->get()->map(function ($c) {
+                $c->pendientes = DB::table('dte_contingencia_dtes')->where('contingencia_id', $c->id)->where('reenviado', false)->count();
+                $c->total = DB::table('dte_contingencia_dtes')->where('contingencia_id', $c->id)->count();
+
+                return $c;
+            })
+            : collect();
+
         return view('dte::admin.index', compact(
             'customersCount',
             'pendingDtes',
@@ -66,7 +76,44 @@ class DteAdminController extends Controller
             'contingenciasAbiertas',
             'settings',
             'lastDtes',
+            'contingencias',
         ));
+    }
+
+    /** Momento 2: transmite el Evento de Contingencia (requisito del lote). */
+    public function cerrarContingencia(int $contingencia): RedirectResponse
+    {
+        $this->contingenciaDeLaEmpresa($contingencia);
+
+        try {
+            $r = app(\Stockia\DteSvMh\Services\DteEmissionService::class)->cerrarContingencia($contingencia);
+        } catch (\RuntimeException $e) {
+            return back()->withErrors($e->getMessage());
+        }
+
+        return $r['estado'] === 'EVENTO_ENVIADO'
+            ? back()->with('success', 'Evento de contingencia aceptado por Hacienda. Tiene 72 horas para transmitir el lote de documentos.')
+            : back()->withErrors('Hacienda rechazó el evento: '.$r['mensaje']);
+    }
+
+    /** Momento 3: transmite el lote de documentos informados en el evento. */
+    public function enviarLoteContingencia(int $contingencia): RedirectResponse
+    {
+        $this->contingenciaDeLaEmpresa($contingencia);
+
+        try {
+            $n = app(\Stockia\DteSvMh\Services\DteEmissionService::class)->enviarLoteContingencia($contingencia);
+        } catch (\RuntimeException $e) {
+            return back()->withErrors($e->getMessage());
+        }
+
+        return back()->with('success', "Lote transmitido: {$n} documento(s).");
+    }
+
+    private function contingenciaDeLaEmpresa(int $id): void
+    {
+        $existe = DB::table('dte_contingencias')->where('id', $id)->where('company_id', (int) session('current_company_id'))->exists();
+        abort_unless($existe, 404);
     }
 
     public function updateSettings(Request $request): RedirectResponse

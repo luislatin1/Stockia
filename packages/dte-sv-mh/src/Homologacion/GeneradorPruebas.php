@@ -3,6 +3,7 @@
 namespace Stockia\DteSvMh\Homologacion;
 
 use Carbon\CarbonImmutable;
+use Stockia\DteSvMh\Builders\ContingenciaBuilder;
 use Stockia\DteSvMh\Builders\DteV2Builder;
 use Stockia\DteSvMh\Builders\EventoRetornoBuilder;
 use Stockia\DteSvMh\Builders\ExportacionBuilder;
@@ -32,7 +33,7 @@ class GeneradorPruebas
         '14' => ['Factura de Sujeto Excluido', 25, '14'],
         '15' => ['Comprobante de Donación', 25, null],
         'invalidacion' => ['Evento de Invalidación', 5, 'invalidacion'],
-        'contingencia' => ['Evento de Contingencia', 5, null],
+        'contingencia' => ['Evento de Contingencia', 5, 'contingencia'],
         'retorno' => ['Evento de Retorno', 5, 'retorno'],
         'operaciones_especiales' => ['Evento de Operaciones Especiales', 5, null],
     ];
@@ -61,6 +62,7 @@ class GeneradorPruebas
                 '11' => $this->exportacion($i),
                 '14' => $this->sujetoExcluido($i),
                 'invalidacion' => $this->invalidacion($i),
+                'contingencia' => $this->contingencia($i),
                 'retorno' => $this->retorno($i),
                 default => throw new \InvalidArgumentException("No hay constructor para '{$clave}'."),
             };
@@ -315,6 +317,28 @@ class GeneradorPruebas
                 'receptor' => $this->r(0, 1) === 0 ? ['tipoDocumento' => '13', 'numDocumento' => '012345678', 'nombre' => 'JUAN PEREZ', 'telefono' => null, 'correo' => null] : null,
             ],
             'motivo' => ['tipo' => $tipo, 'texto' => 'Invalidación de prueba', 'responsable' => $persona, 'solicita' => $persona],
+        ]);
+    }
+
+    private function contingencia(int $i): array
+    {
+        $tipo = $this->pick([1, 2, 3, 4, 5]);
+        $docs = [];
+        for ($k = 0; $k < $this->r(1, 12); $k++) {
+            $docs[] = ['tipo_dte' => $this->pick(['01', '01', '03', '05', '06', '11', '14']), 'codigo_generacion' => $this->uuid()];
+        }
+
+        return (new ContingenciaBuilder())->build([
+            'ambiente' => '00', 'codigo_generacion' => $this->uuid(), 'fecha' => $this->ahora,
+            'inicio' => $this->ahora->subHours($this->r(2, 20)), 'fin' => $this->ahora->subMinutes($this->r(1, 60)),
+            'tipo_contingencia' => $tipo, 'motivo' => $tipo === 5 ? 'Falla del proveedor de enlace' : ($this->r(0, 1) === 0 ? 'Corte de servicio' : null),
+            'emisor' => [
+                'nit' => '05122808871013', 'nombre' => 'EMPRESA DE PRUEBA SA DE CV',
+                'responsable' => ['nombre' => 'RESPONSABLE DE PRUEBA', 'tipo_doc' => '13', 'num_doc' => '012345678'],
+                'tipo_establecimiento' => $this->pick(['01', '02', '04', '07']), 'codEstableMH' => 'M001', 'codPuntoVentaMH' => 'P001',
+                'telefono' => '22223333', 'correo' => 'pruebas@ejemplo.com.sv',
+            ],
+            'documentos' => $docs,
         ]);
     }
 

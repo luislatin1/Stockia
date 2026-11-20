@@ -76,11 +76,16 @@ Artisan::command('dte:reenviar-contingencia {--company_id=}', function () {
     $companyId = $this->option('company_id');
     $companyId = $companyId !== null ? (int) $companyId : null;
 
-    $processed = app(DteEmissionService::class)->resendContingency($companyId);
+    $servicio = app(DteEmissionService::class);
+    $processed = $servicio->resendContingency($companyId);
 
-    $this->info("DTE reenviados desde contingencia: {$processed}");
-    return 0;
-})->purpose('Reenvía DTE en estado CONTINGENCIA usando el flujo configurado');
+    $this->info("DTE transmitidos desde contingencia: {$processed}");
+    foreach ($servicio->avisosContingencia() as $aviso) {
+        $this->warn($aviso);
+    }
+
+    return $servicio->avisosContingencia() === [] ? 0 : 1;
+})->purpose('Regulariza las contingencias: transmite el evento y, con su sello, el lote de documentos');
 
 Artisan::command('dte:revisar-identificadores {--limit=10 : ejemplos a mostrar por grupo}', function () {
     // Solo lectura. Cuenta y lista NIT/NRC/DUI que DTE 2.0 rechazaría, para corregirlos antes de emitir.

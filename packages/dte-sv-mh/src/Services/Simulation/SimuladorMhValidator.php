@@ -8,6 +8,13 @@ class SimuladorMhValidator
     {
         $errores = [];
 
+        // Evento de Contingencia: no tiene cuerpo ni totales; basta con que informe documentos.
+        if (isset($dte['detalleDTE'])) {
+            return $dte['detalleDTE'] === []
+                ? ['estado' => 'RECHAZADO', 'observaciones' => ['El evento de contingencia no informa documentos.']]
+                : ['estado' => 'PROCESADO', 'selloRecibido' => strtoupper(bin2hex(random_bytes(20))), 'fhProcesamiento' => now()->toDateTimeString(), 'observaciones' => []];
+        }
+
         $cuerpo = $dte['cuerpoDocumento'] ?? [];
         $resumen = $dte['resumen'] ?? [];
 

@@ -13,6 +13,8 @@ Route::middleware(['web', 'auth', 'company.selected', 'role:Admin,SuperAdmin'])
         Route::middleware(['can:dte-admin'])->group(function () {
             Route::get('/admin', [DteAdminController::class, 'index'])->name('admin.index');
             Route::patch('/admin/settings', [DteAdminController::class, 'updateSettings'])->name('admin.settings.update');
+            Route::post('/contingencias/{contingencia}/evento', [DteAdminController::class, 'cerrarContingencia'])->name('contingencias.evento');
+            Route::post('/contingencias/{contingencia}/lote', [DteAdminController::class, 'enviarLoteContingencia'])->name('contingencias.lote');
 
             Route::get('/establecimientos', [DteEstablecimientoController::class, 'index'])->name('establecimientos.index');
             Route::post('/establecimientos', [DteEstablecimientoController::class, 'store'])->name('establecimientos.store');

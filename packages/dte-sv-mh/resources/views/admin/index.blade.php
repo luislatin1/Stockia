@@ -28,6 +28,44 @@
         </div>
     </div>
 
+    @if(($contingencias ?? collect())->isNotEmpty())
+        <div class="rounded-xl border border-indigo-200 bg-white p-5 shadow-sm space-y-3">
+            <h2 class="text-lg font-semibold text-gray-900">Contingencias</h2>
+            <p class="text-xs text-gray-500">
+                Al volver la conexión: 1) cambie el modo de integración a Real (o Simulación); 2) transmita el <strong>evento</strong> dentro de las 24 h siguientes al cese;
+                3) con el sello del evento, transmita el <strong>lote</strong> de documentos dentro de las 72 h.
+            </p>
+            <div class="overflow-hidden rounded border">
+                <table class="min-w-full text-sm">
+                    <thead class="bg-gray-50 text-xs uppercase text-gray-500">
+                        <tr><th class="px-3 py-2 text-left">#</th><th class="px-3 py-2 text-left">Establ.</th><th class="px-3 py-2 text-left">Desde</th><th class="px-3 py-2 text-left">Estado</th><th class="px-3 py-2 text-right">Docs pendientes</th><th class="px-3 py-2 text-left">Acción</th></tr>
+                    </thead>
+                    <tbody class="divide-y">
+                        @foreach($contingencias as $c)
+                            <tr>
+                                <td class="px-3 py-2">{{ $c->id }}</td>
+                                <td class="px-3 py-2">{{ $c->establecimiento ?? '—' }}</td>
+                                <td class="px-3 py-2">{{ \Illuminate\Support\Carbon::parse($c->fecha_inicio, 'UTC')->setTimezone(config('dte.timezone', 'America/El_Salvador'))->format('d/m/Y H:i') }}</td>
+                                <td class="px-3 py-2 font-semibold {{ $c->estado === 'CERRADA' ? 'text-green-700' : ($c->estado === 'EVENTO_RECHAZADO' ? 'text-red-700' : 'text-amber-700') }}">{{ $c->estado }}</td>
+                                <td class="px-3 py-2 text-right">{{ $c->pendientes }} / {{ $c->total }}</td>
+                                <td class="px-3 py-2">
+                                    @if(in_array($c->estado, ['ABIERTA', 'EVENTO_RECHAZADO'], true))
+                                        <form method="POST" action="{{ route('dte.contingencias.evento', $c->id) }}">@csrf
+                                            <button class="rounded bg-indigo-600 px-3 py-1 text-xs font-semibold text-white">Transmitir evento</button></form>
+                                    @elseif($c->estado === 'EVENTO_ENVIADO')
+                                        <form method="POST" action="{{ route('dte.contingencias.lote', $c->id) }}">@csrf
+                                            <button class="rounded bg-emerald-600 px-3 py-1 text-xs font-semibold text-white">Transmitir lote</button></form>
+                                        @if($c->lote_limite_at)<p class="mt-1 text-xs text-gray-500">Límite: {{ \Illuminate\Support\Carbon::parse($c->lote_limite_at, 'UTC')->setTimezone(config('dte.timezone', 'America/El_Salvador'))->format('d/m/Y H:i') }}</p>@endif
+                                    @endif
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    @endif
+
     <div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
         <a href="{{ route('dte.customers.index') }}" class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-indigo-300">
             <h2 class="text-lg font-semibold text-gray-900">Clientes (Receptores)</h2>

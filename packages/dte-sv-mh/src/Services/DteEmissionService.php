@@ -100,34 +100,7 @@ class DteEmissionService
                 ],
             ]);
 
-            DB::table('dte_contingencias')->updateOrInsert(
-                [
-                    'company_id' => $sale->company_id,
-                    'tipo_contingencia' => 1,
-                    'estado' => 'ABIERTA',
-                ],
-                [
-                    'codigo_evento' => null,
-                    'motivo' => 'Falla internet simulada',
-                    'fecha_inicio' => now(),
-                    'fecha_fin' => null,
-                    'updated_at' => now(),
-                    'created_at' => now(),
-                ]
-            );
-
-            $contingenciaId = DB::table('dte_contingencias')
-                ->where('company_id', $sale->company_id)
-                ->where('estado', 'ABIERTA')
-                ->latest('id')
-                ->value('id');
-
-            if ($contingenciaId) {
-                DB::table('dte_contingencia_dtes')->updateOrInsert(
-                    ['contingencia_id' => $contingenciaId, 'dte_id' => $dte->id],
-                    ['reenviado' => false, 'updated_at' => now(), 'created_at' => now()]
-                );
-            }
+            $this->anexarAContingencia($dte, (int) $sale->company_id);
 
             return $dte->fresh();
         }
@@ -422,20 +395,184 @@ class DteEmissionService
         return $this->procesar($dte, $payload, $sale, $settings, $mode);
     }
 
-    public function resendContingency(?int $companyId = null): int
+    /** Avisos del último ciclo de contingencia (modo equivocado, plazos vencidos, rechazos). */
+    private array $avisosContingencia = [];
+
+    /** @return string[] */
+    public function avisosContingencia(): array
     {
-        $query = Dte::query()->where('estado', 'CONTINGENCIA');
-        if ($companyId) {
-            $query->where('company_id', $companyId);
+        return $this->avisosContingencia;
+    }
+
+    /**
+     * Contingencia abierta del establecimiento del documento; se crea con el primer documento emitido fuera de línea.
+     * Una contingencia pertenece a un solo establecimiento porque el evento informa un solo código de establecimiento.
+     */
+    private function anexarAContingencia(Dte $dte, int $companyId): void
+    {
+        $estab = substr((string) $dte->numero_control, 7, 4);
+        $ident = $dte->json_original['identificacion'] ?? [];
+
+        $cont = DB::table('dte_contingencias')
+            ->where('company_id', $companyId)->where('establecimiento', $estab)->where('estado', 'ABIERTA')
+            ->latest('id')->first();
+
+        $id = $cont?->id ?? DB::table('dte_contingencias')->insertGetId([
+            'company_id' => $companyId,
+            'establecimiento' => $estab,
+            'codigo_evento' => null,
+            'tipo_contingencia' => (int) ($ident['tipoContingencia'] ?? 1),
+            'motivo' => $ident['motivoContin'] ?? null,
+            // Fechas de la contingencia en UTC explícito: la zona de la app cambia por empresa en cada petición web.
+            'fecha_inicio' => now('UTC'), // momento del primer documento fuera de línea
+            'fecha_fin' => null,
+            'estado' => 'ABIERTA',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        DB::table('dte_contingencia_dtes')->updateOrInsert(
+            ['contingencia_id' => $id, 'dte_id' => $dte->id],
+            ['reenviado' => false, 'updated_at' => now(), 'created_at' => now()]
+        );
+    }
+
+    /** Documentos de la contingencia que siguen sin transmitir. */
+    private function pendientesDeContingencia(int $contingenciaId): \Illuminate\Support\Collection
+    {
+        $ids = DB::table('dte_contingencia_dtes')->where('contingencia_id', $contingenciaId)->where('reenviado', false)->pluck('dte_id');
+
+        return Dte::withoutGlobalScopes()->whereIn('id', $ids)->where('estado', 'CONTINGENCIA')->orderBy('id')->get();
+    }
+
+    /**
+     * MOMENTO 2 (Manual §VIII): arma, firma y transmite el Evento de Contingencia que informa todos los documentos
+     * generados fuera de línea. Es requisito previo para enviar el lote. Plazo legal: 24 h desde el cese de la causa.
+     * Debe ejecutarse con el modo de integración ya en Real o Simulación (hay conexión de nuevo).
+     *
+     * @return array{estado:string, sello:?string, mensaje:?string}
+     */
+    public function cerrarContingencia(int $contingenciaId): array
+    {
+        $cont = DB::table('dte_contingencias')->find($contingenciaId);
+        if (! $cont) {
+            throw new \RuntimeException('Contingencia no encontrada.');
+        }
+        if (! in_array($cont->estado, ['ABIERTA', 'EVENTO_RECHAZADO'], true)) {
+            throw new \RuntimeException("Esta contingencia ya está en estado {$cont->estado}: el evento ya fue transmitido.");
         }
 
-        $dtes = $query->orderBy('id')->get();
+        $settings = $this->resolveSettings((int) $cont->company_id);
+        $mode = $this->factory->mode($settings);
+        if ($mode === 'contingencia') {
+            throw new \RuntimeException('Cambie el modo de integración a Real (o Simulación) antes de transmitir el evento: se envía cuando vuelve la conexión.');
+        }
+
+        $dtes = $this->pendientesDeContingencia($contingenciaId);
+        if ($dtes->isEmpty()) {
+            throw new \RuntimeException('La contingencia no tiene documentos pendientes de informar.');
+        }
+
+        $company = \App\Models\Company::withoutGlobalScopes()->findOrFail($cont->company_id);
+        $codEstab = $cont->establecimiento ?: substr((string) $dtes->first()->numero_control, 7, 4);
+        $codPv = substr((string) $dtes->first()->numero_control, 11, 4);
+        $estab = \Stockia\DteSvMh\Models\DteEstablecimiento::withoutGlobalScopes()->where('company_id', $company->id)->where('codigo', $codEstab)->first();
+
+        if ($settings->responsable_nombre && $settings->responsable_tipo_doc && $settings->responsable_num_doc) {
+            $persona = ['nombre' => $settings->responsable_nombre, 'tipo_doc' => $settings->responsable_tipo_doc, 'num_doc' => $settings->responsable_num_doc];
+        } elseif ($mode === 'real') {
+            throw new \RuntimeException('Configure el responsable (nombre y documento) en DTE > Administración antes de transmitir el evento en modo real.');
+        } else {
+            $persona = ['nombre' => 'RESPONSABLE DE PRUEBA (SIMULACION)', 'tipo_doc' => '13', 'num_doc' => '000000000'];
+        }
+
+        $zona = config('dte.timezone', 'America/El_Salvador');
+        $ahora = now($zona);
+        $inicio = \Carbon\CarbonImmutable::parse((string) $cont->fecha_inicio, 'UTC')->setTimezone($zona);
+        $codigoGeneracion = strtoupper((string) Str::uuid());
+        $nit = FiscalId::nitDigits($company->nit ?: $company->tax_id);
+        if ($nit === null) {
+            throw new \RuntimeException('El NIT del emisor no es válido (Administración Central).');
+        }
+
+        $evento = (new \Stockia\DteSvMh\Builders\ContingenciaBuilder())->build([
+            'ambiente' => (string) $settings->ambiente,
+            'codigo_generacion' => $codigoGeneracion,
+            'fecha' => $ahora,
+            'inicio' => $inicio,
+            'fin' => $ahora,
+            'tipo_contingencia' => (int) $cont->tipo_contingencia,
+            'motivo' => $cont->motivo,
+            'emisor' => [
+                'nit' => $nit,
+                'nombre' => $company->nombre_razon_social ?: $company->legal_name ?: $company->name,
+                'responsable' => $persona,
+                'tipo_establecimiento' => $estab?->tipo_establecimiento ?: '02',
+                'codEstableMH' => $codEstab,
+                'codPuntoVentaMH' => $codPv,
+                'telefono' => $estab?->telefono ?: ($company->telefono ?: $company->fiscal_phone),
+                'correo' => $estab?->correo ?: ($company->correo ?: $company->fiscal_email),
+            ],
+            'documentos' => $dtes->map(fn ($d) => ['tipo_dte' => $d->tipo_dte, 'codigo_generacion' => $d->codigo_generacion])->all(),
+        ]);
+
+        app(DteSchemaValidator::class)->asegurar($evento, 'contingencia');
+
+        // La firma espera una venta: se le pasa un contenedor con la empresa (certificado).
+        $contexto = new Sale();
+        $contexto->company_id = $company->id;
+        $contexto->setRelation('company', $company);
+        $firmado = $this->factory->signer($settings)->sign($evento, $contexto, $settings);
+        $envio = $this->factory->sender($settings)->send($firmado, $settings);
+
+        $aceptado = ($envio['status'] ?? null) === 'ACEPTADO' && ! empty($envio['sello']);
+        DB::table('dte_contingencias')->where('id', $contingenciaId)->update([
+            'estado' => $aceptado ? 'EVENTO_ENVIADO' : 'EVENTO_RECHAZADO',
+            'codigo_generacion_evento' => $codigoGeneracion,
+            'codigo_evento' => $codigoGeneracion,
+            'json_evento' => json_encode($evento, JSON_UNESCAPED_UNICODE),
+            'json_firmado_evento' => json_encode($firmado, JSON_UNESCAPED_UNICODE),
+            'sello_evento' => $aceptado ? $envio['sello'] : null,
+            'respuesta_evento' => isset($envio['response']) ? json_encode($envio['response']) : null,
+            'fecha_fin' => now('UTC'),
+            'evento_enviado_at' => $aceptado ? now('UTC') : null,
+            // MOMENTO 3: 72 h desde el sello del evento para transmitir el lote.
+            'lote_limite_at' => $aceptado ? now('UTC')->addHours(72) : null,
+            'updated_at' => now(),
+        ]);
+
+        return [
+            'estado' => $aceptado ? 'EVENTO_ENVIADO' : 'EVENTO_RECHAZADO',
+            'sello' => $aceptado ? $envio['sello'] : null,
+            'mensaje' => $aceptado ? null : ($envio['error'] ?? 'Hacienda rechazó el evento: corríjalo y retransmita dentro de 24 horas.'),
+        ];
+    }
+
+    /**
+     * MOMENTO 3 (Manual §VIII): transmite el lote de documentos informados en el evento. Solo con el evento ya
+     * sellado y dentro de las 72 h siguientes; los documentos no se modifican (mismo tipo de contingencia y motivo).
+     */
+    public function enviarLoteContingencia(int $contingenciaId): int
+    {
+        $cont = DB::table('dte_contingencias')->find($contingenciaId);
+        if (! $cont) {
+            throw new \RuntimeException('Contingencia no encontrada.');
+        }
+        if ($cont->estado !== 'EVENTO_ENVIADO' || ! $cont->sello_evento) {
+            throw new \RuntimeException('Primero debe transmitirse el evento de contingencia y recibir su sello: sin él Hacienda no procesa el lote.');
+        }
+        if ($cont->lote_limite_at && now()->greaterThan(\Carbon\CarbonImmutable::parse((string) $cont->lote_limite_at, 'UTC'))) {
+            throw new \RuntimeException('Venció el plazo de 72 horas para el lote: informe y justifique por escrito a la DGII y solicite prórroga.');
+        }
+
+        $settings = $this->resolveSettings((int) $cont->company_id);
+        if ($this->factory->mode($settings) === 'contingencia') {
+            throw new \RuntimeException('Cambie el modo de integración a Real (o Simulación) para transmitir el lote.');
+        }
+        $sender = $this->factory->sender($settings);
         $processed = 0;
 
-        foreach ($dtes as $dte) {
-            $settings = $this->resolveSettings((int) $dte->company_id);
-            $sender = $this->factory->sender($settings, 'simulacion');
-
+        foreach ($this->pendientesDeContingencia($contingenciaId) as $dte) {
             $signed = is_array($dte->json_firmado) ? $dte->json_firmado : ['payload' => $dte->json_original];
             if (! isset($signed['payload'])) {
                 $signed['payload'] = $dte->json_original;
@@ -463,10 +600,46 @@ class DteEmissionService
             ]);
 
             DB::table('dte_contingencia_dtes')
-                ->where('dte_id', $dte->id)
+                ->where('contingencia_id', $contingenciaId)->where('dte_id', $dte->id)
                 ->update(['reenviado' => true, 'reenviado_at' => now(), 'updated_at' => now()]);
 
             $processed++;
+        }
+
+        if ($this->pendientesDeContingencia($contingenciaId)->isEmpty()) {
+            DB::table('dte_contingencias')->where('id', $contingenciaId)->update(['estado' => 'CERRADA', 'updated_at' => now()]);
+        }
+
+        return $processed;
+    }
+
+    /**
+     * Regulariza las contingencias de la empresa (o de todas): transmite el evento y, con su sello, el lote.
+     * Devuelve los documentos transmitidos; lo que no se pudo hacer queda en avisosContingencia().
+     */
+    public function resendContingency(?int $companyId = null): int
+    {
+        $this->avisosContingencia = [];
+        $query = DB::table('dte_contingencias')->whereIn('estado', ['ABIERTA', 'EVENTO_RECHAZADO', 'EVENTO_ENVIADO'])->orderBy('id');
+        if ($companyId) {
+            $query->where('company_id', $companyId);
+        }
+
+        $processed = 0;
+        foreach ($query->get() as $cont) {
+            try {
+                if (in_array($cont->estado, ['ABIERTA', 'EVENTO_RECHAZADO'], true)) {
+                    $evento = $this->cerrarContingencia((int) $cont->id);
+                    if ($evento['estado'] !== 'EVENTO_ENVIADO') {
+                        $this->avisosContingencia[] = "Contingencia #{$cont->id}: evento rechazado. ".$evento['mensaje'];
+
+                        continue;
+                    }
+                }
+                $processed += $this->enviarLoteContingencia((int) $cont->id);
+            } catch (\RuntimeException $e) {
+                $this->avisosContingencia[] = "Contingencia #{$cont->id}: ".$e->getMessage();
+            }
         }
 
         return $processed;

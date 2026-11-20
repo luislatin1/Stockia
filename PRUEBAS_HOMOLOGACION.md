@@ -44,15 +44,16 @@ No toca la base de datos. Código de salida 0 si todo pasa, 1 si algo falla, 2 s
 | 08 | Comprobante de Liquidación | 75 | **no** | pendiente |
 | 09 | Documento Contable de Liquidación | 50 | **no** | pendiente |
 | 15 | Comprobante de Donación | 25 | **no** | pendiente |
-| contingencia | Evento de Contingencia | 5 | **no** | pendiente |
+| contingencia | Evento de Contingencia | 5 | sí | **OK** |
 | operaciones_especiales | Evento de Operaciones Especiales | 5 | **no** | pendiente |
 
 Los tipos sin constructor **no los emite Stockia hoy**. La homologación probablemente solo exige los tipos que el
 contribuyente va a usar (el manual no lo aclara: confirmar con Hacienda qué subconjunto se exige a cada cliente).
 
-**Atención con la contingencia:** Stockia ya puede emitir documentos en modo contingencia, pero **no construye el Evento de
-Contingencia** que Hacienda exige después (dentro de 24 h del cese de la causa, con el lote de documentos en 72 h; ver Manual §VIII).
-Es el hueco más relevante de los pendientes; sin él, los documentos emitidos en contingencia no se pueden regularizar.
+**Contingencia (resuelta 2026-11-20):** Stockia emite en contingencia y ahora también regulariza el ciclo completo
+(Manual §VIII): momento 2, **Evento de Contingencia** (≤ 24 h del cese) y momento 3, **lote** de documentos (≤ 72 h del sello del evento).
+Se opera desde DTE > Administración (botones "Transmitir evento" y "Transmitir lote") o con `php artisan dte:reenviar-contingencia`.
+Antes hay que volver el modo de integración a Real (o Simulación).
 
 ## Requisitos para la prueba real (nada de esto lo da este comando)
 
