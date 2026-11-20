@@ -68,6 +68,12 @@ Se ejecuta desde el ajuste administrativo de ventas (`SaleController::storeAdmin
 - El esquema del evento solo admite `motivoContin` cuando el tipo de contingencia es 5; el constructor lo respeta (en contingencia automática se usa tipo 1, motivo null).
 - **Pendiente:** invalidar un Evento de Retorno (evento de invalidación sobre tipo 18); Evento de Retorno para FEX y FSE (el constructor solo acepta Factura); ND desde la pantalla. 126 tests pasan.
 
+### 2.6 Nota de Débito desde la pantalla (construido 2026-11-20)
+- Pantalla propia `sales/{sale}/debit-note` (botón "Nota de débito" en el detalle de una venta vigente con CCF aceptado). Motivos internos: cargo adicional, intereses por mora, diferencia de precio a favor del vendedor, otro cargo (`DteDevolucionService::MOTIVOS_DEBITO`). Hacienda no define motivos: van en `observaciones`. Cargos libres (descripción + monto sin IVA + gravada/exenta/no sujeta), tipo de ítem servicio y unidad "otra".
+- `DteEmissionService::emitirNotaDebito` (06) comparte con la Nota de Crédito el método privado `emitirNotaSobreCcf` (CCF aceptado, receptor, numeración, validación de esquema, firma/transmisión). Queda registrada como ajuste (`sale_adjustments.action_type = debit_note`, `dte_ruta = nota_debito`) y visible en el detalle de la venta.
+- Efecto en cuentas por cobrar: venta a **crédito** → el total de la ND (con IVA, menos retención) se suma a `saldo_pendiente`; venta de contado → no se toca el saldo (el cobro se registra aparte). No mueve inventario ni caja ni el total/estado de la venta. Requiere clave de administrador para vendedores, igual que los ajustes. Todo en una transacción: si Hacienda no acepta, se revierte.
+- **Supuesto sin verificar en los documentos entregados:** que una ND sirva para aumentar el valor de un CCF (cargos, intereses, diferencias de precio). Es el uso conocido del Código Tributario, pero ni el manual ni los extractos de la normativa lo describen; confirmar con el contador. Solo sobre CCF (no sobre Factura). Invalidar una ND no tiene pantalla aún. 132 tests pasan.
+
 **Supuestos por cotejar con el Anexo IV/catálogos (no verificados contra el PDF):**
 - (Verificado después contra el catálogo: CAT-017 `01` y CAT-018 `01` correctos.) Stockia solo distingue efectivo/crédito; tarjeta, transferencia, etc. salen como efectivo hasta que existan en el POS.
 - Los totales del DTE se recalculan desde el ítem (precio × 1,13); pueden diferir centavos de `sales.total`. El DTE manda para Hacienda.

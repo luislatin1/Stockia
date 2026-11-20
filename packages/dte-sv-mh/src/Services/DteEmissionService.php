@@ -168,29 +168,11 @@ class DteEmissionService
      */
     public function emitirNotaCredito(Sale $sale, Dte $origen, array $lineas, string $observaciones, ?int $adjustmentId = null): Dte
     {
-        if ((string) $origen->tipo_dte !== '03') {
-            throw new \RuntimeException('La Nota de Crédito solo se emite sobre un Comprobante de Crédito Fiscal (03).');
-        }
-        if ((string) $origen->estado !== 'ACEPTADO' || ! $origen->sello_recepcion) {
-            throw new \RuntimeException('El CCF original debe estar ACEPTADO por Hacienda (con sello) para emitir una Nota de Crédito.');
-        }
         if ($lineas === []) {
             throw new \RuntimeException('La Nota de Crédito necesita al menos una línea.');
         }
 
         $sale->loadMissing(['company', 'items.product']);
-        $settings = $this->resolveSettings((int) $sale->company_id);
-        if (! $settings->enabled) {
-            throw new \RuntimeException('El módulo DTE está deshabilitado para esta empresa; no se puede emitir la Nota de Crédito.');
-        }
-        $mode = $this->factory->mode($settings);
-        $emisorFiscal = app(DteEmitterResolver::class)->forSale($sale);
-
-        if ($mode === 'real' && (! $emisorFiscal['establecimiento']->codigo_confirmado || ! $emisorFiscal['punto_venta']->codigo_confirmado)) {
-            throw new \RuntimeException('Modo real: confirme con Hacienda los códigos de establecimiento y punto de venta antes de emitir.');
-        }
-
-        $orig = $origen->json_original;
         $itemsById = $sale->items->keyBy('id');
         $cuerpo = [];
         foreach ($lineas as $l) {
@@ -215,6 +197,69 @@ class DteEmissionService
             ];
         }
 
+        return $this->emitirNotaSobreCcf('05', $sale, $origen, $cuerpo, $observaciones, $adjustmentId);
+    }
+
+    /**
+     * Nota de Débito (06) sobre un CCF aceptado: cargos adicionales, intereses o diferencias de precio al alza.
+     *
+     * @param  array<int, array{descripcion:string, monto_neto:float, categoria?:string}>  $lineas
+     *         monto_neto = valor del cargo SIN IVA; categoria gravada (por defecto) | exenta | no_sujeta
+     */
+    public function emitirNotaDebito(Sale $sale, Dte $origen, array $lineas, string $observaciones, ?int $adjustmentId = null): Dte
+    {
+        if ($lineas === []) {
+            throw new \RuntimeException('La Nota de Débito necesita al menos un cargo.');
+        }
+
+        $cuerpo = [];
+        foreach ($lineas as $l) {
+            $monto = round((float) $l['monto_neto'], 2);
+            $desc = trim((string) ($l['descripcion'] ?? ''));
+            if ($monto <= 0 || $desc === '') {
+                throw new \RuntimeException('Cada cargo de la Nota de Débito necesita descripción y un monto mayor a cero.');
+            }
+            $cuerpo[] = [
+                'codigo' => null,
+                'descripcion' => $desc,
+                'cantidad' => 1.0,
+                'precio' => $monto,
+                'descuento' => 0,
+                'categoria' => in_array(($l['categoria'] ?? 'gravada'), ['gravada', 'exenta', 'no_sujeta'], true) ? $l['categoria'] ?? 'gravada' : 'gravada',
+                'tipo_item' => 2, // servicio (CAT-011): un cargo no es un bien
+                'uni_medida' => 99, // otra (CAT-014)
+            ];
+        }
+
+        return $this->emitirNotaSobreCcf('06', $sale, $origen, $cuerpo, $observaciones, $adjustmentId);
+    }
+
+    /** Parte común de NC (05) y ND (06): ambas son v4, se emiten sobre un CCF con sello y llevan el mismo receptor. */
+    private function emitirNotaSobreCcf(string $tipo, Sale $sale, Dte $origen, array $cuerpo, string $observaciones, ?int $adjustmentId): Dte
+    {
+        $nombre = $tipo === '05' ? 'Nota de Crédito' : 'Nota de Débito';
+
+        if ((string) $origen->tipo_dte !== '03') {
+            throw new \RuntimeException("La {$nombre} solo se emite sobre un Comprobante de Crédito Fiscal (03).");
+        }
+        if ((string) $origen->estado !== 'ACEPTADO' || ! $origen->sello_recepcion) {
+            throw new \RuntimeException("El CCF original debe estar ACEPTADO por Hacienda (con sello) para emitir una {$nombre}.");
+        }
+
+        $sale->loadMissing(['company']);
+        $settings = $this->resolveSettings((int) $sale->company_id);
+        if (! $settings->enabled) {
+            throw new \RuntimeException("El módulo DTE está deshabilitado para esta empresa; no se puede emitir la {$nombre}.");
+        }
+        $mode = $this->factory->mode($settings);
+        $emisorFiscal = app(DteEmitterResolver::class)->forSale($sale);
+
+        if ($mode === 'real' && (! $emisorFiscal['establecimiento']->codigo_confirmado || ! $emisorFiscal['punto_venta']->codigo_confirmado)) {
+            throw new \RuntimeException('Modo real: confirme con Hacienda los códigos de establecimiento y punto de venta antes de emitir.');
+        }
+
+        $orig = $origen->json_original;
+
         $r = $orig['receptor'] ?? null;
         if (! $r || empty($r['nit'])) {
             throw new \RuntimeException('El CCF original no tiene receptor con NIT.');
@@ -229,14 +274,14 @@ class DteEmissionService
             (int) $sale->company_id,
             $emisorFiscal['establecimiento'],
             $emisorFiscal['punto_venta'],
-            '05',
+            $tipo,
             (string) ($settings->numeracion_modo ?: DteNumberingService::MODO_CENTRALIZADA),
         );
         $codigoGeneracion = strtoupper((string) Str::uuid());
         $fecha = now(config('dte.timezone', 'America/El_Salvador'));
 
         $payload = (new DteV2Builder())->build([
-            'tipo_dte' => '05',
+            'tipo_dte' => $tipo,
             'ambiente' => (string) $settings->ambiente,
             'numero_control' => $correlative['numero_control'],
             'codigo_generacion' => $codigoGeneracion,
@@ -257,14 +302,14 @@ class DteEmissionService
             'observaciones' => $observaciones,
         ]);
 
-        app(DteSchemaValidator::class)->asegurar($payload, '05');
+        app(DteSchemaValidator::class)->asegurar($payload, $tipo);
 
         $dte = Dte::create([
             'company_id' => $sale->company_id,
             'sale_id' => $sale->id,
             'dte_origen_id' => $origen->id,
             'sale_adjustment_id' => $adjustmentId,
-            'tipo_dte' => '05',
+            'tipo_dte' => $tipo,
             'codigo_generacion' => $codigoGeneracion,
             'numero_control' => $correlative['numero_control'],
             'json_original' => $payload,

@@ -359,6 +359,104 @@ class DteDevolucionTest extends TestCase
         $this->assertSame('ninguna', $res['ruta']);
     }
 
+    // ---- Nota de Débito sobre CCF -------------------------------------------------------------
+
+    public function test_nota_de_debito_de_ccf_es_valida_y_suma_iva(): void
+    {
+        $sale = $this->ventaConDte('03');
+        $id = $this->ajuste($sale, 'debit_note');
+
+        $nd = $this->servicio()->emitirDebito($sale, $id, 'intereses_mora', [
+            ['descripcion' => 'Intereses por mora de octubre', 'monto_neto' => 100.0],
+            ['descripcion' => 'Gastos de cobranza exentos', 'monto_neto' => 5.0, 'categoria' => 'exenta'],
+        ], 'cliente pagó tarde');
+
+        $this->assertSame(['06', 'ACEPTADO'], [$nd->tipo_dte, $nd->estado]);
+        $origen = Dte::where('sale_id', $sale->id)->where('tipo_dte', '03')->first();
+        $this->assertSame($origen->id, (int) $nd->dte_origen_id);
+
+        $json = $nd->json_original;
+        $this->assertSame([], (new DteSchemaValidator(new DteSchemaRegistry()))->validar($json, '06'));
+        $this->assertSame($origen->codigo_generacion, $json['documentoRelacionado'][0]['numeroDocumento']);
+        $this->assertEquals(100.0, $json['resumen']['totalGravada']);
+        $this->assertEquals(5.0, $json['resumen']['totalExenta']);
+        $this->assertEquals(13.0, $json['resumen']['totalIva']);
+        $this->assertEquals(118.0, $json['resumen']['totalPagar']);
+        $this->assertStringContainsString('Intereses por mora', $json['resumen']['observaciones']);
+        $this->assertArrayNotHasKey('codEstable', $json['emisor']);
+
+        $fila = DB::table('sale_adjustments')->find($id);
+        $this->assertSame(['intereses_mora', 'nota_debito', $nd->id], [$fila->motivo, $fila->dte_ruta, (int) $fila->dte_id]);
+    }
+
+    public function test_la_nota_de_debito_aumenta_el_saldo_de_una_venta_a_credito(): void
+    {
+        $sale = $this->ventaConDte('03');
+        DB::table('sales')->where('id', $sale->id)->update(['payment_method' => 'credit', 'saldo_pendiente' => 50]);
+
+        $this->servicio()->emitirDebito($sale->fresh(), $this->ajuste($sale, 'debit_note'), 'cargo_adicional',
+            [['descripcion' => 'Flete', 'monto_neto' => 10.0]], '');
+
+        $this->assertEquals(61.3, (float) DB::table('sales')->where('id', $sale->id)->value('saldo_pendiente'));
+    }
+
+    public function test_la_nota_de_debito_no_toca_el_saldo_si_fue_de_contado(): void
+    {
+        $sale = $this->ventaConDte('03');
+        $this->servicio()->emitirDebito($sale, $this->ajuste($sale, 'debit_note'), 'cargo_adicional',
+            [['descripcion' => 'Flete', 'monto_neto' => 10.0]], '');
+
+        $this->assertEquals(0.0, (float) DB::table('sales')->where('id', $sale->id)->value('saldo_pendiente'));
+    }
+
+    public function test_no_hay_nota_de_debito_sobre_factura_ni_con_motivo_inventado(): void
+    {
+        $factura = $this->ventaConDte('01');
+        try {
+            $this->servicio()->emitirDebito($factura, $this->ajuste($factura, 'debit_note'), 'cargo_adicional', [['descripcion' => 'Flete', 'monto_neto' => 10.0]], '');
+            $this->fail('Una factura no admite nota de débito');
+        } catch (\RuntimeException $e) {
+            $this->assertStringContainsString('Comprobante de Crédito Fiscal', $e->getMessage());
+        }
+
+        $ccf = $this->ventaConDte('03');
+        $this->expectExceptionMessage('Motivo de nota de débito no reconocido');
+        $this->servicio()->emitirDebito($ccf, $this->ajuste($ccf, 'debit_note'), 'inventado', [['descripcion' => 'x', 'monto_neto' => 1.0]], '');
+    }
+
+    public function test_pantalla_y_controlador_de_nota_de_debito(): void
+    {
+        $sale = $this->ventaConDte('03');
+        $this->entrar();
+
+        $this->get(route('sales.show', $sale))->assertOk()->assertSee('Nota de débito', false);
+        $this->get(route('sales.debit-note', $sale))->assertOk()->assertSee('Intereses por mora', false);
+
+        // Sin cargos válidos: error y nada se guarda.
+        $this->post(route('sales.debit-note.store', $sale), ['motivo' => 'otro_cargo', 'lines' => [['descripcion' => 'Sin monto', 'monto' => '']]])
+            ->assertSessionHasErrors();
+        $this->assertSame(0, DB::table('sale_adjustments')->count());
+
+        $this->post(route('sales.debit-note.store', $sale), [
+            'motivo' => 'cargo_adicional', 'lines' => [['descripcion' => 'Flete a domicilio', 'monto' => 20, 'categoria' => 'gravada'], ['descripcion' => '', 'monto' => '']],
+        ])->assertSessionHasNoErrors()->assertRedirect(route('sales.show', $sale));
+
+        $this->assertSame(1, Dte::where('sale_id', $sale->id)->where('tipo_dte', '06')->count());
+        $this->assertSame('debit_note', DB::table('sale_adjustments')->value('action_type'));
+        $this->assertSame('completed', $sale->fresh()->status);
+
+        $this->get(route('sales.show', $sale))->assertSee('Nota de Débito emitida', false);
+    }
+
+    public function test_la_pantalla_de_nota_de_debito_no_aplica_a_facturas(): void
+    {
+        $sale = $this->ventaConDte('01');
+        $this->entrar();
+
+        $this->get(route('sales.show', $sale))->assertOk()->assertDontSee('Nota de débito', false);
+        $this->get(route('sales.debit-note', $sale))->assertRedirect(route('sales.show', $sale));
+    }
+
     // ---- Pantalla / controlador -----------------------------------------------------------
 
     private function entrar(): void

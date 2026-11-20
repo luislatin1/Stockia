@@ -25,6 +25,11 @@
             <a href="{{ route('sales.invoice.pdf', $sale) }}" target="_blank" class="rounded border border-indigo-200 bg-white px-3 py-2 text-sm font-semibold text-indigo-700">
                 Factura PDF
             </a>
+            @if(! empty($puedeNotaDebito))
+                <a href="{{ route('sales.debit-note', $sale) }}" class="rounded border border-indigo-200 bg-white px-3 py-2 text-sm font-semibold text-indigo-700">
+                    Nota de débito
+                </a>
+            @endif
             @if($sale->status === 'completed')
                 <a href="{{ route('sales.admin-adjustment', $sale) }}" class="rounded bg-red-600 px-3 py-2 text-sm font-semibold text-white">
                     {{ $isAdminRole ? 'Cancelar / Anular' : 'Solicitar Cancelacion' }}
@@ -191,7 +196,7 @@
                     <div class="rounded border border-gray-200 bg-gray-50 p-3 text-sm">
                         <div class="flex flex-wrap items-center justify-between gap-2">
                             <p class="font-semibold text-gray-900">
-                                {{ match($adjustment->action_type) { 'cancel_sale' => 'Cancelacion de venta', 'return_items' => 'Devolucion / ajuste', default => 'Anulacion de factura' } }}
+                                {{ match($adjustment->action_type) { 'cancel_sale' => 'Cancelacion de venta', 'return_items' => 'Devolucion / ajuste', 'debit_note' => 'Nota de debito', default => 'Anulacion de factura' } }}
                             </p>
                             <p class="text-xs text-gray-500">{{ \Carbon\Carbon::parse($adjustment->created_at)->format('d/m/Y H:i') }}</p>
                         </div>
@@ -199,9 +204,9 @@
                         <p class="text-xs text-gray-600">Devolucion de efectivo: {{ $adjustment->refund_cash ? '$' . number_format((float) $adjustment->refund_amount, 2) : 'No' }}</p>
                         <p class="text-xs text-gray-600">Devolucion de productos: {{ $adjustment->return_products ? 'Si' : 'No' }}</p>
                         @if(! empty($adjustment->motivo))
-                            <p class="text-xs text-gray-600">Motivo: {{ \Stockia\DteSvMh\Devolucion\RutaDevolucion::etiqueta($adjustment->motivo) }}
+                            <p class="text-xs text-gray-600">Motivo: {{ \Stockia\DteSvMh\Devolucion\DteDevolucionService::MOTIVOS_DEBITO[$adjustment->motivo] ?? \Stockia\DteSvMh\Devolucion\RutaDevolucion::etiqueta($adjustment->motivo) }}
                                 @if(! empty($adjustment->dte_ruta) && $adjustment->dte_ruta !== 'ninguna')
-                                    &middot; Hacienda: {{ match($adjustment->dte_ruta) { 'nota_credito' => 'Nota de Crédito emitida', 'evento_retorno' => 'Evento de Retorno emitido', default => 'DTE invalidado' } }}
+                                    &middot; Hacienda: {{ match($adjustment->dte_ruta) { 'nota_credito' => 'Nota de Crédito emitida', 'nota_debito' => 'Nota de Débito emitida', 'evento_retorno' => 'Evento de Retorno emitido', default => 'DTE invalidado' } }}
                                 @endif
                             </p>
                         @endif

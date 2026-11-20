@@ -194,6 +194,12 @@ Route::middleware(['auth'])->group(function () {
 
                 Route::post('sales/{sale}/admin-adjustment', [SaleController::class, 'storeAdminAdjustment'])
                     ->name('sales.admin-adjustment.store');
+
+                Route::get('sales/{sale}/debit-note', [SaleController::class, 'debitNote'])
+                    ->name('sales.debit-note');
+
+                Route::post('sales/{sale}/debit-note', [SaleController::class, 'storeDebitNote'])
+                    ->name('sales.debit-note.store');
             });
 
             Route::middleware(['role:Admin,SuperAdmin', 'can:cuentas-cobrar'])->group(function () {

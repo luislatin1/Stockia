@@ -14,8 +14,62 @@ use Stockia\DteSvMh\Services\DteEmissionService;
  */
 class DteDevolucionService
 {
+    /**
+     * Motivos internos de una Nota de Débito. Hacienda no define una lista (el esquema no trae campo de motivo):
+     * quedan en `observaciones`. Una ND aumenta el valor de un CCF ya emitido.
+     */
+    public const MOTIVOS_DEBITO = [
+        'cargo_adicional' => 'Cargo adicional (flete, gastos)',
+        'intereses_mora' => 'Intereses por mora',
+        'precio_menor' => 'Diferencia de precio a favor del vendedor',
+        'otro_cargo' => 'Otro cargo',
+    ];
+
     public function __construct(private readonly DteEmissionService $emision)
     {
+    }
+
+    /** ¿Se puede emitir una Nota de Débito sobre esta venta? Devuelve el CCF aceptado o null. */
+    public function ccfParaDebito(Sale $sale): ?Dte
+    {
+        $origen = $this->origenDe($sale);
+
+        return $origen && (string) $origen->tipo_dte === '03' && (string) $origen->estado === 'ACEPTADO' ? $origen : null;
+    }
+
+    /**
+     * Emite la Nota de Débito de un CCF por cargos adicionales. Se llama dentro de la transacción del
+     * controlador: si Hacienda no la acepta se lanza y se revierte todo.
+     *
+     * @param  array<int, array{descripcion:string, monto_neto:float, categoria?:string}>  $lineas
+     */
+    public function emitirDebito(Sale $sale, int $ajusteId, string $motivo, array $lineas, string $notas): Dte
+    {
+        if (! isset(self::MOTIVOS_DEBITO[$motivo])) {
+            throw new \RuntimeException('Motivo de nota de débito no reconocido.');
+        }
+        $origen = $this->ccfParaDebito($sale);
+        if (! $origen) {
+            throw new \RuntimeException('La Nota de Débito solo se emite sobre un Comprobante de Crédito Fiscal ya aceptado por Hacienda.');
+        }
+
+        $obs = trim(self::MOTIVOS_DEBITO[$motivo]." - venta #{$sale->id}".($notas !== '' ? ": {$notas}" : ''));
+        $nota = $this->emision->emitirNotaDebito($sale, $origen, $lineas, $obs, $ajusteId);
+
+        if (! in_array((string) $nota->estado, ['ACEPTADO', 'CONTINGENCIA'], true)) {
+            throw new \RuntimeException('Hacienda no aceptó la Nota de Débito (estado '.$nota->estado.'). No se aplicó el cargo.');
+        }
+
+        // Venta a crédito: el cargo (con IVA, menos retención) aumenta lo que el cliente debe.
+        if ($sale->payment_method === 'credit') {
+            DB::table('sales')->where('id', $sale->id)->increment('saldo_pendiente', (float) $nota->json_original['resumen']['totalPagar']);
+        }
+
+        DB::table('sale_adjustments')->where('id', $ajusteId)->update([
+            'motivo' => $motivo, 'dte_ruta' => 'nota_debito', 'dte_id' => $nota->id, 'updated_at' => now(),
+        ]);
+
+        return $nota;
     }
 
     /** DTE original de la venta (Factura/CCF), nunca una nota. */

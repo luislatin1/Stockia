@@ -218,7 +218,11 @@ class SaleController extends Controller
             ])
             ->groupBy('sale_adjustment_id');
 
-        return view('sales.show', compact('sale', 'adjustments', 'adjustmentItems'));
+        $puedeNotaDebito = $sale->status === 'completed'
+            && $this->dteDevolucionDisponible()
+            && app(\Stockia\DteSvMh\Devolucion\DteDevolucionService::class)->ccfParaDebito($sale) !== null;
+
+        return view('sales.show', compact('sale', 'adjustments', 'adjustmentItems', 'puedeNotaDebito'));
     }
 
     public function edit(Sale $sale)
@@ -567,6 +571,92 @@ class SaleController extends Controller
         $motivos = \Stockia\DteSvMh\Devolucion\RutaDevolucion::MOTIVOS;
 
         return view('sales.admin-adjustment', compact('sale', 'dteInfo', 'motivos', 'remaining'));
+    }
+
+    public function debitNote(Sale $sale)
+    {
+        [$companyId, $warehouseId] = $this->currentContext();
+        $this->ensureSaleAccess($sale, $companyId, $warehouseId);
+
+        $origen = $this->dteDevolucionDisponible()
+            ? app(\Stockia\DteSvMh\Devolucion\DteDevolucionService::class)->ccfParaDebito($sale)
+            : null;
+
+        if (! $origen || $sale->status !== 'completed') {
+            return redirect()->route('sales.show', $sale)
+                ->withErrors('La nota de débito solo se emite sobre un Comprobante de Crédito Fiscal aceptado por Hacienda y de una venta vigente.');
+        }
+
+        $motivos = \Stockia\DteSvMh\Devolucion\DteDevolucionService::MOTIVOS_DEBITO;
+
+        return view('sales.debit-note', compact('sale', 'origen', 'motivos'));
+    }
+
+    public function storeDebitNote(Request $request, Sale $sale)
+    {
+        [$companyId, $warehouseId] = $this->currentContext();
+        $this->ensureSaleAccess($sale, $companyId, $warehouseId);
+
+        $validated = $request->validate([
+            'motivo' => ['required', 'in:'.implode(',', array_keys(\Stockia\DteSvMh\Devolucion\DteDevolucionService::MOTIVOS_DEBITO))],
+            'lines' => ['required', 'array'],
+            'lines.*.descripcion' => ['nullable', 'string', 'max:200'],
+            'lines.*.monto' => ['nullable', 'numeric', 'min:0', 'max:99999999'],
+            'lines.*.categoria' => ['nullable', 'in:gravada,exenta,no_sujeta'],
+            'notes' => ['nullable', 'string', 'max:500'],
+            'admin_password' => ['nullable', 'string'],
+        ]);
+
+        if ($sale->status !== 'completed') {
+            return back()->withErrors('Solo ventas vigentes admiten una nota de débito.')->withInput();
+        }
+        if (! $this->dteDevolucionDisponible()) {
+            return back()->withErrors('El módulo DTE no está activo.')->withInput();
+        }
+        if (! $this->isAdminRole() && ! $this->validateAdminPassword($validated['admin_password'] ?? null, $companyId)) {
+            return back()->withErrors('Se requiere clave de administrador valida para emitir una nota de débito.')->withInput();
+        }
+
+        $lineas = collect($validated['lines'])
+            ->map(fn ($l) => [
+                'descripcion' => trim((string) ($l['descripcion'] ?? '')),
+                'monto_neto' => round((float) ($l['monto'] ?? 0), 2),
+                'categoria' => (string) ($l['categoria'] ?? 'gravada') ?: 'gravada',
+            ])
+            ->filter(fn ($l) => $l['monto_neto'] > 0 || $l['descripcion'] !== '')
+            ->values();
+
+        if ($lineas->isEmpty() || $lineas->contains(fn ($l) => $l['monto_neto'] <= 0 || $l['descripcion'] === '')) {
+            return back()->withErrors('Cada cargo necesita descripción y un monto (sin IVA) mayor a cero.')->withInput();
+        }
+
+        $notes = trim((string) ($validated['notes'] ?? ''));
+        $svc = app(\Stockia\DteSvMh\Devolucion\DteDevolucionService::class);
+
+        try {
+            DB::transaction(function () use ($validated, $lineas, $notes, $sale, $companyId, $warehouseId, $svc) {
+                $adjustmentId = DB::table('sale_adjustments')->insertGetId([
+                    'sale_id' => $sale->id,
+                    'company_id' => $companyId,
+                    'warehouse_id' => $warehouseId,
+                    'processed_by_user_id' => auth()->id(),
+                    'action_type' => 'debit_note',
+                    'motivo' => $validated['motivo'],
+                    'refund_cash' => false,
+                    'refund_amount' => 0,
+                    'return_products' => false,
+                    'notes' => $notes !== '' ? $notes : null,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+                $svc->emitirDebito($sale->fresh(), $adjustmentId, $validated['motivo'], $lineas->all(), $notes);
+            });
+        } catch (\RuntimeException $e) {
+            return back()->withErrors($e->getMessage())->withInput();
+        }
+
+        return redirect()->route('sales.show', $sale)->with('success', 'Nota de débito emitida y aceptada por Hacienda.');
     }
 
     private function dteDevolucionDisponible(): bool
