@@ -201,7 +201,7 @@
                         @if(! empty($adjustment->motivo))
                             <p class="text-xs text-gray-600">Motivo: {{ \Stockia\DteSvMh\Devolucion\RutaDevolucion::etiqueta($adjustment->motivo) }}
                                 @if(! empty($adjustment->dte_ruta) && $adjustment->dte_ruta !== 'ninguna')
-                                    &middot; Hacienda: {{ $adjustment->dte_ruta === 'nota_credito' ? 'Nota de Crédito emitida' : 'DTE invalidado' }}
+                                    &middot; Hacienda: {{ match($adjustment->dte_ruta) { 'nota_credito' => 'Nota de Crédito emitida', 'evento_retorno' => 'Evento de Retorno emitido', default => 'DTE invalidado' } }}
                                 @endif
                             </p>
                         @endif

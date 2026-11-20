@@ -14,6 +14,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Stockia\DteSvMh\Devolucion\PlazoInvalidacion;
+use Stockia\DteSvMh\Devolucion\PlazoRetorno;
 use Stockia\DteSvMh\Devolucion\RutaDevolucion;
 use Stockia\DteSvMh\Models\Dte;
 use Stockia\DteSvMh\Models\DteEstablecimiento;
@@ -70,7 +71,7 @@ class DteDevolucionTest extends TestCase
         $p2 = Product::withoutGlobalScopes()->create(['company_id' => $this->company->id, 'name' => 'Cinturon '.uniqid(), 'price' => 50, 'stock' => 0]);
 
         foreach ([$p1, $p2] as $p) {
-            DB::table('product_warehouse')->insertOrIgnore(['product_id' => $p->id, 'warehouse_id' => $this->warehouse->id, 'stock' => 0, 'created_at' => now(), 'updated_at' => now()]);
+            DB::table('product_warehouse')->insert(['company_id' => $this->company->id, 'product_id' => $p->id, 'warehouse_id' => $this->warehouse->id, 'stock' => 0, 'created_at' => now(), 'updated_at' => now()]);
         }
 
         $sale = new Sale();
@@ -112,7 +113,7 @@ class DteDevolucionTest extends TestCase
 
     public function test_matriz_de_rutas_para_ccf_y_factura(): void
     {
-        $r = fn ($t, $m, $a) => RutaDevolucion::resolver($t, $m, $a);
+        $r = fn ($t, $m, $a, $ret = false) => RutaDevolucion::resolver($t, $m, $a, $ret);
 
         $this->assertSame('ninguna', $r(null, 'devolucion', 'total')['ruta']);
         $this->assertSame('nota_credito', $r('03', 'devolucion', 'parcial')['ruta']);
@@ -125,7 +126,12 @@ class DteDevolucionTest extends TestCase
         $this->assertSame(['invalidacion', '2', false], [$r('01', 'devolucion', 'total')['ruta'], $r('01', 'devolucion', 'total')['tipo_invalidacion'], $r('01', 'devolucion', 'total')['requiere_reemplazo']]);
         $this->assertSame(['3', true], [$r('01', 'cambio_producto', 'total')['tipo_invalidacion'], $r('01', 'cambio_producto', 'total')['requiere_reemplazo']]);
         $this->assertSame(['1', true], [$r('01', 'error_fecha', 'total')['tipo_invalidacion'], $r('01', 'error_fecha', 'total')['requiere_reemplazo']]);
-        $this->assertSame('bloqueado', $r('01', 'devolucion', 'parcial')['ruta']);
+        $this->assertSame('evento_retorno', $r('01', 'devolucion', 'parcial')['ruta']);
+        $this->assertSame('evento_retorno', $r('01', 'cambio_producto', 'parcial')['ruta']);
+        $this->assertSame('evento_retorno', $r('01', 'garantia', 'total', true)['ruta']);
+        $this->assertSame('bloqueado', $r('01', 'error_fecha', 'total', true)['ruta']);
+        $this->assertSame('bloqueado', $r('01', 'error_precio', 'valor')['ruta']);
+        $this->assertSame('bloqueado', $r('01', 'error_fecha', 'parcial')['ruta']);
         $this->assertSame('bloqueado', $r('05', 'devolucion', 'total')['ruta']);
         $this->assertSame('bloqueado', $r('01', 'inventado', 'total')['ruta']);
     }
@@ -227,10 +233,80 @@ class DteDevolucionTest extends TestCase
         $this->assertSame('2', DB::table('dte_invalidaciones')->value('tipo_invalidacion'));
     }
 
-    public function test_devolucion_parcial_de_factura_se_bloquea(): void
+    // ---- Evento de Retorno sobre Factura ----------------------------------------------------
+
+    public function test_devolucion_parcial_de_factura_emite_evento_de_retorno_valido(): void
     {
         $sale = $this->ventaConDte('01');
-        $this->expectExceptionMessage('Evento de Retorno');
+        $camisa = $sale->items->first(); // 2 × 50 neto → 56,50 c/IVA por unidad
+        $id = $this->ajuste($sale);
+
+        $res = $this->servicio()->ejecutar($sale, $id, 'garantia', 'parcial', 'return_items',
+            [['sale_item_id' => $camisa->id, 'quantity' => 1]], null, '');
+
+        $this->assertSame('evento_retorno', $res['ruta']);
+        $ev = $res['dte'];
+        $this->assertSame(['18', 'ACEPTADO'], [$ev->tipo_dte, $ev->estado]);
+        $origen = Dte::where('sale_id', $sale->id)->where('tipo_dte', '01')->first();
+        $this->assertSame($origen->id, (int) $ev->dte_origen_id);
+        $this->assertSame('ACEPTADO', $origen->fresh()->estado, 'la factura sigue vigente');
+
+        $json = $ev->json_original;
+        $this->assertSame([], (new DteSchemaValidator(new DteSchemaRegistry()))->validar($json, 'retorno'));
+        $this->assertSame($origen->codigo_generacion, $json['documentoRelacionado'][0]['codigoGeneracion']);
+        $this->assertEquals(56.5, $json['resumen']['totalPagar']);
+        $this->assertEquals(6.5, $json['resumen']['totalIva']);
+        $this->assertNull($json['documento'], 'factura a consumidor final sin identificar');
+        $this->assertSame('evento_retorno', DB::table('sale_adjustments')->find($id)->dte_ruta);
+    }
+
+    public function test_tras_un_retorno_la_devolucion_del_resto_tambien_es_retorno_y_no_se_invalida(): void
+    {
+        $sale = $this->ventaConDte('01');
+        $camisa = $sale->items->first();
+        $id1 = $this->ajuste($sale);
+        $this->servicio()->ejecutar($sale, $id1, 'devolucion', 'parcial', 'return_items',
+            [['sale_item_id' => $camisa->id, 'quantity' => 1]], null, '');
+        DB::table('sale_adjustment_items')->insert(['sale_adjustment_id' => $id1, 'sale_item_id' => $camisa->id, 'product_id' => $camisa->product_id,
+            'quantity' => 1, 'product_condition' => 'unopened', 'restocked' => true, 'created_at' => now(), 'updated_at' => now()]);
+
+        // Devolver "todo" ahora ya no puede ser invalidación (hay un retorno vigente): se retorna lo que resta.
+        $res = $this->servicio()->ejecutar($sale, $this->ajuste($sale, 'void_invoice'), 'devolucion', 'total', 'void_invoice', [], null, '');
+        $this->assertSame('evento_retorno', $res['ruta']);
+        // Resta 1 camisa (56,50) + 1 cinturón (56,50) = 113,00
+        $this->assertEquals(113.0, $res['dte']->json_original['resumen']['totalPagar']);
+        $this->assertSame(2, Dte::where('sale_id', $sale->id)->where('tipo_dte', '18')->count());
+        $this->assertSame('ACEPTADO', Dte::where('sale_id', $sale->id)->where('tipo_dte', '01')->first()->estado);
+    }
+
+    public function test_factura_con_retorno_no_se_invalida_por_error(): void
+    {
+        $sale = $this->ventaConDte('01');
+        $this->servicio()->ejecutar($sale, $this->ajuste($sale), 'devolucion', 'parcial', 'return_items',
+            [['sale_item_id' => $sale->items->first()->id, 'quantity' => 1]], null, '');
+        $nueva = $this->ventaConDte('01');
+
+        $this->expectExceptionMessage('Evento de Retorno vigente');
+        $this->servicio()->ejecutar($sale, $this->ajuste($sale, 'void_invoice'), 'error_fecha', 'total', 'void_invoice', [], $nueva->id, '');
+    }
+
+    public function test_plazo_del_retorno_tres_meses_o_dos_anios(): void
+    {
+        $this->assertSame('2027-02-10', PlazoRetorno::limite('2026-11-10', '47112')->format('Y-m-d'));
+        $this->assertSame('2028-11-10', PlazoRetorno::limite('2026-11-10', '46482')->format('Y-m-d'));
+        $this->assertFalse(PlazoRetorno::vigente('2026-01-10', '47112', CarbonImmutable::parse('2026-11-20')));
+        $this->assertTrue(PlazoRetorno::vigente('2026-01-10', '47721', CarbonImmutable::parse('2026-11-20')));
+    }
+
+    public function test_retorno_fuera_de_plazo_se_rechaza(): void
+    {
+        $sale = $this->ventaConDte('01');
+        $d = Dte::where('sale_id', $sale->id)->first();
+        $j = $d->json_original;
+        $j['identificacion']['fecEmi'] = now()->subMonths(5)->format('Y-m-d');
+        $d->update(['json_original' => $j]);
+
+        $this->expectExceptionMessage('Venció el plazo para aplicar un Evento de Retorno');
         $this->servicio()->ejecutar($sale, $this->ajuste($sale), 'devolucion', 'parcial', 'return_items',
             [['sale_item_id' => $sale->items->first()->id, 'quantity' => 1]], null, '');
     }
@@ -334,19 +410,35 @@ class DteDevolucionTest extends TestCase
         $this->assertSame('garantia', DB::table('sale_adjustments')->value('motivo'));
     }
 
-    public function test_el_controlador_revierte_todo_si_la_ruta_esta_bloqueada_por_la_factura_parcial(): void
+    public function test_el_controlador_revierte_todo_si_la_ruta_esta_bloqueada(): void
     {
         $sale = $this->ventaConDte('01');
         $this->entrar();
 
+        // Un error de fecha en una factura solo se corrige invalidándola COMPLETA: con devolución parcial se bloquea.
         $this->post(route('sales.admin-adjustment.store', $sale), [
-            'action_type' => 'return_items', 'motivo' => 'devolucion', 'return_products' => 1,
+            'action_type' => 'return_items', 'motivo' => 'error_fecha', 'return_products' => 1,
             'items' => [['sale_item_id' => $sale->items->first()->id, 'quantity' => 1, 'condition' => 'unopened']],
         ])->assertSessionHasErrors();
 
         $this->assertSame(0, DB::table('sale_adjustments')->count());
         $this->assertSame(0, DB::table('inventory_movements')->count());
         $this->assertSame('completed', $sale->fresh()->status);
+    }
+
+    public function test_el_controlador_devuelve_parcialmente_una_factura_con_evento_de_retorno(): void
+    {
+        $sale = $this->ventaConDte('01');
+        $this->entrar();
+
+        $this->post(route('sales.admin-adjustment.store', $sale), [
+            'action_type' => 'return_items', 'motivo' => 'cambio_producto', 'return_products' => 1, 'refund_cash' => 1, 'refund_amount' => 56.5,
+            'items' => [['sale_item_id' => $sale->items->first()->id, 'quantity' => 1, 'condition' => 'unopened']],
+        ])->assertSessionHasNoErrors();
+
+        $this->assertSame('completed', $sale->fresh()->status);
+        $this->assertSame(1, Dte::where('sale_id', $sale->id)->where('tipo_dte', '18')->count());
+        $this->assertSame(1, DB::table('inventory_movements')->count(), 'sin abrir vuelve a inventario');
     }
 
     public function test_anular_factura_por_devolucion_total_invalida_el_dte(): void

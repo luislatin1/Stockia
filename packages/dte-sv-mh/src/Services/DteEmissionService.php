@@ -274,6 +274,109 @@ class DteEmissionService
         return $this->procesar($dte, $payload, $sale, $settings, $mode);
     }
 
+    /**
+     * Evento de Retorno (tipo 18) sobre una Factura aceptada: devolución parcial de bienes o reembolso.
+     *
+     * @param  array<int, array{sale_item_id:int, cantidad:float, monto_neto:float}>  $lineas
+     */
+    public function emitirEventoRetorno(Sale $sale, Dte $origen, array $lineas, ?int $adjustmentId = null): Dte
+    {
+        if ((string) $origen->tipo_dte !== '01') {
+            throw new \RuntimeException('El Evento de Retorno solo se aplica a Facturas (01).');
+        }
+        if ((string) $origen->estado !== 'ACEPTADO' || ! $origen->sello_recepcion) {
+            throw new \RuntimeException('La Factura original debe estar ACEPTADA por Hacienda (con sello) para aplicarle un Evento de Retorno.');
+        }
+        if ($lineas === []) {
+            throw new \RuntimeException('El Evento de Retorno necesita al menos una línea.');
+        }
+
+        $sale->loadMissing(['company', 'items.product']);
+        $settings = $this->resolveSettings((int) $sale->company_id);
+        if (! $settings->enabled) {
+            throw new \RuntimeException('El módulo DTE está deshabilitado para esta empresa; no se puede emitir el Evento de Retorno.');
+        }
+        $mode = $this->factory->mode($settings);
+        $emisorFiscal = app(DteEmitterResolver::class)->forSale($sale);
+
+        if ($mode === 'real' && (! $emisorFiscal['establecimiento']->codigo_confirmado || ! $emisorFiscal['punto_venta']->codigo_confirmado)) {
+            throw new \RuntimeException('Modo real: confirme con Hacienda los códigos de establecimiento y punto de venta antes de emitir.');
+        }
+
+        $orig = $origen->json_original;
+        $itemsById = $sale->items->keyBy('id');
+        $cuerpo = [];
+        foreach ($lineas as $l) {
+            $item = $itemsById->get((int) $l['sale_item_id']);
+            $cantidad = (float) $l['cantidad'];
+            $monto = round((float) $l['monto_neto'], 2);
+            if (! $item || $cantidad <= 0 || $monto <= 0) {
+                throw new \RuntimeException('Cada línea del Evento de Retorno necesita un producto de la venta, cantidad y monto mayores a cero.');
+            }
+            $cuerpo[] = [
+                'documento' => $origen->codigo_generacion,
+                'codigo' => $item->product->codigo ?? $item->product_id,
+                'descripcion' => $item->product->name ?? 'ITEM',
+                'cantidad' => $cantidad,
+                'precio' => $monto / $cantidad,
+                'categoria' => (float) $item->monto_exento > 0 ? 'exenta' : ((float) $item->monto_no_sujeto > 0 ? 'no_sujeta' : 'gravada'),
+                'tipo_item' => (int) ($item->tipo_item ?? 1),
+                'uni_medida' => (int) ($item->uni_medida ?? 59),
+            ];
+        }
+
+        // Receptor de la Factura original (null si era consumidor final sin identificar).
+        $r = $orig['receptor'] ?? null;
+        $documento = $r && ! empty($r['numDocumento']) ? [
+            'tipoDocumento' => $r['tipoDocumento'] ?? null, 'numDocumento' => $r['numDocumento'], 'nombre' => $r['nombre'] ?? null,
+            'codPais' => null, 'nombrePais' => null, 'telefono' => $r['telefono'] ?? null, 'correo' => $r['correo'] ?? null,
+        ] : null;
+
+        $e = $orig['emisor'];
+        $estab = $emisorFiscal['establecimiento'];
+        $pv = $emisorFiscal['punto_venta'];
+        $fecha = now(config('dte.timezone', 'America/El_Salvador'));
+        $codigoGeneracion = strtoupper((string) Str::uuid());
+
+        $payload = (new \Stockia\DteSvMh\Builders\EventoRetornoBuilder())->build([
+            'ambiente' => (string) $settings->ambiente,
+            'codigo_generacion' => $codigoGeneracion,
+            'fecha' => $fecha,
+            'contingencia' => $mode === 'contingencia'
+                ? ['tipo' => 1, 'motivo' => 'Falla de conexión con el Ministerio de Hacienda']
+                : null,
+            // Los eventos sí llevan el código asignado por Hacienda (MH) y el interno del contribuyente.
+            'emisor' => [
+                'nit' => $e['nit'], 'nombre' => $e['nombre'],
+                'codEstableMH' => $estab->codigo, 'codEstable' => $e['codEstable'] ?? $estab->codigo,
+                'codPuntoVentaMH' => $pv->codigo, 'codPuntoVenta' => $e['codPuntoVenta'] ?? $pv->codigo,
+            ],
+            'documento' => $documento,
+            'relacionados' => [[
+                'tipo_documento' => '01', 'codigo_generacion' => $origen->codigo_generacion, 'fecha' => $orig['identificacion']['fecEmi'],
+            ]],
+            'items' => $cuerpo,
+            'tasa_iva' => app(\App\Services\Dte\TaxRateService::class)->rate(\App\Services\Dte\TaxRateService::IVA, $fecha),
+        ]);
+
+        app(DteSchemaValidator::class)->asegurar($payload, 'retorno');
+
+        // Los eventos no tienen número de control; la columna es única y obligatoria, se rellena con una referencia propia.
+        $dte = Dte::create([
+            'company_id' => $sale->company_id,
+            'sale_id' => $sale->id,
+            'dte_origen_id' => $origen->id,
+            'sale_adjustment_id' => $adjustmentId,
+            'tipo_dte' => '18',
+            'codigo_generacion' => $codigoGeneracion,
+            'numero_control' => 'E18-'.$codigoGeneracion,
+            'json_original' => $payload,
+            'estado' => 'PENDIENTE',
+        ]);
+
+        return $this->procesar($dte, $payload, $sale, $settings, $mode);
+    }
+
     public function resendContingency(?int $companyId = null): int
     {
         $query = Dte::query()->where('estado', 'CONTINGENCIA');

@@ -12,13 +12,16 @@ namespace Stockia\DteSvMh\Devolucion;
  *    errores del documento, con documento de reemplazo.
  *  - Factura (01): no admite NC. Devolución total = invalidación tipo 2 (rescindir); cambio de
  *    producto = invalidación tipo 3 con reemplazo; errores = tipo 1 con reemplazo. La devolución
- *    parcial exige Evento de Retorno, que aún no está construido.
+ *    parcial (o la que sigue a un Evento de Retorno ya aplicado) se informa con Evento de Retorno.
+ *    Una Factura con Evento de Retorno vigente no puede invalidarse (Manual §VII, nota 3).
  */
 final class RutaDevolucion
 {
     public const NOTA_CREDITO = 'nota_credito';
 
     public const INVALIDACION = 'invalidacion';
+
+    public const EVENTO_RETORNO = 'evento_retorno';
 
     public const BLOQUEADO = 'bloqueado';
 
@@ -59,7 +62,7 @@ final class RutaDevolucion
      * @param  string  $alcance  total | parcial | valor
      * @return array{ruta:string, tipo_invalidacion:?string, requiere_reemplazo:bool, mensaje:?string}
      */
-    public static function resolver(?string $tipoOriginal, string $motivo, string $alcance): array
+    public static function resolver(?string $tipoOriginal, string $motivo, string $alcance, bool $retornoActivo = false): array
     {
         if (! isset(self::MOTIVOS[$motivo])) {
             return self::bloqueo('Motivo de devolución no reconocido.');
@@ -93,11 +96,16 @@ final class RutaDevolucion
         }
 
         // Factura (01): no admite Nota de Crédito.
+        $devuelveBienes = in_array($motivo, ['devolucion', 'garantia', 'cambio_producto'], true);
+
+        if ($devuelveBienes && ($alcance === self::ALCANCE_PARCIAL || $retornoActivo)) {
+            return self::ruta(self::EVENTO_RETORNO);
+        }
+        if ($retornoActivo) {
+            return self::bloqueo('La factura ya tiene un Evento de Retorno vigente: no puede invalidarse hasta invalidar ese evento (aún no disponible en el sistema).');
+        }
         if ($alcance !== self::ALCANCE_TOTAL) {
-            return self::bloqueo(
-                'Las Facturas solo admiten devolución o corrección TOTAL (invalidación). La devolución parcial requiere el Evento de Retorno, '
-                .'que aún no está disponible: anule la factura completa y emita una nueva por lo que se queda el cliente.'
-            );
+            return self::bloqueo('Los errores de precio, descuento, fecha o datos de una Factura se corrigen invalidándola completa: use "Anular factura" con la venta que la reemplaza.');
         }
 
         return match (true) {

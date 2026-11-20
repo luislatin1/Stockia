@@ -76,8 +76,9 @@
                         <li><strong>Error de precio, descuento omitido:</strong> Nota de Crédito de valor (use "Devolver / ajustar" e indique el monto sin IVA por línea).</li>
                         <li><strong>Error de fecha o de datos del cliente:</strong> se invalida el CCF completo (use "Anular") con la venta que lo reemplaza.</li>
                     @else
-                        <li>Las facturas se corrigen <strong>completas</strong>: devolución/garantía = invalidación por rescisión; cambio de producto o errores = invalidación con la venta que reemplaza.</li>
-                        <li>La devolución parcial de una factura requiere el Evento de Retorno (aún no disponible).</li>
+                        <li><strong>Devolución parcial</strong> (garantía, cambio de producto o devolución de algunas unidades): Evento de Retorno por lo devuelto, hasta 3 meses después de la fecha de la factura. Si hay cambio de producto, emita aparte la venta nueva.</li>
+                        <li><strong>Devolución total sin retornos previos:</strong> invalidación por rescisión. <strong>Errores de precio, fecha o datos, y cambio total de producto:</strong> invalidación con la venta que reemplaza.</li>
+                        <li>Una factura con Evento de Retorno vigente ya no puede invalidarse.</li>
                     @endif
                     <li>Desperfecto y garantía son clasificaciones internas: no se transmiten a Hacienda.</li>
                 </ul>

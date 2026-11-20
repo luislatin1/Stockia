@@ -50,7 +50,14 @@ class DteDevolucionService
             ];
         }
 
-        return RutaDevolucion::resolver((string) $origen->tipo_dte, $motivo, $alcance) + ['origen' => $origen];
+        return RutaDevolucion::resolver((string) $origen->tipo_dte, $motivo, $alcance, $this->retornosVigentes($origen) > 0) + ['origen' => $origen];
+    }
+
+    /** Eventos de Retorno de la Factura que siguen vigentes (no rechazados ni invalidados). */
+    private function retornosVigentes(Dte $origen): int
+    {
+        return Dte::withoutGlobalScopes()->where('dte_origen_id', $origen->id)->where('tipo_dte', '18')
+            ->whereIn('estado', ['ACEPTADO', 'CONTINGENCIA', 'PENDIENTE'])->count();
     }
 
     /** total | parcial | valor, según la acción pedida y lo ya devuelto antes. */
@@ -106,9 +113,11 @@ class DteDevolucionService
         /** @var Dte $origen */
         $origen = $plan['origen'];
 
-        $dte = $plan['ruta'] === RutaDevolucion::NOTA_CREDITO
-            ? $this->notaDeCredito($sale, $origen, $ajusteId, $motivo, $alcance, $accion, $filas, $notas)
-            : $this->invalidar($sale, $origen, $plan, $motivo, $ventaReemplazoId, $notas);
+        $dte = match ($plan['ruta']) {
+            RutaDevolucion::NOTA_CREDITO => $this->notaDeCredito($sale, $origen, $ajusteId, $motivo, $alcance, $accion, $filas, $notas),
+            RutaDevolucion::EVENTO_RETORNO => $this->eventoDeRetorno($sale, $origen, $ajusteId, $accion, $filas),
+            default => $this->invalidar($sale, $origen, $plan, $motivo, $ventaReemplazoId, $notas),
+        };
 
         DB::table('sale_adjustments')->where('id', $ajusteId)->update([
             'motivo' => $motivo,
@@ -176,6 +185,53 @@ class DteDevolucionService
         return $nota;
     }
 
+    private function eventoDeRetorno(Sale $sale, Dte $origen, int $ajusteId, string $accion, array $filas): Dte
+    {
+        $zona = config('dte.timezone', 'America/El_Salvador');
+        $orig = $origen->json_original;
+        if (! PlazoRetorno::vigente((string) $orig['identificacion']['fecEmi'], $orig['emisor']['codActividad'] ?? null, null, $zona)) {
+            $limite = PlazoRetorno::limite((string) $orig['identificacion']['fecEmi'], $orig['emisor']['codActividad'] ?? null, $zona)->format('d/m/Y');
+            throw new \RuntimeException("Venció el plazo para aplicar un Evento de Retorno a esta factura ({$limite}).");
+        }
+
+        $sale->loadMissing('items');
+        $items = $sale->items->keyBy('id');
+        $neto = fn ($i) => round((float) $i->monto_gravado + (float) $i->monto_exento + (float) $i->monto_no_sujeto, 2);
+        $lineas = [];
+
+        if ($accion === 'return_items') {
+            foreach ($filas as $f) {
+                $item = $items->get((int) $f['sale_item_id']);
+                $cant = (int) $f['quantity'];
+                if (! $item || $cant <= 0) {
+                    continue;
+                }
+                $this->verificarRestante($item, $cant, $ajusteId);
+                $lineas[] = ['sale_item_id' => $item->id, 'cantidad' => (float) $cant, 'monto_neto' => round($neto($item) / (float) $item->quantity * $cant, 2)];
+            }
+        } else {
+            // Anular o cancelar con retornos previos: se retorna lo que aún no se había devuelto.
+            foreach ($items as $item) {
+                $resta = (int) $item->quantity - $this->yaDevuelto((int) $item->id, $ajusteId);
+                if ($resta > 0) {
+                    $lineas[] = ['sale_item_id' => $item->id, 'cantidad' => (float) $resta, 'monto_neto' => round($neto($item) / (float) $item->quantity * $resta, 2)];
+                }
+            }
+        }
+
+        if ($lineas === []) {
+            throw new \RuntimeException('No hay nada que retornar: indique cantidades devueltas.');
+        }
+
+        $evento = $this->emision->emitirEventoRetorno($sale, $origen, $lineas, $ajusteId);
+
+        if (! in_array((string) $evento->estado, ['ACEPTADO', 'CONTINGENCIA'], true)) {
+            throw new \RuntimeException('Hacienda no aceptó el Evento de Retorno (estado '.$evento->estado.'). No se aplicó la devolución.');
+        }
+
+        return $evento;
+    }
+
     private function verificarRestante($item, int $cantidad, int $ajusteId): void
     {
         $resta = (int) $item->quantity - $this->yaDevuelto((int) $item->id, $ajusteId);
@@ -191,6 +247,10 @@ class DteDevolucionService
         if (! PlazoInvalidacion::vigente((string) $origen->tipo_dte, $sello, null, $zona)) {
             $limite = PlazoInvalidacion::limite((string) $origen->tipo_dte, $sello, $zona)->format('d/m/Y');
             throw new \RuntimeException("Venció el plazo para invalidar este DTE ({$limite}). Corresponde otro tratamiento: consulte con el contador.");
+        }
+
+        if ($this->retornosVigentes($origen) > 0) {
+            throw new \RuntimeException('La factura tiene un Evento de Retorno vigente: primero debe invalidarse ese evento.');
         }
 
         $notasVivas = Dte::withoutGlobalScopes()->where('dte_origen_id', $origen->id)
