@@ -109,7 +109,7 @@ Medida en el servidor con datos reales (venta simulada, con rollback): **29 erro
 
 ## Siguiente
 1. Identificación obligatoria sobre el monto legal (pendiente del contador). Migrar y probar con datos reales de emisor/cliente en el servidor (la migración de `customers` aún no está aplicada en ningún lado).
-2. Evento de Retorno (devolución parcial de Factura), ND desde la pantalla (recargos), constructores de Exportación y Sujeto Excluido.
+2. Constructores de Exportación (11) y Sujeto Excluido (14), y sus eventos de retorno/invalidación.
 3. Firma (firmador oficial por cliente), transmisión, reintentos y eventos.
 
 ## Pendiente de planear (después de terminar las fases de facturación)
