@@ -679,6 +679,10 @@ class DteEmissionService
             throw new \RuntimeException('La retención de renta aún no se transmite en Factura/CCF v2 (el esquema no la incluye).');
         }
 
+        if ($tipo === '11') {
+            return $this->payloadExportacion($sale, $settings, $numeroControl, $codigoGeneracion, $mode, $emisor, $items, $customer, $esCredito, $fecha);
+        }
+
         return (new DteV2Builder())->build([
             'tipo_dte' => $tipo,
             'ambiente' => (string) $settings->ambiente,
@@ -746,9 +750,214 @@ class DteEmissionService
         ];
     }
 
+    /** Descripción oficial de los INCOTERMS (CAT-031) para `descIncoterms`. */
+    private const INCOTERMS = [
+        '01' => 'EXW-En fabrica', '02' => 'FCA-Libre transportista', '03' => 'CPT-Transporte pagado hasta',
+        '04' => 'CIP-Transporte y seguro pagado hasta', '05' => 'DAP-Entrega en el lugar', '06' => 'DPU-Entregado en el lugar descargado',
+        '07' => 'DDP-Entrega con impuestos pagados', '08' => 'FAS-Libre al costado del buque', '09' => 'FOB-Libre a bordo',
+        '10' => 'CFR-Costo y flete', '11' => 'CIF- Costo seguro y flete',
+    ];
+
+    /** Factura de Exportación (11): receptor del extranjero, IVA 0 % y datos de exportación de la empresa. */
+    private function payloadExportacion(Sale $sale, DteSetting $settings, string $numeroControl, string $codigoGeneracion, string $mode, array $emisor, array $items, $customer, bool $esCredito, $fecha): array
+    {
+        if (! $settings->expo_tipo_item) {
+            throw new \RuntimeException('Configure los datos de exportación (tipo, recinto, régimen) en DTE > Administración antes de emitir una factura de exportación.');
+        }
+        if (! $customer->cod_pais || ! $customer->nombre_pais || ! $customer->tipo_persona
+            || trim((string) $customer->desc_actividad) === '' || trim((string) $customer->direccion) === '') {
+            throw new \RuntimeException("El cliente '{$customer->nombre}' necesita país, tipo de persona, actividad económica y dirección para una exportación.");
+        }
+        if ((float) $sale->retencion_iva > 0 || (float) $sale->retencion_renta > 0) {
+            throw new \RuntimeException('Las facturas de exportación no admiten retenciones.');
+        }
+
+        $emisor['tipoItemExpor'] = (int) $settings->expo_tipo_item;
+        $emisor['recintoFiscal'] = $settings->expo_recinto;
+        $emisor['tipoRegimen'] = $settings->expo_tipo_regimen;
+        $emisor['regimen'] = $settings->expo_regimen;
+
+        $telefono = trim((string) $customer->telefono);
+        $correo = trim((string) $customer->correo);
+        $inco = $settings->expo_cod_incoterms ?: null;
+
+        return (new \Stockia\DteSvMh\Builders\ExportacionBuilder())->build([
+            'ambiente' => (string) $settings->ambiente,
+            'numero_control' => $numeroControl,
+            'codigo_generacion' => $codigoGeneracion,
+            'fecha' => $fecha,
+            'contingencia' => $mode === 'contingencia'
+                ? ['tipo' => 1, 'motivo' => 'Falla de conexión con el Ministerio de Hacienda']
+                : null,
+            'emisor' => $emisor,
+            'receptor' => [
+                'nombre' => $customer->nombre,
+                'tipoDocumento' => (string) $customer->tipo_documento,
+                'numDocumento' => (string) $customer->numero_documento,
+                'descActividad' => $customer->desc_actividad,
+                'nombreComercial' => null,
+                'codPais' => strtoupper((string) $customer->cod_pais),
+                'nombrePais' => $customer->nombre_pais,
+                'complemento' => $customer->direccion,
+                'tipoPersona' => (int) $customer->tipo_persona,
+                'telefono' => strlen($telefono) >= 8 ? $telefono : null,
+                'correo' => strlen($correo) >= 6 ? $correo : null,
+            ],
+            'items' => $items,
+            'seguro' => 0.0,
+            'flete' => 0.0,
+            'condicion_operacion' => $esCredito ? 2 : 1,
+            'forma_pago' => '01',
+            'dias_credito' => (int) ($sale->dias_credito ?: 1),
+            'cod_incoterms' => $inco,
+            'desc_incoterms' => $inco ? (self::INCOTERMS[$inco] ?? null) : null,
+        ]);
+    }
+
+    /**
+     * Factura de Sujeto Excluido (14) por la compra a un proveedor que no es contribuyente de IVA.
+     * El proveedor debe tener DUI o NIT válido y dirección completa (departamento, municipio, distrito).
+     */
+    public function emitirSujetoExcluido(\App\Models\Purchase $purchase, float $retencionRenta = 0.0, string $observaciones = ''): Dte
+    {
+        $purchase->loadMissing(['provider', 'items.product']);
+        $prov = $purchase->provider;
+        if (! $prov) {
+            throw new \RuntimeException('La compra no tiene proveedor.');
+        }
+
+        $existente = Dte::withoutGlobalScopes()->where('purchase_id', $purchase->id)->whereIn('estado', ['PENDIENTE', 'ACEPTADO', 'CONTINGENCIA'])->exists();
+        if ($existente) {
+            throw new \RuntimeException('Esta compra ya tiene una Factura de Sujeto Excluido emitida.');
+        }
+
+        // Documento del vendedor: DUI preferido; si no, NIT. Sin guiones (Normativa v2.0).
+        $dui = FiscalId::duiDigits($prov->dui);
+        $nit = FiscalId::nitDigits($prov->nit);
+        if ($dui !== null) {
+            [$tipoDoc, $numDoc] = ['13', $dui];
+        } elseif ($nit !== null) {
+            [$tipoDoc, $numDoc] = ['36', $nit];
+        } else {
+            throw new \RuntimeException("El proveedor '{$prov->nombre}' necesita un DUI o NIT válido para emitir la factura de sujeto excluido.");
+        }
+        if (! $prov->departamento || ! $prov->municipio || ! $prov->distrito || trim((string) $prov->direccion) === '') {
+            throw new \RuntimeException("El proveedor '{$prov->nombre}' necesita departamento, municipio, distrito y dirección completos.");
+        }
+        if (! \App\Support\UbicacionCatalogo::distritoValido($prov->departamento, $prov->municipio, $prov->distrito)) {
+            throw new \RuntimeException('El distrito del proveedor no corresponde a su departamento/municipio.');
+        }
+
+        $company = \App\Models\Company::withoutGlobalScopes()->findOrFail($purchase->company_id);
+        $settings = $this->resolveSettings((int) $company->id);
+        if (! $settings->enabled) {
+            throw new \RuntimeException('El módulo DTE está deshabilitado para esta empresa.');
+        }
+        $mode = $this->factory->mode($settings);
+        $emisorFiscal = app(DteEmitterResolver::class)->forContext((int) $company->id, $purchase->warehouse_id ? (int) $purchase->warehouse_id : null);
+        $estab = $emisorFiscal['establecimiento'];
+        $pv = $emisorFiscal['punto_venta'];
+
+        if ($mode === 'real' && (! $estab->codigo_confirmado || ! $pv->codigo_confirmado)) {
+            throw new \RuntimeException('Modo real: confirme con Hacienda los códigos de establecimiento y punto de venta antes de emitir.');
+        }
+
+        $emisorNit = FiscalId::nitDigits($company->nit ?: $company->tax_id);
+        $emisorNrc = FiscalId::nrcDigits($company->nrc);
+        if ($emisorNit === null || $emisorNrc === null) {
+            throw new \RuntimeException('El NIT y el NRC del emisor deben ser válidos (Administración Central).');
+        }
+        $usaEstab = $estab->departamento && $estab->municipio && $estab->distrito && trim((string) $estab->direccion) !== '';
+
+        $items = $purchase->items->values()->map(fn ($i) => [
+            'codigo' => $i->product->codigo ?? $i->product_id,
+            'descripcion' => $i->product->name ?? 'ITEM',
+            'cantidad' => (float) $i->cantidad,
+            'precio' => (float) $i->costo_unitario,
+            'descuento' => 0,
+            'tipo_item' => 1,
+            'uni_medida' => 59,
+        ])->all();
+
+        $correlative = app(DteNumberingService::class)->next(
+            (int) $company->id, $estab, $pv, '14',
+            (string) ($settings->numeracion_modo ?: DteNumberingService::MODO_CENTRALIZADA),
+        );
+        $codigoGeneracion = strtoupper((string) Str::uuid());
+
+        $telefono = preg_replace('/\D+/', '', (string) $prov->telefono);
+        $correo = trim((string) $prov->email);
+
+        $payload = (new \Stockia\DteSvMh\Builders\SujetoExcluidoBuilder())->build([
+            'ambiente' => (string) $settings->ambiente,
+            'numero_control' => $correlative['numero_control'],
+            'codigo_generacion' => $codigoGeneracion,
+            'fecha' => now(config('dte.timezone', 'America/El_Salvador')),
+            'contingencia' => $mode === 'contingencia'
+                ? ['tipo' => 1, 'motivo' => 'Falla de conexión con el Ministerio de Hacienda']
+                : null,
+            'emisor' => [
+                'nit' => $emisorNit, 'nrc' => $emisorNrc,
+                'nombre' => $company->nombre_razon_social ?: $company->legal_name ?: $company->name,
+                'codActividad' => $company->cod_actividad, 'descActividad' => $company->desc_actividad,
+                'direccion' => [
+                    'departamento' => $usaEstab ? $estab->departamento : $company->departamento,
+                    'municipio' => $this->normalizeCodigo($usaEstab ? $estab->municipio : $company->municipio),
+                    'distrito' => $this->normalizeCodigo($usaEstab ? $estab->distrito : $company->distrito),
+                    'complemento' => $usaEstab ? $estab->direccion : ($company->direccion_complemento ?: $company->fiscal_address),
+                ],
+                'telefono' => $estab->telefono ?: ($company->telefono ?: $company->fiscal_phone),
+                'correo' => $estab->correo ?: ($company->correo ?: $company->fiscal_email),
+                'codEstable' => $estab->codigo, 'codPuntoVenta' => $pv->codigo,
+            ],
+            'receptor' => [
+                'tipoDocumento' => $tipoDoc, 'numDocumento' => $numDoc, 'nombre' => $prov->nombre,
+                'codActividad' => null, 'descActividad' => null,
+                'direccion' => [
+                    'departamento' => (string) $prov->departamento,
+                    'municipio' => $this->normalizeCodigo($prov->municipio),
+                    'distrito' => $this->normalizeCodigo($prov->distrito),
+                    'complemento' => (string) $prov->direccion,
+                ],
+                'telefono' => strlen($telefono) >= 8 ? $telefono : null,
+                'correo' => strlen($correo) >= 6 ? $correo : null,
+            ],
+            'items' => $items,
+            'retencion_renta' => $retencionRenta,
+            'condicion_operacion' => $purchase->es_credito ? 2 : 1,
+            'forma_pago' => '01',
+            'dias_credito' => (int) ($purchase->dias_credito ?: 1),
+            'observaciones' => $observaciones,
+        ]);
+
+        app(DteSchemaValidator::class)->asegurar($payload, '14');
+
+        $dte = Dte::create([
+            'company_id' => $company->id,
+            'sale_id' => null,
+            'purchase_id' => $purchase->id,
+            'tipo_dte' => '14',
+            'codigo_generacion' => $codigoGeneracion,
+            'numero_control' => $correlative['numero_control'],
+            'json_original' => $payload,
+            'estado' => 'PENDIENTE',
+        ]);
+
+        // La firma y el registro de intentos esperan una venta: se les pasa un contenedor con la empresa.
+        $contexto = new Sale();
+        $contexto->company_id = $company->id;
+        $contexto->setRelation('company', $company);
+
+        return $this->procesar($dte, $payload, $contexto, $settings, $mode);
+    }
+
     private function assertReceiverRules(Sale $sale, $customer): void
     {
         $tipoDte = (string) $sale->tipo_dte;
+
+        if ($tipoDte === '11' && ! $customer) {
+            throw new \RuntimeException('La Factura de Exportación (11) requiere el cliente del extranjero.');
+        }
 
         // Consumidor final sin identificar: el receptor va en null (permitido cuando el
         // monto es menor al legal). Antes se inventaba el DUI 00000000-0, que v2 rechaza.

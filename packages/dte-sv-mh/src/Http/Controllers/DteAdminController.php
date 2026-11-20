@@ -94,6 +94,12 @@ class DteAdminController extends Controller
             'responsable_nombre' => ['nullable', 'string', 'max:100', 'required_with:responsable_num_doc'],
             'responsable_tipo_doc' => ['nullable', 'string', 'size:2', 'required_with:responsable_num_doc'],
             'responsable_num_doc' => ['nullable', 'string', 'max:20', 'required_with:responsable_nombre'],
+            // Factura de Exportación: 1 bienes (exige recinto, tipo de régimen y régimen) o 2 servicios.
+            'expo_tipo_item' => ['nullable', 'integer', 'in:1,2'],
+            'expo_recinto' => ['nullable', 'string', 'size:2'],
+            'expo_tipo_regimen' => ['nullable', 'string', 'in:EX-1,EX-2,EX-3,TA-1'],
+            'expo_regimen' => ['nullable', 'string', 'max:13'],
+            'expo_cod_incoterms' => ['nullable', 'string', 'size:2'],
         ]);
 
         $staticResponse = null;
@@ -132,6 +138,11 @@ class DteAdminController extends Controller
                 'responsable_nombre' => $validated['responsable_nombre'] ?? null,
                 'responsable_tipo_doc' => $validated['responsable_tipo_doc'] ?? null,
                 'responsable_num_doc' => $validated['responsable_num_doc'] ?? null,
+                'expo_tipo_item' => $validated['expo_tipo_item'] ?? null,
+                'expo_recinto' => $validated['expo_recinto'] ?? null,
+                'expo_tipo_regimen' => $validated['expo_tipo_regimen'] ?? null,
+                'expo_regimen' => $validated['expo_regimen'] ?? null,
+                'expo_cod_incoterms' => $validated['expo_cod_incoterms'] ?? null,
             ]
         );
 

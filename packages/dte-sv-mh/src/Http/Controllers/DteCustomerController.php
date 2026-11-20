@@ -134,6 +134,10 @@ class DteCustomerController extends Controller
             // Actividad económica (CAT-019): la exige el CCF v4 para el receptor.
             'cod_actividad' => ['nullable', 'string', 'regex:/^[0-9]{5,6}$/'],
             'desc_actividad' => ['nullable', 'string', 'min:5', 'max:150', 'required_with:cod_actividad'],
+            // Cliente del extranjero (Factura de Exportación): país CAT-020 y tipo de persona CAT-029.
+            'cod_pais' => ['nullable', 'string', 'size:2', 'regex:/^[A-Za-z]{2}$/', 'required_with:nombre_pais'],
+            'nombre_pais' => ['nullable', 'string', 'min:3', 'max:50', 'required_with:cod_pais'],
+            'tipo_persona' => ['nullable', 'integer', 'in:1,2'],
             'direccion' => ['nullable', 'string', 'max:255'],
             'telefono' => ['nullable', 'string', 'max:30'],
             'correo' => ['nullable', 'email', 'max:120'],

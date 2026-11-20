@@ -13,6 +13,7 @@ class Dte extends Model
     protected $fillable = [
         'company_id',
         'sale_id',
+        'purchase_id',
         'dte_origen_id',
         'sale_adjustment_id',
         'tipo_dte',

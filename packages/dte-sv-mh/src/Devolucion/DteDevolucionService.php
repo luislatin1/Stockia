@@ -96,6 +96,52 @@ class DteDevolucionService
         }
     }
 
+    /** Factura de Sujeto Excluido vigente de una compra (la que no está rechazada ni invalidada). */
+    public function fseDeCompra(\App\Models\Purchase $purchase): ?Dte
+    {
+        return Dte::withoutGlobalScopes()->where('purchase_id', $purchase->id)->where('tipo_dte', '14')
+            ->whereNotIn('estado', ['RECHAZADO', 'INVALIDADO'])->latest('id')->first();
+    }
+
+    /**
+     * Invalida la Factura de Sujeto Excluido de una compra (plazo: 3 meses desde el sello). Con tipo 1 o 3 hay que
+     * emitir antes la factura correcta (de otra compra aceptada) y pasarla como reemplazo; con tipo 2 no.
+     */
+    public function invalidarSujetoExcluido(\App\Models\Purchase $purchase, string $tipoInvalidacion, string $motivo, ?int $compraReemplazoId = null): void
+    {
+        $fse = $this->fseDeCompra($purchase);
+        if (! $fse || (string) $fse->estado !== 'ACEPTADO') {
+            throw new \RuntimeException('La compra no tiene una Factura de Sujeto Excluido aceptada por Hacienda.');
+        }
+        if (! in_array($tipoInvalidacion, ['1', '2', '3'], true)) {
+            throw new \RuntimeException('Tipo de invalidación no válido.');
+        }
+        $motivo = trim($motivo);
+        if ($motivo === '') {
+            throw new \RuntimeException('Indique el motivo de la invalidación.');
+        }
+
+        $zona = config('dte.timezone', 'America/El_Salvador');
+        $sello = $fse->fecha_envio ?? $fse->created_at;
+        if (! PlazoInvalidacion::vigente('14', $sello, null, $zona)) {
+            $limite = PlazoInvalidacion::limite('14', $sello, $zona)->format('d/m/Y');
+            throw new \RuntimeException("Venció el plazo para invalidar esta factura ({$limite}). Consulte con el contador.");
+        }
+
+        $reemplazo = null;
+        if ($tipoInvalidacion !== '2') {
+            $reemplazo = $compraReemplazoId && $compraReemplazoId !== (int) $purchase->id
+                ? Dte::withoutGlobalScopes()->where('purchase_id', $compraReemplazoId)->where('company_id', $purchase->company_id)
+                    ->where('tipo_dte', '14')->where('estado', 'ACEPTADO')->latest('id')->first()
+                : null;
+            if (! $reemplazo) {
+                throw new \RuntimeException('Con este tipo de invalidación Hacienda exige emitir antes la factura correcta (otra compra con su Factura de Sujeto Excluido aceptada) y elegirla como reemplazo.');
+            }
+        }
+
+        $this->emision->invalidate($fse, $tipoInvalidacion, $motivo, $reemplazo?->codigo_generacion);
+    }
+
     /** ¿Se puede emitir una Nota de Débito sobre esta venta? Devuelve el CCF aceptado o null. */
     public function ccfParaDebito(Sale $sale): ?Dte
     {

@@ -121,6 +121,44 @@
                 </div>
             </div>
 
+            <div class="md:col-span-2 rounded-lg border border-indigo-100 bg-indigo-50 p-3 text-xs text-indigo-900">
+                <strong>Facturas de exportación (tipo 11).</strong> Tipo de exportación, y para bienes: recinto fiscal (CAT-027), tipo de régimen (CAT-033)
+                y régimen (CAT-028, p. ej. 1000.000). Los INCOTERMS (CAT-031, p. ej. 09 = FOB) son opcionales.
+            </div>
+            <div>
+                <label class="mb-1 block text-sm font-medium text-gray-700">Tipo de exportación</label>
+                <select name="expo_tipo_item" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+                    <option value="">No exporta</option>
+                    <option value="1" @selected((string) old('expo_tipo_item', $settings->expo_tipo_item) === '1')>1 - Bienes</option>
+                    <option value="2" @selected((string) old('expo_tipo_item', $settings->expo_tipo_item) === '2')>2 - Servicios</option>
+                </select>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+                <div>
+                    <label class="mb-1 block text-sm font-medium text-gray-700">Recinto fiscal</label>
+                    <input name="expo_recinto" maxlength="2" value="{{ old('expo_recinto', $settings->expo_recinto) }}" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+                </div>
+                <div>
+                    <label class="mb-1 block text-sm font-medium text-gray-700">Tipo de régimen</label>
+                    <select name="expo_tipo_regimen" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+                        <option value="">—</option>
+                        @foreach(['EX-1' => 'EX-1 Exportación definitiva', 'EX-2' => 'EX-2 Exportación temporal', 'EX-3' => 'EX-3 Reexportación', 'TA-1' => 'TA-1 Tránsito aduanero'] as $k => $v)
+                            <option value="{{ $k }}" @selected(old('expo_tipo_regimen', $settings->expo_tipo_regimen) === $k)>{{ $v }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+                <div>
+                    <label class="mb-1 block text-sm font-medium text-gray-700">Régimen de exportación</label>
+                    <input name="expo_regimen" maxlength="13" value="{{ old('expo_regimen', $settings->expo_regimen) }}" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+                </div>
+                <div>
+                    <label class="mb-1 block text-sm font-medium text-gray-700">INCOTERMS (opcional)</label>
+                    <input name="expo_cod_incoterms" maxlength="2" value="{{ old('expo_cod_incoterms', $settings->expo_cod_incoterms) }}" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+                </div>
+            </div>
+
             <div>
                 <label class="mb-1 block text-sm font-medium text-gray-700">Usuario API (real)</label>
                 <input name="api_user" value="{{ old('api_user', $settings->api_user) }}" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">

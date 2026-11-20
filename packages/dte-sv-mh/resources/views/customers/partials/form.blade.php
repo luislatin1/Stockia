@@ -80,6 +80,29 @@
         @error('desc_actividad')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
     </div>
 
+    <div class="md:col-span-2 rounded-lg border border-indigo-100 bg-indigo-50 p-3 text-xs text-indigo-900">
+        <strong>Cliente del extranjero (Factura de Exportación):</strong> código de país de 2 letras (CAT-020, p. ej. US, GT, MX), nombre del país y tipo de persona.
+        Use tipo de documento Pasaporte (03), Carné de residente (02) u Otro (37).
+    </div>
+    <div>
+        <label class="mb-1 block text-sm font-medium text-gray-700">Código de país (CAT-020)</label>
+        <input name="cod_pais" maxlength="2" value="{{ old('cod_pais', $customer->cod_pais ?? '') }}" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm uppercase">
+        @error('cod_pais')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+    </div>
+    <div>
+        <label class="mb-1 block text-sm font-medium text-gray-700">País</label>
+        <input name="nombre_pais" maxlength="50" value="{{ old('nombre_pais', $customer->nombre_pais ?? '') }}" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+        @error('nombre_pais')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+    </div>
+    <div>
+        <label class="mb-1 block text-sm font-medium text-gray-700">Tipo de persona (CAT-029)</label>
+        <select name="tipo_persona" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+            <option value="">No aplica</option>
+            <option value="1" @selected((string) old('tipo_persona', $customer->tipo_persona ?? '') === '1')>1 - Persona natural</option>
+            <option value="2" @selected((string) old('tipo_persona', $customer->tipo_persona ?? '') === '2')>2 - Persona jurídica</option>
+        </select>
+    </div>
+
     <div class="md:col-span-2">
         <label class="mb-1 block text-sm font-medium text-gray-700">Dirección</label>
         <input name="direccion" value="{{ old('direccion', $customer->direccion ?? '') }}" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">

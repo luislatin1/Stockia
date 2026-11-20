@@ -54,6 +54,16 @@ class CreateSale
             }
         }
 
+        if ($tipoDte === '11') {
+            if (! $customerId) {
+                throw new SaleValidationException('Para exportación (11) debes seleccionar el cliente del extranjero.');
+            }
+            if (! $customer->cod_pais || ! $customer->nombre_pais || ! $customer->tipo_persona
+                || trim((string) $customer->desc_actividad) === '' || trim((string) $customer->direccion) === '') {
+                throw new SaleValidationException('Para exportación el cliente necesita país, tipo de persona, actividad económica y dirección (DTE > Clientes).');
+            }
+        }
+
         if ($tipoDte === '03' && ! $customerId) {
             throw new SaleValidationException('Para CCF (03) debes seleccionar un cliente contribuyente.');
         }
@@ -90,6 +100,7 @@ class CreateSale
         $calc = app(DteCalculationService::class)->calculate($lineItems, [
             'aplica_retencion_iva' => false,
             'retencion_renta' => 0,
+            'exportacion' => $tipoDte === '11',
         ]);
         $totals = $calc['totals'];
         $normalizedItems = $calc['items'];

@@ -185,7 +185,119 @@ class PurchaseController extends Controller
 
         $purchase->load(['items.product', 'provider', 'payments.user']);
 
-        return view('purchases.show', compact('purchase'));
+        // Factura de Sujeto Excluido de la compra (solo si el módulo DTE está activo).
+        $fse = $this->dteDisponible()
+            ? app(\Stockia\DteSvMh\Devolucion\DteDevolucionService::class)->fseDeCompra($purchase)
+            : null;
+        $dteActivo = $this->dteDisponible();
+
+        return view('purchases.show', compact('purchase', 'fse', 'dteActivo'));
+    }
+
+    private function dteDisponible(): bool
+    {
+        return class_exists(\Stockia\DteSvMh\Devolucion\DteDevolucionService::class)
+            && (! \App\Models\Module::tableReady() || \App\Models\Module::isEnabled('dte-sv-mh'));
+    }
+
+    private function compraDeContexto(Purchase $purchase): array
+    {
+        [$companyId] = $this->currentContext();
+        if ((int) $purchase->company_id !== $companyId) {
+            abort(Response::HTTP_NOT_FOUND);
+        }
+        abort_unless($this->dteDisponible(), Response::HTTP_NOT_FOUND);
+        $purchase->load(['items.product', 'provider']);
+
+        return [$companyId];
+    }
+
+    public function sujetoExcluido(Purchase $purchase)
+    {
+        $this->compraDeContexto($purchase);
+        $svc = app(\Stockia\DteSvMh\Devolucion\DteDevolucionService::class);
+
+        if ($svc->fseDeCompra($purchase)) {
+            return redirect()->route('purchases.show', $purchase)->withErrors('Esta compra ya tiene una Factura de Sujeto Excluido.');
+        }
+
+        return view('purchases.sujeto-excluido', [
+            'purchase' => $purchase,
+            'provider' => $purchase->provider,
+            'departamentos' => \App\Support\UbicacionCatalogo::departamentos(),
+            'municipios' => \App\Support\UbicacionCatalogo::municipios(),
+            'distritos' => \App\Support\UbicacionCatalogo::distritos(),
+        ]);
+    }
+
+    public function storeSujetoExcluido(Request $request, Purchase $purchase)
+    {
+        $this->compraDeContexto($purchase);
+
+        $validated = $request->validate([
+            'departamento' => ['required', 'string', 'size:2'],
+            'municipio' => ['required', 'string', 'max:4'],
+            'distrito' => ['required', 'string', 'size:2'],
+            'direccion' => ['required', 'string', 'max:200'],
+            'retencion_renta' => ['nullable', 'numeric', 'min:0'],
+            'observaciones' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        if (! \App\Support\UbicacionCatalogo::distritoValido($validated['departamento'], $validated['municipio'], $validated['distrito'])) {
+            return back()->withErrors(['distrito' => 'El distrito no corresponde al departamento/municipio.'])->withInput();
+        }
+
+        try {
+            DB::transaction(function () use ($purchase, $validated) {
+                // La dirección del vendedor queda en el proveedor para próximas compras.
+                $purchase->provider->update([
+                    'departamento' => $validated['departamento'],
+                    'municipio' => $validated['municipio'],
+                    'distrito' => $validated['distrito'],
+                    'direccion' => $validated['direccion'],
+                ]);
+
+                $dte = app(\Stockia\DteSvMh\Services\DteEmissionService::class)->emitirSujetoExcluido(
+                    $purchase->fresh(['provider', 'items.product']),
+                    round((float) ($validated['retencion_renta'] ?? 0), 2),
+                    trim((string) ($validated['observaciones'] ?? ''))
+                );
+
+                if (! in_array((string) $dte->estado, ['ACEPTADO', 'CONTINGENCIA'], true)) {
+                    throw new \RuntimeException('Hacienda no aceptó la factura (estado '.$dte->estado.'). No se registró.');
+                }
+            });
+        } catch (\RuntimeException $e) {
+            return back()->withErrors($e->getMessage())->withInput();
+        }
+
+        return redirect()->route('purchases.show', $purchase)->with('success', 'Factura de Sujeto Excluido emitida y aceptada por Hacienda.');
+    }
+
+    public function invalidateSujetoExcluido(Request $request, Purchase $purchase)
+    {
+        $this->compraDeContexto($purchase);
+
+        $validated = $request->validate([
+            'tipo_invalidacion' => ['required', 'in:1,2,3'],
+            'motivo' => ['required', 'string', 'max:180'],
+            'replacement_purchase_id' => ['nullable', 'integer', 'min:1'],
+        ]);
+
+        try {
+            DB::transaction(function () use ($purchase, $validated) {
+                app(\Stockia\DteSvMh\Devolucion\DteDevolucionService::class)->invalidarSujetoExcluido(
+                    $purchase,
+                    (string) $validated['tipo_invalidacion'],
+                    trim($validated['motivo']).' - compra #'.$purchase->id,
+                    ! empty($validated['replacement_purchase_id']) ? (int) $validated['replacement_purchase_id'] : null
+                );
+            });
+        } catch (\RuntimeException $e) {
+            return back()->withErrors($e->getMessage())->withInput();
+        }
+
+        return redirect()->route('purchases.show', $purchase)->with('success', 'Factura de Sujeto Excluido invalidada ante Hacienda. El inventario no se modifica.');
     }
 
     public function storePayment(Request $request, Purchase $purchase)

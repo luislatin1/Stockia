@@ -135,6 +135,38 @@
         </div>
     @endif
 
+    @if(! empty($dteActivo))
+        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-3">
+            <h3 class="font-semibold text-gray-900">Factura de Sujeto Excluido</h3>
+            @if($errors->any())
+                <div class="rounded border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                    <ul class="list-disc pl-5">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul>
+                </div>
+            @endif
+            @if($fse)
+                <p class="text-sm text-gray-700">{{ $fse->numero_control }} &middot;
+                    <span class="font-semibold {{ $fse->estado === 'ACEPTADO' ? 'text-green-700' : 'text-amber-700' }}">{{ $fse->estado }}</span></p>
+                @if($fse->estado === 'ACEPTADO')
+                    <form method="POST" action="{{ route('purchases.sujeto-excluido.invalidate', $purchase) }}" class="grid grid-cols-1 gap-2 md:grid-cols-4 text-sm">
+                        @csrf
+                        <select name="tipo_invalidacion" class="rounded border border-gray-300 px-2 py-1.5">
+                            <option value="2">Rescindir la operación</option>
+                            <option value="1">Error en la información</option>
+                            <option value="3">Otro</option>
+                        </select>
+                        <input name="motivo" maxlength="180" placeholder="Motivo" class="rounded border border-gray-300 px-2 py-1.5">
+                        <input type="number" min="1" name="replacement_purchase_id" placeholder="Compra que la reemplaza (error/otro)" class="rounded border border-gray-300 px-2 py-1.5">
+                        <button class="rounded bg-red-600 px-3 py-1.5 font-semibold text-white">Invalidar</button>
+                    </form>
+                    <p class="text-xs text-gray-500">Con "error" u "otro", Hacienda exige emitir antes la factura correcta (otra compra) y elegirla como reemplazo. Plazo: 3 meses desde el sello.</p>
+                @endif
+            @else
+                <p class="text-sm text-gray-600">Si el proveedor no es contribuyente de IVA, emita la Factura de Sujeto Excluido por esta compra.</p>
+                <a href="{{ route('purchases.sujeto-excluido', $purchase) }}" class="inline-block rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Emitir factura de sujeto excluido</a>
+            @endif
+        </div>
+    @endif
+
     <a href="{{ route('purchases.index') }}" class="text-sm text-gray-500 hover:text-gray-700">← Volver a Compras</a>
 
 </div>

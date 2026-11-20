@@ -20,6 +20,9 @@ class Provider extends Model
         'telefono',
         'email',
         'direccion',
+        'departamento',
+        'municipio',
+        'distrito',
         'dias_credito_default',
     ];
 

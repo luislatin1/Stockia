@@ -82,6 +82,19 @@ Se ejecuta desde el ajuste administrativo de ventas (`SaleController::storeAdmin
 - **Efectos:** invalidar el Evento de Retorno libera a la factura (vuelve a poder invalidarse); invalidar una NC libera al CCF; invalidar una ND de venta a crédito resta su monto del saldo pendiente. **No se revierten inventario ni caja**; para volver a acreditar un monto sin mover producto se usa "Devolver / ajustar" con motivo de error de precio (NC de valor).
 - **Pendiente:** firma real del evento (necesita el firmador y el Manual Tecnológico: hoy el modo real envía el evento sin firmar); invalidar eventos para FEX/FSE; revertir físicamente una devolución. 147 tests pasan.
 
+### 2.8 Factura de Exportación (11) y Factura de Sujeto Excluido (14) (construido 2026-11-20)
+**Exportación** (`ExportacionBuilder`, esquema fe-fex-v3, JSON v3):
+- Se vende desde una venta con `tipo_dte = 11` y cliente del extranjero. `CreateSale` y el POS calculan **sin IVA** (opción `exportacion` en `DteCalculationService`); no hay retenciones. Cada ítem va como venta gravada con tributo `C3` (IVA 0 %), el resumen trae el tributo C3 con valor 0,00 y `montoTotalOperacion` = gravada + seguro + flete.
+- **Datos nuevos:** cliente → código de país CAT-020, país, tipo de persona CAT-029 (formulario de clientes), más tipo de documento Pasaporte/Carné/Otro y actividad y dirección; empresa → en DTE > Administración: tipo de exportación (1 bienes, 2 servicios), recinto fiscal CAT-027, tipo de régimen CAT-033, régimen CAT-028 e INCOTERMS CAT-031 opcional (`dte_settings.expo_*`). Con servicios, recinto/tipo de régimen/régimen salen null (regla de la Normativa). Sin esos datos o sin país del cliente no se emite.
+- **Límites:** seguro y flete van en 0 (no hay dónde capturarlos aún); sin documentos relacionados ni "otros documentos"; sin retorno de exportación. Los códigos de recinto/régimen no se validan contra el catálogo (transcripción de terceros): se confía en lo que capture el contador.
+
+**Sujeto excluido** (`SujetoExcluidoBuilder`, esquema fe-fse-v2, JSON v2):
+- La emite **la empresa al comprar** a un proveedor que no es contribuyente. Botón en el detalle de la compra → pantalla donde se captura la dirección del vendedor (departamento/municipio/distrito/dirección, validados con el mapa del Decreto 762 y guardados en el proveedor) y la retención de renta opcional. Sin IVA: `totalPagar = subTotal − reteRenta`. Documento del vendedor: DUI (13) y si no NIT (36) del proveedor, sin guiones.
+- El DTE queda ligado a la compra (`dtes.purchase_id`, `sale_id` null); una compra no admite dos facturas vigentes. La firma/transmisión reutiliza el flujo común (con un contenedor de venta solo para empresa/certificado).
+- **Invalidación** desde la misma pantalla de la compra (rescindir; error/otro exige otra compra con su factura aceptada como reemplazo; plazo 3 meses). Ambos tipos se invalidan con el evento de invalidación validado contra el esquema.
+- **Límites:** la compra ya está registrada (inventario y cuentas por pagar existen aparte): emitir o invalidar la factura no los modifica. Retención de renta: se captura a mano (no hay regla automática del 10 %: confirmar con el contador cuándo aplica). Sin Evento de Retorno para FSE/FEX (el constructor solo acepta Facturas).
+- Migraciones: `customers` país/tipo de persona, `providers` departamento/municipio/distrito, `dte_settings.expo_*`, `dtes.purchase_id`. 170 tests pasan.
+
 **Supuestos por cotejar con el Anexo IV/catálogos (no verificados contra el PDF):**
 - (Verificado después contra el catálogo: CAT-017 `01` y CAT-018 `01` correctos.) Stockia solo distingue efectivo/crédito; tarjeta, transferencia, etc. salen como efectivo hasta que existan en el POS.
 - Los totales del DTE se recalculan desde el ítem (precio × 1,13); pueden diferir centavos de `sales.total`. El DTE manda para Hacienda.
@@ -109,7 +122,7 @@ Medida en el servidor con datos reales (venta simulada, con rollback): **29 erro
 
 ## Siguiente
 1. Identificación obligatoria sobre el monto legal (pendiente del contador). Migrar y probar con datos reales de emisor/cliente en el servidor (la migración de `customers` aún no está aplicada en ningún lado).
-2. Constructores de Exportación (11) y Sujeto Excluido (14), y sus eventos de retorno/invalidación.
+2. Captura de seguro/flete y INCOTERMS por venta de exportación; Evento de Retorno para FEX/FSE.
 3. Firma (firmador oficial por cliente), transmisión, reintentos y eventos.
 
 ## Pendiente de planear (después de terminar las fases de facturación)

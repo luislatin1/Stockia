@@ -93,6 +93,13 @@ Route::middleware(['auth'])->group(function () {
                     ->only(['index', 'create', 'store', 'show']);
                 Route::post('/purchases/{purchase}/payments', [PurchaseController::class, 'storePayment'])
                     ->name('purchases.payments.store');
+
+                Route::get('/purchases/{purchase}/sujeto-excluido', [PurchaseController::class, 'sujetoExcluido'])
+                    ->name('purchases.sujeto-excluido');
+                Route::post('/purchases/{purchase}/sujeto-excluido', [PurchaseController::class, 'storeSujetoExcluido'])
+                    ->name('purchases.sujeto-excluido.store');
+                Route::post('/purchases/{purchase}/sujeto-excluido/invalidate', [PurchaseController::class, 'invalidateSujetoExcluido'])
+                    ->name('purchases.sujeto-excluido.invalidate');
             });
 
             Route::middleware(['can:cuentas-pagar'])->group(function () {

@@ -22,7 +22,13 @@ class DteEmitterResolver
      */
     public function forSale(Sale $sale): array
     {
-        $establecimiento = $this->establecimientoDeBodega($sale) ?? $this->predeterminado((int) $sale->company_id);
+        return $this->forContext((int) $sale->company_id, $sale->warehouse_id ? (int) $sale->warehouse_id : null);
+    }
+
+    /** Igual que forSale, para documentos que no nacen de una venta (p. ej. la compra de una Factura de Sujeto Excluido). */
+    public function forContext(int $companyId, ?int $warehouseId): array
+    {
+        $establecimiento = $this->establecimientoDeBodega($warehouseId) ?? $this->predeterminado($companyId);
 
         if (! $establecimiento) {
             throw new \RuntimeException(
@@ -41,10 +47,8 @@ class DteEmitterResolver
         return ['establecimiento' => $establecimiento, 'punto_venta' => $puntoVenta];
     }
 
-    private function establecimientoDeBodega(Sale $sale): ?DteEstablecimiento
+    private function establecimientoDeBodega(?int $warehouseId): ?DteEstablecimiento
     {
-        $warehouseId = $sale->warehouse_id ?? null;
-
         if (! $warehouseId || ! Schema::hasColumn('warehouses', 'dte_establecimiento_id')) {
             return null;
         }

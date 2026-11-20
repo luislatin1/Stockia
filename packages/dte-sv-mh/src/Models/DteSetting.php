@@ -32,6 +32,11 @@ class DteSetting extends Model
         'responsable_nombre',
         'responsable_tipo_doc',
         'responsable_num_doc',
+        'expo_tipo_item',
+        'expo_recinto',
+        'expo_tipo_regimen',
+        'expo_regimen',
+        'expo_cod_incoterms',
     ];
 
     /** Nunca se serializan: son credenciales. */

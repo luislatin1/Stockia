@@ -14,8 +14,10 @@ class DteCalculationService
     {
         // Las tasas se toman con la vigencia de la fecha de la operación.
         $fecha = $options['fecha'] ?? null;
-        $ivaRate = $this->taxRates->rate(TaxRateService::IVA, $fecha);
-        $retIvaRate = $this->taxRates->rate(TaxRateService::RET_IVA, $fecha);
+        // Exportación: las ventas van con IVA 0 % (tributo C3); no hay retención de IVA.
+        $exportacion = ! empty($options['exportacion']);
+        $ivaRate = $exportacion ? 0.0 : $this->taxRates->rate(TaxRateService::IVA, $fecha);
+        $retIvaRate = $exportacion ? 0.0 : $this->taxRates->rate(TaxRateService::RET_IVA, $fecha);
 
         $gravadas = 0.0;
         $exentas = 0.0;

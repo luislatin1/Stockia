@@ -481,6 +481,7 @@ class PTVPosController extends Controller
         $calc = $calculator->calculate($lineItems, [
             'aplica_retencion_iva' => false,
             'retencion_renta' => 0,
+            'exportacion' => ($data['tipo_dte'] ?? null) === '11',
         ]);
         $totals = $calc['totals'];
         $normalizedItems = $calc['items'];
