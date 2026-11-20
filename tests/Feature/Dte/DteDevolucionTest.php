@@ -457,6 +457,203 @@ class DteDevolucionTest extends TestCase
         $this->get(route('sales.debit-note', $sale))->assertRedirect(route('sales.show', $sale));
     }
 
+    // ---- Invalidación de notas y eventos ------------------------------------------------------
+
+    private function notaCredito(Sale $sale): Dte
+    {
+        return $this->servicio()->ejecutar($sale, $this->ajuste($sale), 'devolucion', 'parcial', 'return_items',
+            [['sale_item_id' => $sale->items->first()->id, 'quantity' => 1]], null, '')['dte'];
+    }
+
+    private function notaDebito(Sale $sale, float $monto = 10.0): Dte
+    {
+        return $this->servicio()->emitirDebito($sale, $this->ajuste($sale, 'debit_note'), 'cargo_adicional',
+            [['descripcion' => 'Flete', 'monto_neto' => $monto]], '');
+    }
+
+    public function test_invalida_una_nota_de_credito_con_evento_valido_y_sin_reemplazo(): void
+    {
+        $sale = $this->ventaConDte('03');
+        $nc = $this->notaCredito($sale);
+
+        $this->servicio()->invalidarDocumento($nc, '1', 'Monto mal digitado');
+
+        $this->assertSame('INVALIDADO', $nc->fresh()->estado);
+        $inv = DB::table('dte_invalidaciones')->where('dte_id', $nc->id)->first();
+        $evento = json_decode($inv->json_evento, true);
+        $this->assertSame([], (new DteSchemaValidator(new DteSchemaRegistry()))->validar($evento, 'invalidacion'));
+        $this->assertSame('05', $evento['documento']['tipoDte']);
+        $this->assertNull($evento['documento']['codigoGeneracionR']);
+        $this->assertSame(1, $evento['motivo']['tipoAnulacion']);
+        // Nota de Crédito: la fecha del evento es la de generación de la propia nota.
+        $this->assertSame($nc->json_original['identificacion']['fecEmi'], $evento['identificacion']['fecEmi']);
+    }
+
+    public function test_tras_invalidar_la_nota_el_ccf_ya_puede_invalidarse(): void
+    {
+        $sale = $this->ventaConDte('03');
+        $nc = $this->notaCredito($sale);
+        $nueva = $this->ventaConDte('03');
+
+        try {
+            $this->servicio()->ejecutar($sale, $this->ajuste($sale, 'cancel_sale'), 'error_datos_cliente', 'total', 'cancel_sale', [], $nueva->id, '');
+            $this->fail('El CCF con nota vigente no debe invalidarse');
+        } catch (\RuntimeException $e) {
+            $this->assertStringContainsString('notas de crédito/débito vigentes', $e->getMessage());
+        }
+
+        $this->servicio()->invalidarDocumento($nc, '2', 'Anulación de la nota');
+        $this->servicio()->ejecutar($sale, $this->ajuste($sale, 'cancel_sale'), 'error_datos_cliente', 'total', 'cancel_sale', [], $nueva->id, '');
+        $this->assertSame('INVALIDADO', Dte::where('sale_id', $sale->id)->where('tipo_dte', '03')->first()->estado);
+    }
+
+    public function test_invalidar_el_evento_de_retorno_libera_a_la_factura(): void
+    {
+        $sale = $this->ventaConDte('01');
+        $er = $this->servicio()->ejecutar($sale, $this->ajuste($sale), 'devolucion', 'parcial', 'return_items',
+            [['sale_item_id' => $sale->items->first()->id, 'quantity' => 1]], null, '')['dte'];
+        $nueva = $this->ventaConDte('01');
+
+        try {
+            $this->servicio()->ejecutar($sale, $this->ajuste($sale, 'void_invoice'), 'error_fecha', 'total', 'void_invoice', [], $nueva->id, '');
+            $this->fail('La factura con retorno vigente no debe invalidarse');
+        } catch (\RuntimeException $e) {
+            $this->assertStringContainsString('Evento de Retorno', $e->getMessage());
+        }
+
+        $this->servicio()->invalidarDocumento($er, '2', 'Retorno registrado por error');
+        $evento = json_decode(DB::table('dte_invalidaciones')->where('dte_id', $er->id)->value('json_evento'), true);
+        $this->assertSame([], (new DteSchemaValidator(new DteSchemaRegistry()))->validar($evento, 'invalidacion'));
+        $this->assertSame('18', $evento['documento']['tipoDte']);
+        $this->assertNull($evento['documento']['numeroControl']);
+
+        $this->servicio()->ejecutar($sale, $this->ajuste($sale, 'void_invoice'), 'error_fecha', 'total', 'void_invoice', [], $nueva->id, '');
+        $this->assertSame('INVALIDADO', Dte::where('sale_id', $sale->id)->where('tipo_dte', '01')->first()->estado);
+    }
+
+    public function test_nota_de_debito_con_error_exige_la_nd_que_la_reemplaza(): void
+    {
+        $sale = $this->ventaConDte('03');
+        $mala = $this->notaDebito($sale, 10.0);
+
+        try {
+            $this->servicio()->invalidarDocumento($mala, '1', 'Monto errado');
+            $this->fail('Debió exigir el reemplazo');
+        } catch (\RuntimeException $e) {
+            $this->assertStringContainsString('Nota de Débito correcta', $e->getMessage());
+        }
+        $this->assertSame('ACEPTADO', $mala->fresh()->estado);
+
+        $buena = $this->notaDebito($sale, 12.0);
+        $this->servicio()->invalidarDocumento($mala, '1', 'Monto errado', $buena->id);
+
+        $this->assertSame('INVALIDADO', $mala->fresh()->estado);
+        $this->assertSame('ACEPTADO', $buena->fresh()->estado);
+        $evento = json_decode(DB::table('dte_invalidaciones')->where('dte_id', $mala->id)->value('json_evento'), true);
+        $this->assertSame([], (new DteSchemaValidator(new DteSchemaRegistry()))->validar($evento, 'invalidacion'));
+        $this->assertSame($buena->codigo_generacion, $evento['documento']['codigoGeneracionR']);
+    }
+
+    public function test_nota_de_debito_rescindida_no_lleva_reemplazo_y_devuelve_el_saldo(): void
+    {
+        $sale = $this->ventaConDte('03');
+        DB::table('sales')->where('id', $sale->id)->update(['payment_method' => 'credit', 'saldo_pendiente' => 50]);
+        $nd = $this->notaDebito($sale->fresh(), 10.0); // +11,30
+        $this->assertEquals(61.3, (float) DB::table('sales')->where('id', $sale->id)->value('saldo_pendiente'));
+
+        $this->servicio()->invalidarDocumento($nd, '2', 'Cargo improcedente');
+
+        $this->assertEquals(50.0, (float) DB::table('sales')->where('id', $sale->id)->value('saldo_pendiente'));
+        $this->assertSame('INVALIDADO', $nd->fresh()->estado);
+    }
+
+    public function test_solo_notas_y_retornos_aceptados_dentro_de_plazo(): void
+    {
+        $sale = $this->ventaConDte('03');
+        $ccf = Dte::where('sale_id', $sale->id)->where('tipo_dte', '03')->first();
+        try {
+            $this->servicio()->invalidarDocumento($ccf, '2', 'x');
+            $this->fail('El CCF no se invalida desde aquí');
+        } catch (\RuntimeException $e) {
+            $this->assertStringContainsString('Solo se pueden invalidar aquí', $e->getMessage());
+        }
+
+        $nc = $this->notaCredito($sale);
+        try {
+            $this->servicio()->invalidarDocumento($nc, '9', 'x');
+            $this->fail('Tipo inválido');
+        } catch (\RuntimeException $e) {
+            $this->assertStringContainsString('Tipo de invalidación', $e->getMessage());
+        }
+        try {
+            $this->servicio()->invalidarDocumento($nc, '2', '  ');
+            $this->fail('Motivo vacío');
+        } catch (\RuntimeException $e) {
+            $this->assertStringContainsString('motivo', strtolower($e->getMessage()));
+        }
+
+        Dte::where('id', $nc->id)->update(['fecha_envio' => now()->subMonths(3)]);
+        $this->expectExceptionMessage('Venció el plazo');
+        $this->servicio()->invalidarDocumento($nc->fresh(), '2', 'tarde');
+    }
+
+    public function test_en_modo_real_se_exige_el_responsable_de_eventos(): void
+    {
+        $sale = $this->ventaConDte('03');
+        $nc = $this->notaCredito($sale);
+        Dte::where('id', $nc->id)->update(['sello_recepcion' => str_repeat('B', 40)]);
+        DB::table('dte_settings')->where('company_id', $this->company->id)->update(['integration_mode' => 'real']);
+
+        $this->expectExceptionMessage('Configure el responsable de eventos');
+        $this->servicio()->invalidarDocumento($nc->fresh(), '2', 'x');
+    }
+
+    public function test_el_responsable_configurado_va_en_el_evento(): void
+    {
+        $sale = $this->ventaConDte('03');
+        DB::table('dte_settings')->where('company_id', $this->company->id)->update([
+            'responsable_nombre' => 'ANA LOPEZ', 'responsable_tipo_doc' => '13', 'responsable_num_doc' => '012345678',
+        ]);
+        $nc = $this->notaCredito($sale);
+        $this->servicio()->invalidarDocumento($nc, '2', 'x');
+
+        $evento = json_decode(DB::table('dte_invalidaciones')->where('dte_id', $nc->id)->value('json_evento'), true);
+        $this->assertSame('ANA LOPEZ', $evento['motivo']['nombreResponsable']);
+        $this->assertSame('012345678', $evento['motivo']['numDocSolicita']);
+    }
+
+    public function test_pantalla_y_controlador_de_invalidacion(): void
+    {
+        $sale = $this->ventaConDte('03');
+        $nc = $this->notaCredito($sale);
+        $this->entrar();
+
+        $this->get(route('sales.show', $sale))->assertOk()->assertSee('Invalidar documento', false);
+        $this->get(route('sales.dte.invalidate', [$sale, $nc->id]))->assertOk()->assertSee('Rescindir la operación', false);
+
+        $this->post(route('sales.dte.invalidate.store', [$sale, $nc->id]), ['tipo_invalidacion' => '2', 'motivo' => ''])->assertSessionHasErrors('motivo');
+        $this->assertSame('ACEPTADO', $nc->fresh()->estado);
+
+        $this->post(route('sales.dte.invalidate.store', [$sale, $nc->id]), ['tipo_invalidacion' => '2', 'motivo' => 'Se emitió por error'])
+            ->assertSessionHasNoErrors()->assertRedirect(route('sales.show', $sale));
+        $this->assertSame('INVALIDADO', $nc->fresh()->estado);
+
+        $this->get(route('sales.show', $sale))->assertSee('INVALIDADO', false)->assertDontSee('Invalidar documento', false);
+        $this->get(route('sales.dte.invalidate', [$sale, $nc->id]))->assertRedirect(route('sales.show', $sale));
+    }
+
+    public function test_no_se_invalida_un_documento_de_otra_venta(): void
+    {
+        $a = $this->ventaConDte('03');
+        $b = $this->ventaConDte('03');
+        $ncB = $this->notaCredito($b);
+        $this->entrar();
+
+        $this->get(route('sales.dte.invalidate', [$a, $ncB->id]))->assertNotFound();
+        $this->post(route('sales.dte.invalidate.store', [$a, $ncB->id]), ['tipo_invalidacion' => '2', 'motivo' => 'x'])->assertNotFound();
+        $this->assertSame('ACEPTADO', $ncB->fresh()->estado);
+    }
+
     // ---- Pantalla / controlador -----------------------------------------------------------
 
     private function entrar(): void

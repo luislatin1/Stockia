@@ -200,6 +200,12 @@ Route::middleware(['auth'])->group(function () {
 
                 Route::post('sales/{sale}/debit-note', [SaleController::class, 'storeDebitNote'])
                     ->name('sales.debit-note.store');
+
+                Route::get('sales/{sale}/dte/{dte}/invalidate', [SaleController::class, 'invalidateDte'])
+                    ->name('sales.dte.invalidate');
+
+                Route::post('sales/{sale}/dte/{dte}/invalidate', [SaleController::class, 'storeInvalidateDte'])
+                    ->name('sales.dte.invalidate.store');
             });
 
             Route::middleware(['role:Admin,SuperAdmin', 'can:cuentas-cobrar'])->group(function () {

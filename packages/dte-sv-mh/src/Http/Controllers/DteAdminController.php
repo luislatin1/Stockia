@@ -90,6 +90,10 @@ class DteAdminController extends Controller
             'static_sello' => ['nullable', 'string', 'max:255'],
             'static_estado' => ['nullable', 'in:PENDIENTE,ACEPTADO,RECHAZADO,INVALIDADO'],
             'static_response_json' => ['nullable', 'string'],
+            // Quien realiza/solicita los eventos de invalidación (CAT-022: 13 DUI, 36 NIT, 03 pasaporte, 02 carnet, 37 otro).
+            'responsable_nombre' => ['nullable', 'string', 'max:100', 'required_with:responsable_num_doc'],
+            'responsable_tipo_doc' => ['nullable', 'string', 'size:2', 'required_with:responsable_num_doc'],
+            'responsable_num_doc' => ['nullable', 'string', 'max:20', 'required_with:responsable_nombre'],
         ]);
 
         $staticResponse = null;
@@ -125,6 +129,9 @@ class DteAdminController extends Controller
                 'static_sello' => $validated['static_sello'] ?? null,
                 'static_estado' => $validated['static_estado'] ?? 'ACEPTADO',
                 'static_response' => $staticResponse,
+                'responsable_nombre' => $validated['responsable_nombre'] ?? null,
+                'responsable_tipo_doc' => $validated['responsable_tipo_doc'] ?? null,
+                'responsable_num_doc' => $validated['responsable_num_doc'] ?? null,
             ]
         );
 

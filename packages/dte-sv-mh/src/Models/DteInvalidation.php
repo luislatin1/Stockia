@@ -15,11 +15,13 @@ class DteInvalidation extends Model
         'fecha_invalidacion',
         'estado_envio',
         'respuesta_hacienda',
+        'json_evento',
     ];
 
     protected $casts = [
         'fecha_invalidacion' => 'datetime',
         'respuesta_hacienda' => 'array',
+        'json_evento' => 'array',
     ];
 
     public function dte()

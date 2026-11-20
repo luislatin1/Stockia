@@ -222,7 +222,12 @@ class SaleController extends Controller
             && $this->dteDevolucionDisponible()
             && app(\Stockia\DteSvMh\Devolucion\DteDevolucionService::class)->ccfParaDebito($sale) !== null;
 
-        return view('sales.show', compact('sale', 'adjustments', 'adjustmentItems', 'puedeNotaDebito'));
+        // Documentos (NC/ND/Evento de Retorno) generados por cada ajuste, para mostrar su estado y permitir invalidarlos.
+        $dtesAjuste = $this->dteDevolucionDisponible() && $adjustments->pluck('dte_id')->filter()->isNotEmpty()
+            ? \Stockia\DteSvMh\Models\Dte::withoutGlobalScopes()->whereIn('id', $adjustments->pluck('dte_id')->filter())->get()->keyBy('id')
+            : collect();
+
+        return view('sales.show', compact('sale', 'adjustments', 'adjustmentItems', 'puedeNotaDebito', 'dtesAjuste'));
     }
 
     public function edit(Sale $sale)
@@ -657,6 +662,69 @@ class SaleController extends Controller
         }
 
         return redirect()->route('sales.show', $sale)->with('success', 'Nota de débito emitida y aceptada por Hacienda.');
+    }
+
+    /** Documento (NC/ND/Evento de Retorno) de esta venta que se quiere invalidar, o 404. */
+    private function dteInvalidable(Sale $sale, int $dteId): \Stockia\DteSvMh\Models\Dte
+    {
+        abort_unless($this->dteDevolucionDisponible(), Response::HTTP_NOT_FOUND);
+
+        $dte = \Stockia\DteSvMh\Models\Dte::withoutGlobalScopes()
+            ->where('id', $dteId)->where('sale_id', $sale->id)->where('company_id', $sale->company_id)->first();
+        abort_unless($dte, Response::HTTP_NOT_FOUND);
+
+        return $dte;
+    }
+
+    public function invalidateDte(Sale $sale, int $dte)
+    {
+        [$companyId, $warehouseId] = $this->currentContext();
+        $this->ensureSaleAccess($sale, $companyId, $warehouseId);
+        $documento = $this->dteInvalidable($sale, $dte);
+        $svc = app(\Stockia\DteSvMh\Devolucion\DteDevolucionService::class);
+
+        if (! $svc->esInvalidable($documento)) {
+            return redirect()->route('sales.show', $sale)->withErrors('Este documento no se puede invalidar desde aquí (solo notas y eventos de retorno aceptados).');
+        }
+
+        $reemplazos = (string) $documento->tipo_dte === '06' ? $svc->reemplazosDeDebito($documento) : collect();
+
+        return view('sales.invalidate-dte', ['sale' => $sale, 'documento' => $documento, 'reemplazos' => $reemplazos]);
+    }
+
+    public function storeInvalidateDte(Request $request, Sale $sale, int $dte)
+    {
+        [$companyId, $warehouseId] = $this->currentContext();
+        $this->ensureSaleAccess($sale, $companyId, $warehouseId);
+        $documento = $this->dteInvalidable($sale, $dte);
+
+        $validated = $request->validate([
+            'tipo_invalidacion' => ['required', 'in:1,2,3'],
+            'motivo' => ['required', 'string', 'max:180'],
+            'replacement_dte_id' => ['nullable', 'integer', 'min:1'],
+            'admin_password' => ['nullable', 'string'],
+        ]);
+
+        if (! $this->isAdminRole() && ! $this->validateAdminPassword($validated['admin_password'] ?? null, $companyId)) {
+            return back()->withErrors('Se requiere clave de administrador valida para invalidar un documento.')->withInput();
+        }
+
+        $svc = app(\Stockia\DteSvMh\Devolucion\DteDevolucionService::class);
+
+        try {
+            DB::transaction(function () use ($svc, $documento, $validated, $sale) {
+                $svc->invalidarDocumento(
+                    $documento,
+                    (string) $validated['tipo_invalidacion'],
+                    trim($validated['motivo']).' - venta #'.$sale->id,
+                    ! empty($validated['replacement_dte_id']) ? (int) $validated['replacement_dte_id'] : null
+                );
+            });
+        } catch (\RuntimeException $e) {
+            return back()->withErrors($e->getMessage())->withInput();
+        }
+
+        return redirect()->route('sales.show', $sale)->with('success', 'Documento invalidado ante Hacienda. El inventario y la caja no se modifican: ajústelos aparte si corresponde.');
     }
 
     private function dteDevolucionDisponible(): bool

@@ -29,6 +29,9 @@ class DteSetting extends Model
         'static_sello',
         'static_estado',
         'static_response',
+        'responsable_nombre',
+        'responsable_tipo_doc',
+        'responsable_num_doc',
     ];
 
     /** Nunca se serializan: son credenciales. */

@@ -102,6 +102,25 @@
                 <input name="signer_url" value="{{ old('signer_url', $settings->signer_url) }}" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
             </div>
 
+            <div class="md:col-span-2 rounded-lg border border-indigo-100 bg-indigo-50 p-3 text-xs text-indigo-900">
+                <strong>Responsable de eventos de invalidación.</strong> Hacienda exige nombre y documento de quien realiza y solicita cada invalidación
+                (notas, retornos, facturas anuladas). En modo real es obligatorio; en simulación se usan datos de prueba si está vacío.
+            </div>
+            <div>
+                <label class="mb-1 block text-sm font-medium text-gray-700">Responsable: nombre completo</label>
+                <input name="responsable_nombre" maxlength="100" value="{{ old('responsable_nombre', $settings->responsable_nombre) }}" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+            </div>
+            <div class="grid grid-cols-3 gap-2">
+                <div>
+                    <label class="mb-1 block text-sm font-medium text-gray-700">Tipo doc.</label>
+                    <input name="responsable_tipo_doc" maxlength="2" placeholder="13" value="{{ old('responsable_tipo_doc', $settings->responsable_tipo_doc) }}" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+                </div>
+                <div class="col-span-2">
+                    <label class="mb-1 block text-sm font-medium text-gray-700">Número de documento</label>
+                    <input name="responsable_num_doc" maxlength="20" value="{{ old('responsable_num_doc', $settings->responsable_num_doc) }}" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+                </div>
+            </div>
+
             <div>
                 <label class="mb-1 block text-sm font-medium text-gray-700">Usuario API (real)</label>
                 <input name="api_user" value="{{ old('api_user', $settings->api_user) }}" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">

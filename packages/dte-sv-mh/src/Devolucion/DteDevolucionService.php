@@ -29,6 +29,73 @@ class DteDevolucionService
     {
     }
 
+    /** Tipos de documento propios que se pueden invalidar desde la pantalla de la venta. */
+    public const INVALIDABLES = ['05', '06', '18'];
+
+    /** ¿Se puede invalidar este documento desde la pantalla de la venta? */
+    public function esInvalidable(Dte $dte): bool
+    {
+        return in_array((string) $dte->tipo_dte, self::INVALIDABLES, true) && (string) $dte->estado === 'ACEPTADO';
+    }
+
+    /** Otras Notas de Débito aceptadas de la misma venta (candidatas a reemplazar una ND errónea). */
+    public function reemplazosDeDebito(Dte $nd): \Illuminate\Support\Collection
+    {
+        return Dte::withoutGlobalScopes()->where('sale_id', $nd->sale_id)->where('tipo_dte', '06')
+            ->where('estado', 'ACEPTADO')->where('id', '!=', $nd->id)->orderBy('id')->get();
+    }
+
+    /**
+     * Invalida una Nota de Crédito, una Nota de Débito o un Evento de Retorno (Manual Funcional v2.0 §VII).
+     *  - NC y Evento de Retorno: el código de reemplazo va siempre null; si el error era de la nota se emite una nueva después.
+     *  - ND: con tipo 1 o 3 hay que emitir ANTES la ND correcta y pasarla como reemplazo; con tipo 2 (rescindir) no.
+     * Plazo: décimo día hábil del mes siguiente al sello. No revierte inventario ni caja (solo el documento ante Hacienda);
+     * sí devuelve al cliente de una venta a crédito el cargo de una ND invalidada.
+     */
+    public function invalidarDocumento(Dte $dte, string $tipoInvalidacion, string $motivo, ?int $dteReemplazoId = null): void
+    {
+        if (! $this->esInvalidable($dte)) {
+            throw new \RuntimeException('Solo se pueden invalidar aquí Notas de Crédito, Notas de Débito y Eventos de Retorno aceptados por Hacienda.');
+        }
+        if (! in_array($tipoInvalidacion, ['1', '2', '3'], true)) {
+            throw new \RuntimeException('Tipo de invalidación no válido.');
+        }
+        $motivo = trim($motivo);
+        if ($motivo === '') {
+            throw new \RuntimeException('Indique el motivo de la invalidación.');
+        }
+
+        $zona = config('dte.timezone', 'America/El_Salvador');
+        $sello = $dte->fecha_envio ?? $dte->created_at;
+        if (! PlazoInvalidacion::vigente((string) $dte->tipo_dte, $sello, null, $zona)) {
+            $limite = PlazoInvalidacion::limite((string) $dte->tipo_dte, $sello, $zona)->format('d/m/Y');
+            throw new \RuntimeException("Venció el plazo para invalidar este documento ({$limite}). Consulte con el contador.");
+        }
+
+        $reemplazo = null;
+        if ((string) $dte->tipo_dte === '06' && $tipoInvalidacion !== '2') {
+            $reemplazo = $dteReemplazoId
+                ? $this->reemplazosDeDebito($dte)->firstWhere('id', $dteReemplazoId)
+                : null;
+            if (! $reemplazo) {
+                throw new \RuntimeException('Con este tipo de invalidación Hacienda exige emitir primero la Nota de Débito correcta (aceptada) y seleccionarla como reemplazo.');
+            }
+        }
+
+        $this->emision->invalidate($dte, $tipoInvalidacion, $motivo, $reemplazo?->codigo_generacion);
+
+        // Una ND a crédito aumentó la deuda del cliente: al invalidarla, deja de deberse.
+        if ((string) $dte->tipo_dte === '06' && $dte->sale_id) {
+            $sale = DB::table('sales')->where('id', $dte->sale_id)->first(['payment_method', 'saldo_pendiente']);
+            if ($sale && $sale->payment_method === 'credit') {
+                $monto = min((float) $sale->saldo_pendiente, (float) ($dte->json_original['resumen']['totalPagar'] ?? 0));
+                if ($monto > 0) {
+                    DB::table('sales')->where('id', $dte->sale_id)->decrement('saldo_pendiente', $monto);
+                }
+            }
+        }
+    }
+
     /** ¿Se puede emitir una Nota de Débito sobre esta venta? Devuelve el CCF aceptado o null. */
     public function ccfParaDebito(Sale $sale): ?Dte
     {

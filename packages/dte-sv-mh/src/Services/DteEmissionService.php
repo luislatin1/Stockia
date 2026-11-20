@@ -475,11 +475,18 @@ class DteEmissionService
     public function invalidate(Dte $dte, string $tipoInvalidacion, string $motivo, ?string $codigoGeneracionReemplazo = null): array
     {
         $settings = $this->resolveSettings((int) $dte->company_id);
+        $mode = $this->factory->mode($settings);
+
+        // Evento de Invalidación según el esquema oficial; si no lo cumple, no se transmite ni se marca nada.
+        $evento = $this->construirEventoInvalidacion($dte, $settings, $mode, (int) $tipoInvalidacion, $motivo, $codigoGeneracionReemplazo);
+        app(DteSchemaValidator::class)->asegurar($evento, 'invalidacion');
+
         $service = $this->factory->invalidation($settings);
         $response = $service->invalidate($dte, $settings, [
             'tipo_invalidacion' => $tipoInvalidacion,
             'motivo' => $motivo,
             'codigo_generacion_reemplazo' => $codigoGeneracionReemplazo,
+            'evento' => $evento,
         ]);
 
         DteInvalidation::create([
@@ -489,11 +496,82 @@ class DteEmissionService
             'fecha_invalidacion' => now(),
             'estado_envio' => (string) ($response['estado'] ?? 'PENDIENTE'),
             'respuesta_hacienda' => $response,
+            'json_evento' => $evento,
         ]);
 
         $dte->update(['estado' => 'INVALIDADO']);
 
         return $response;
+    }
+
+    /** Arma el Evento de Invalidación de cualquier DTE o evento propio a partir de su JSON original. */
+    private function construirEventoInvalidacion(Dte $dte, DteSetting $settings, string $mode, int $tipo, string $motivo, ?string $reemplazo): array
+    {
+        $j = $dte->json_original;
+        $tipoDte = (string) $dte->tipo_dte;
+        $company = \App\Models\Company::withoutGlobalScopes()->find($dte->company_id);
+
+        if (! $dte->sello_recepcion) {
+            throw new \RuntimeException('El documento no tiene sello de recepción: no se puede invalidar.');
+        }
+        $sello = (string) $dte->sello_recepcion;
+        if (strlen($sello) !== 40) {
+            if ($mode === 'real') {
+                throw new \RuntimeException('El sello de recepción debe tener 40 caracteres.');
+            }
+            // Simulación: los sellos de prueba son más cortos; se normalizan a 40 solo para armar el evento.
+            $sello = strtoupper(sha1($sello));
+        }
+
+        // Códigos del establecimiento (Hacienda): del número de control en DTE; los eventos los traen en su emisor.
+        if ($tipoDte === '18') {
+            $estMH = $j['emisor']['codEstableMH'];
+            $pvMH = $j['emisor']['codPuntoVentaMH'];
+        } else {
+            $estMH = substr((string) $dte->numero_control, 7, 4);
+            $pvMH = substr((string) $dte->numero_control, 11, 4);
+        }
+
+        // Receptor del documento a invalidar, según la forma que tiene en cada esquema.
+        $r = match ($tipoDte) {
+            '18' => $j['documento'] ?? null,
+            '03' => ! empty($j['receptor']['nit']) ? [
+                'tipoDocumento' => '36', 'numDocumento' => $j['receptor']['nit'], 'nombre' => $j['receptor']['nombre'] ?? null,
+                'telefono' => $j['receptor']['telefono'] ?? null, 'correo' => $j['receptor']['correo'] ?? null,
+            ] : null,
+            default => $j['receptor'] ?? null,
+        };
+        if ($r && empty($r['numDocumento'])) {
+            $r = null;
+        }
+
+        // Quien realiza y quien solicita el evento (la misma persona, configurada por empresa).
+        if ($settings->responsable_nombre && $settings->responsable_tipo_doc && $settings->responsable_num_doc) {
+            $persona = ['nombre' => $settings->responsable_nombre, 'tipo_doc' => $settings->responsable_tipo_doc, 'num_doc' => $settings->responsable_num_doc];
+        } elseif ($mode === 'real') {
+            throw new \RuntimeException('Configure el responsable de eventos (nombre y documento) en DTE > Administración antes de invalidar en modo real.');
+        } else {
+            $persona = ['nombre' => 'RESPONSABLE DE PRUEBA (SIMULACION)', 'tipo_doc' => '13', 'num_doc' => '000000000'];
+        }
+
+        return (new \Stockia\DteSvMh\Builders\InvalidacionBuilder())->build([
+            'ambiente' => (string) $settings->ambiente,
+            'codigo_generacion' => strtoupper((string) Str::uuid()),
+            'fecha' => now(config('dte.timezone', 'America/El_Salvador')),
+            'emisor' => [
+                'nit' => $j['emisor']['nit'], 'nombre' => $j['emisor']['nombre'],
+                'codEstableMH' => $estMH, 'codEstable' => $j['emisor']['codEstable'] ?? null,
+                'codPuntoVentaMH' => $pvMH, 'codPuntoVenta' => $j['emisor']['codPuntoVenta'] ?? null,
+                'telefono' => $j['emisor']['telefono'] ?? ($company?->telefono ?: $company?->fiscal_phone),
+                'correo' => $j['emisor']['correo'] ?? ($company?->correo ?: $company?->fiscal_email),
+            ],
+            'documento' => [
+                'tipo_dte' => $tipoDte, 'codigo_generacion' => $dte->codigo_generacion, 'sello' => $sello,
+                'numero_control' => $tipoDte === '18' ? null : $dte->numero_control,
+                'fecha_emision' => $j['identificacion']['fecEmi'], 'reemplazo' => $reemplazo, 'receptor' => $r,
+            ],
+            'motivo' => ['tipo' => $tipo, 'texto' => $motivo, 'responsable' => $persona, 'solicita' => $persona],
+        ]);
     }
 
     private function resolveSettings(int $companyId): DteSetting

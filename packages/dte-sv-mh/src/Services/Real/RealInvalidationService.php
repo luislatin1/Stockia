@@ -33,6 +33,8 @@ class RealInvalidationService implements InvalidationInterface
             'motivo' => $payload['motivo'] ?? null,
             'tipoInvalidacion' => $payload['tipo_invalidacion'] ?? null,
             'codigoGeneracionR' => $payload['codigo_generacion_reemplazo'] ?? null,
+            // Evento completo según el esquema oficial (falta firmarlo con el firmador del cliente).
+            'evento' => $payload['evento'] ?? null,
         ];
 
         $response = Http::timeout(20)

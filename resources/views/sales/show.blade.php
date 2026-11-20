@@ -210,6 +210,15 @@
                                 @endif
                             </p>
                         @endif
+                        @php($dteAj = ($dtesAjuste ?? collect())->get($adjustment->dte_id))
+                        @if($dteAj)
+                            <p class="text-xs text-gray-600">Documento: {{ $dteAj->numero_control }} &middot;
+                                <span class="font-semibold {{ $dteAj->estado === 'INVALIDADO' ? 'text-red-700' : 'text-green-700' }}">{{ $dteAj->estado }}</span>
+                                @if(in_array($dteAj->tipo_dte, ['05', '06', '18'], true) && $dteAj->estado === 'ACEPTADO')
+                                    &middot; <a href="{{ route('sales.dte.invalidate', [$sale, $dteAj->id]) }}" class="font-semibold text-red-700 underline">Invalidar documento</a>
+                                @endif
+                            </p>
+                        @endif
                         <p class="mt-1 text-xs text-gray-700">Motivo/Nota: {{ $adjustment->notes ?: 'Sin observaciones.' }}</p>
 
                         @php($itemsForAdjustment = ($adjustmentItems[$adjustment->id] ?? collect()))
