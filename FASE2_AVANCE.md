@@ -95,6 +95,9 @@ Se ejecuta desde el ajuste administrativo de ventas (`SaleController::storeAdmin
 - **Límites:** la compra ya está registrada (inventario y cuentas por pagar existen aparte): emitir o invalidar la factura no los modifica. Retención de renta: se captura a mano (no hay regla automática del 10 %: confirmar con el contador cuándo aplica). Sin Evento de Retorno para FSE/FEX (el constructor solo acepta Facturas).
 - Migraciones: `customers` país/tipo de persona, `providers` departamento/municipio/distrito, `dte_settings.expo_*`, `dtes.purchase_id`. 170 tests pasan.
 
+### 2.9 Checklist de pruebas de homologación (2026-11-20)
+`php artisan dte:pruebas-homologacion` genera el mínimo oficial de documentos sintéticos por tipo (Manual §XXIV: 90 Facturas, 75 CCF, 50 NC, 25 ND, 90 FEX, 25 FSE, 5 invalidaciones, 5 retornos), los valida contra el esquema y recalcula su aritmética (`VerificadorAritmetico`); `--exportar` los guarda como JSON. Resultado: **360 documentos, todos válidos** (probado con 6 semillas). Detalle, requisitos de la prueba real y pendientes en **`PRUEBAS_HOMOLOGACION.md`**. Hallazgo importante: Stockia emite en contingencia pero **no construye el Evento de Contingencia** que Hacienda exige después (24 h / lote 72 h). Sin constructor: 04, 07, 08, 09, 15 y los eventos de contingencia y operaciones especiales. 179 tests pasan.
+
 **Supuestos por cotejar con el Anexo IV/catálogos (no verificados contra el PDF):**
 - (Verificado después contra el catálogo: CAT-017 `01` y CAT-018 `01` correctos.) Stockia solo distingue efectivo/crédito; tarjeta, transferencia, etc. salen como efectivo hasta que existan en el POS.
 - Los totales del DTE se recalculan desde el ítem (precio × 1,13); pueden diferir centavos de `sales.total`. El DTE manda para Hacienda.

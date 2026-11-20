@@ -6,6 +6,7 @@ use App\Models\Module;
 use Illuminate\Support\ServiceProvider;
 use Stockia\DteSvMh\Console\EsquemasCommand;
 use Stockia\DteSvMh\Console\ProbarHistoricoCommand;
+use Stockia\DteSvMh\Console\PruebasHomologacionCommand;
 use Stockia\DteSvMh\Schemas\DteSchemaRegistry;
 
 class DteSvMhServiceProvider extends ServiceProvider
@@ -26,7 +27,7 @@ class DteSvMhServiceProvider extends ServiceProvider
         $this->loadMigrationsFrom(__DIR__ . '/../../database/migrations');
 
         if ($this->app->runningInConsole()) {
-            $this->commands([EsquemasCommand::class, ProbarHistoricoCommand::class]);
+            $this->commands([EsquemasCommand::class, ProbarHistoricoCommand::class, PruebasHomologacionCommand::class]);
         }
     }
 }
