@@ -191,13 +191,20 @@
                     <div class="rounded border border-gray-200 bg-gray-50 p-3 text-sm">
                         <div class="flex flex-wrap items-center justify-between gap-2">
                             <p class="font-semibold text-gray-900">
-                                {{ $adjustment->action_type === 'cancel_sale' ? 'Cancelacion de venta' : 'Anulacion de factura' }}
+                                {{ match($adjustment->action_type) { 'cancel_sale' => 'Cancelacion de venta', 'return_items' => 'Devolucion / ajuste', default => 'Anulacion de factura' } }}
                             </p>
                             <p class="text-xs text-gray-500">{{ \Carbon\Carbon::parse($adjustment->created_at)->format('d/m/Y H:i') }}</p>
                         </div>
                         <p class="text-xs text-gray-600">Procesado por: {{ $adjustment->processed_by_name ?? ('Usuario #' . $adjustment->processed_by_user_id) }}</p>
                         <p class="text-xs text-gray-600">Devolucion de efectivo: {{ $adjustment->refund_cash ? '$' . number_format((float) $adjustment->refund_amount, 2) : 'No' }}</p>
                         <p class="text-xs text-gray-600">Devolucion de productos: {{ $adjustment->return_products ? 'Si' : 'No' }}</p>
+                        @if(! empty($adjustment->motivo))
+                            <p class="text-xs text-gray-600">Motivo: {{ \Stockia\DteSvMh\Devolucion\RutaDevolucion::etiqueta($adjustment->motivo) }}
+                                @if(! empty($adjustment->dte_ruta) && $adjustment->dte_ruta !== 'ninguna')
+                                    &middot; Hacienda: {{ $adjustment->dte_ruta === 'nota_credito' ? 'Nota de Crédito emitida' : 'DTE invalidado' }}
+                                @endif
+                            </p>
+                        @endif
                         <p class="mt-1 text-xs text-gray-700">Motivo/Nota: {{ $adjustment->notes ?: 'Sin observaciones.' }}</p>
 
                         @php($itemsForAdjustment = ($adjustmentItems[$adjustment->id] ?? collect()))
@@ -221,6 +228,8 @@
                                                     @if($itemAdjustment->product_condition === 'unopened') Sin abrir
                                                     @elseif($itemAdjustment->product_condition === 'damaged') Dañado
                                                     @elseif($itemAdjustment->product_condition === 'expired') Vencido/Caducado
+                                                    @elseif($itemAdjustment->product_condition === 'defective') Desperfecto (garantía)
+                                                    @elseif($itemAdjustment->product_condition === 'n/a') Ajuste de valor: ${{ number_format((float) $itemAdjustment->credit_amount, 2) }}
                                                     @else {{ $itemAdjustment->product_condition }}
                                                     @endif
                                                 </td>

@@ -32,6 +32,7 @@ class RealInvalidationService implements InvalidationInterface
             'tipoDte' => $dte->tipo_dte,
             'motivo' => $payload['motivo'] ?? null,
             'tipoInvalidacion' => $payload['tipo_invalidacion'] ?? null,
+            'codigoGeneracionR' => $payload['codigo_generacion_reemplazo'] ?? null,
         ];
 
         $response = Http::timeout(20)

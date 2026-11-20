@@ -51,6 +51,15 @@ Contenido: `dte-2.0-referencia-oficial.zip` (manual funcional completo en texto,
 - **No está en la documentación de Hacienda:** *desperfecto* y *garantía*. Son clasificaciones internas (afectan inventario y reclamo al proveedor), no se transmiten. *Cambio de fecha* no es NC: es el motivo "error en la fecha" → invalidar y reemplazar.
 - **Hueco en Stockia hoy:** el ajuste administrativo (`SaleController::storeAdminAdjustment`, acciones `cancel_sale`/`void_invoice`) cambia el estado de la venta, mueve inventario y caja, pero **no toca el DTE**: una factura "anulada" sigue ACEPTADA ante Hacienda.
 
+### 2.4 Devoluciones con DTE (construido 2026-11-20)
+Se ejecuta desde el ajuste administrativo de ventas (`SaleController::storeAdminAdjustment`, pantalla `sales/admin-adjustment`). Código nuevo en `packages/dte-sv-mh/src/Devolucion/` (`RutaDevolucion` matriz motivo×documento, `PlazoInvalidacion`, `DteDevolucionService`) y `DteEmissionService::emitirNotaCredito`.
+- **Acciones:** cancelar, anular factura (como antes) y **"Devolver / ajustar"** (nueva: devolución parcial o ajuste de valor; la venta sigue vigente salvo que se devuelva todo).
+- **Motivo obligatorio si la venta tiene DTE:** devolución, garantía/desperfecto, cambio de producto, error de precio, descuento omitido, error de fecha, error de datos del cliente. Se guarda en `sale_adjustments.motivo` (junto con `dte_ruta`, `dte_id`, `replacement_sale_id`). Desperfecto/garantía son internos (no se transmiten); el estado "Desperfecto" manda el producto a no vendible.
+- **Rutas:** CCF → Nota de Crédito (devolución/garantía/cambio por ítems devueltos; error de precio/descuento omitido por monto sin IVA por línea) o invalidación tipo 1 con reemplazo (error de fecha/datos, solo anulación completa). Factura → solo corrección total: devolución/garantía = invalidación tipo 2; cambio de producto = tipo 3 con reemplazo; errores = tipo 1 con reemplazo; **devolución parcial bloqueada** (falta Evento de Retorno).
+- **Reglas:** el DTE original debe estar ACEPTADO (con sello); no se devuelve más de lo que queda (acumulado entre ajustes); invalidación respeta plazo (Factura 3 meses; CCF décimo día hábil del mes siguiente, sin feriados) y exige que el documento de reemplazo ya tenga sello; un CCF con notas vigentes no se invalida; la emisión a Hacienda es el **último paso dentro de la transacción**: si falla o la rechazan, se revierte todo (inventario, caja, estado). Sin esto no se puede anular una venta con DTE aceptado (ya no queda "anulada" localmente y vigente ante Hacienda).
+- **Migraciones:** `dtes.dte_origen_id`/`sale_adjustment_id` (la nota apunta a su original; `emitForSale` ignora las notas), `sale_adjustments` motivo/ruta/dte/reemplazo, `sale_adjustment_items.credit_amount`.
+- **Límites conocidos:** Evento de Retorno (devolución parcial de Factura) pendiente; NC solo sobre CCF; las ventas parcialmente devueltas siguen contando completas en reportes de ventas (no se tocó); si el módulo DTE está apagado, el ajuste no informa a Hacienda; en simulación la invalidación/NC siempre salen aceptadas; el IVA de la NC sigue siendo el supuesto de 2.3 (13 % × gravado, Anexo IV leído del OCR). 118 tests pasan.
+
 **Supuestos por cotejar con el Anexo IV/catálogos (no verificados contra el PDF):**
 - (Verificado después contra el catálogo: CAT-017 `01` y CAT-018 `01` correctos.) Stockia solo distingue efectivo/crédito; tarjeta, transferencia, etc. salen como efectivo hasta que existan en el POS.
 - Los totales del DTE se recalculan desde el ítem (precio × 1,13); pueden diferir centavos de `sales.total`. El DTE manda para Hacienda.
@@ -78,7 +87,7 @@ Medida en el servidor con datos reales (venta simulada, con rollback): **29 erro
 
 ## Siguiente
 1. Identificación obligatoria sobre el monto legal (pendiente del contador). Migrar y probar con datos reales de emisor/cliente en el servidor (la migración de `customers` aún no está aplicada en ningún lado).
-2. Flujo de negocio de NC/ND (ver 2.3), constructores de Exportación y Sujeto Excluido.
+2. Evento de Retorno (devolución parcial de Factura), ND desde la pantalla (recargos), constructores de Exportación y Sujeto Excluido.
 3. Firma (firmador oficial por cliente), transmisión, reintentos y eventos.
 
 ## Pendiente de planear (después de terminar las fases de facturación)

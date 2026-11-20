@@ -552,7 +552,27 @@ class SaleController extends Controller
         $this->ensureSaleAccess($sale, $companyId, $warehouseId);
         $sale->load(['items.product', 'company', 'warehouse', 'user']);
 
-        return view('sales.admin-adjustment', compact('sale'));
+        // DTE de la venta: define qué se le informa a Hacienda y qué motivos se piden.
+        $dteInfo = null;
+        $remaining = [];
+        foreach ($sale->items as $item) {
+            $remaining[$item->id] = (int) $item->quantity - (int) DB::table('sale_adjustment_items')->where('sale_item_id', $item->id)->sum('quantity');
+        }
+        if ($this->dteDevolucionDisponible()) {
+            $origen = app(\Stockia\DteSvMh\Devolucion\DteDevolucionService::class)->origenDe($sale);
+            if ($origen && ! in_array((string) $origen->estado, ['RECHAZADO', 'INVALIDADO'], true)) {
+                $dteInfo = ['tipo' => $origen->tipo_dte, 'estado' => $origen->estado, 'numero_control' => $origen->numero_control];
+            }
+        }
+        $motivos = \Stockia\DteSvMh\Devolucion\RutaDevolucion::MOTIVOS;
+
+        return view('sales.admin-adjustment', compact('sale', 'dteInfo', 'motivos', 'remaining'));
+    }
+
+    private function dteDevolucionDisponible(): bool
+    {
+        return class_exists(\Stockia\DteSvMh\Devolucion\DteDevolucionService::class)
+            && (! \App\Models\Module::tableReady() || \App\Models\Module::isEnabled('dte-sv-mh'));
     }
 
     public function storeAdminAdjustment(Request $request, Sale $sale)
@@ -561,8 +581,12 @@ class SaleController extends Controller
         $this->ensureSaleAccess($sale, $companyId, $warehouseId);
         $sale->load(['items.product']);
 
+        $motivosValidos = array_keys(\Stockia\DteSvMh\Devolucion\RutaDevolucion::MOTIVOS);
+
         $validated = $request->validate([
-            'action_type' => ['required', 'in:cancel_sale,void_invoice'],
+            'action_type' => ['required', 'in:cancel_sale,void_invoice,return_items'],
+            'motivo' => ['nullable', 'in:'.implode(',', $motivosValidos)],
+            'replacement_sale_id' => ['nullable', 'integer', 'min:1'],
             'refund_cash' => ['nullable', 'boolean'],
             'refund_amount' => ['nullable', 'numeric', 'min:0'],
             'return_products' => ['nullable', 'boolean'],
@@ -571,7 +595,8 @@ class SaleController extends Controller
             'items' => ['nullable', 'array'],
             'items.*.sale_item_id' => ['nullable', 'integer'],
             'items.*.quantity' => ['nullable', 'integer', 'min:0'],
-            'items.*.condition' => ['nullable', 'in:unopened,damaged,expired'],
+            'items.*.credit_amount' => ['nullable', 'numeric', 'min:0'],
+            'items.*.condition' => ['nullable', 'in:unopened,damaged,expired,defective'],
         ]);
 
         if ($sale->status !== 'completed') {
@@ -582,12 +607,30 @@ class SaleController extends Controller
             return back()->withErrors('Solo las facturas pueden anularse con esta accion.')->withInput();
         }
 
+        $action = $validated['action_type'];
         $refundCash = $request->boolean('refund_cash');
         $refundAmount = $refundCash ? round((float) ($validated['refund_amount'] ?? 0), 2) : 0.0;
         $returnProducts = $request->boolean('return_products');
         $notes = trim((string) ($validated['notes'] ?? ''));
+        $motivo = (string) ($validated['motivo'] ?? '');
+        $replacementSaleId = ! empty($validated['replacement_sale_id']) ? (int) $validated['replacement_sale_id'] : null;
 
-        if (! $refundCash && ! $returnProducts) {
+        $dteSvc = $this->dteDevolucionDisponible() ? app(\Stockia\DteSvMh\Devolucion\DteDevolucionService::class) : null;
+        $origen = $dteSvc?->origenDe($sale);
+        $tieneDte = $origen && ! in_array((string) $origen->estado, ['RECHAZADO', 'INVALIDADO'], true);
+
+        // Con un DTE de por medio, el motivo es obligatorio: define qué documento se le informa a Hacienda.
+        if ($tieneDte && $motivo === '') {
+            return back()->withErrors('Esta venta tiene un documento tributario electrónico: indique el motivo de la devolución o ajuste.')->withInput();
+        }
+        $esValor = $motivo !== '' && \Stockia\DteSvMh\Devolucion\RutaDevolucion::esAjusteDeValor($motivo);
+        if ($esValor && $action !== 'return_items' && $tieneDte && $origen->tipo_dte === '03') {
+            return back()->withErrors('Un ajuste de precio o descuento se registra con la acción "Devolver / ajustar", no anulando la venta.')->withInput();
+        }
+
+        // Motivos que no mueven producto ni dinero por sí mismos (error de fecha/datos, ajuste de valor sobre DTE).
+        $sinMovimiento = $tieneDte && in_array($motivo, ['error_fecha', 'error_datos_cliente', 'error_precio', 'descuento_omitido'], true);
+        if (! $refundCash && ! $returnProducts && ! $sinMovimiento) {
             return back()->withErrors('Debes registrar devolucion de efectivo, devolucion de producto o ambas.')->withInput();
         }
 
@@ -604,14 +647,21 @@ class SaleController extends Controller
                 return [
                     'sale_item_id' => (int) ($row['sale_item_id'] ?? 0),
                     'quantity' => (int) ($row['quantity'] ?? 0),
+                    'credit_amount' => round((float) ($row['credit_amount'] ?? 0), 2),
                     'condition' => (string) ($row['condition'] ?? ''),
                 ];
             })
-            ->filter(fn ($row) => $row['sale_item_id'] > 0 && $row['quantity'] > 0)
+            ->filter(fn ($row) => $row['sale_item_id'] > 0 && ($esValor ? $row['credit_amount'] > 0 : $row['quantity'] > 0))
             ->values();
 
-        if ($returnProducts && $rawItems->isEmpty()) {
+        if ($esValor && $rawItems->isEmpty()) {
+            return back()->withErrors('Indica el monto (sin IVA) a acreditar en al menos una línea.')->withInput();
+        }
+        if (! $esValor && $returnProducts && $rawItems->isEmpty()) {
             return back()->withErrors('Debes indicar al menos un producto para devolver.')->withInput();
+        }
+        if ($action === 'return_items' && ! $esValor && $rawItems->isEmpty()) {
+            return back()->withErrors('Debes indicar cantidades a devolver.')->withInput();
         }
 
         $saleItemsById = $sale->items->keyBy('id');
@@ -621,101 +671,177 @@ class SaleController extends Controller
                 return back()->withErrors('Uno o mas productos no pertenecen a la venta seleccionada.')->withInput();
             }
 
-            if ((int) $row['quantity'] > (int) $saleItem->quantity) {
-                return back()->withErrors('La cantidad devuelta no puede ser mayor a la cantidad vendida.')->withInput();
+            if ($esValor) {
+                continue;
             }
 
-            if (! in_array($row['condition'], ['unopened', 'damaged', 'expired'], true)) {
+            $restante = (int) $saleItem->quantity - (int) DB::table('sale_adjustment_items')->where('sale_item_id', $saleItem->id)->sum('quantity');
+            if ((int) $row['quantity'] > $restante) {
+                return back()->withErrors("La cantidad devuelta de '{$saleItem->product?->name}' no puede ser mayor a lo que queda por devolver ({$restante}).")->withInput();
+            }
+
+            if (! in_array($row['condition'], ['unopened', 'damaged', 'expired', 'defective'], true)) {
                 return back()->withErrors('Debes indicar el estado de cada producto devuelto.')->withInput();
             }
         }
 
-        DB::transaction(function () use ($validated, $refundCash, $refundAmount, $returnProducts, $notes, $rawItems, $sale, $companyId, $warehouseId, $saleItemsById) {
-            $adjustmentId = DB::table('sale_adjustments')->insertGetId([
-                'sale_id' => $sale->id,
-                'company_id' => $companyId,
-                'warehouse_id' => $warehouseId,
-                'processed_by_user_id' => auth()->id(),
-                'action_type' => $validated['action_type'],
-                'refund_cash' => $refundCash,
-                'refund_amount' => $refundAmount,
-                'return_products' => $returnProducts,
-                'notes' => $notes !== '' ? $notes : null,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-
-            if ($refundCash) {
-                $activePosSessionId = DB::table('pos_sessions')
-                    ->where('company_id', $companyId)
-                    ->where('warehouse_id', $warehouseId)
-                    ->where('user_id', auth()->id())
-                    ->whereNull('closed_at')
-                    ->latest('id')
-                    ->value('id');
-
-                DB::table('pos_cash_movements')->insert([
-                    'pos_session_id' => $activePosSessionId ?: null,
-                    'company_id' => $companyId,
-                    'warehouse_id' => $warehouseId,
-                    'user_id' => auth()->id(),
-                    'type' => 'out',
-                    'amount' => $refundAmount,
-                    'reason' => 'Devolucion de efectivo por ajuste de venta #' . $sale->id,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
+        // Lo que se le informará a Hacienda, validado ANTES de tocar nada.
+        $alcance = 'total';
+        if ($tieneDte) {
+            $alcance = $dteSvc->alcance($sale, $action, $motivo, $rawItems->all());
+            $plan = $dteSvc->planificar($sale, $motivo, $alcance);
+            if ($plan['ruta'] === \Stockia\DteSvMh\Devolucion\RutaDevolucion::BLOQUEADO) {
+                return back()->withErrors($plan['mensaje'])->withInput();
             }
+        } elseif ($action === 'return_items') {
+            $alcance = 'parcial';
+        }
 
-            foreach ($rawItems as $row) {
-                $saleItem = $saleItemsById->get($row['sale_item_id']);
-                $restocked = $row['condition'] === 'unopened';
-
-                DB::table('sale_adjustment_items')->insert([
-                    'sale_adjustment_id' => $adjustmentId,
-                    'sale_item_id' => $saleItem->id,
-                    'product_id' => $saleItem->product_id,
-                    'quantity' => (int) $row['quantity'],
-                    'product_condition' => $row['condition'],
-                    'restocked' => $restocked,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
-
-                if ($restocked) {
-                    InventoryMovement::create([
-                        'company_id' => $companyId,
-                        'warehouse_id' => $warehouseId,
-                        'product_id' => $saleItem->product_id,
-                        'type' => 'in',
-                        'quantity' => (int) $row['quantity'],
-                        'reference_type' => 'sale_adjustment_restock',
-                        'reference_id' => $adjustmentId,
-                        'user_id' => auth()->id(),
-                        'reason' => 'Devolucion sin abrir de venta #' . $sale->id,
-                    ]);
-                } else {
-                    NonSellableProduct::create([
-                        'company_id' => $companyId,
-                        'warehouse_id' => $warehouseId,
-                        'product_id' => $saleItem->product_id,
-                        'quantity' => (int) $row['quantity'],
-                        'condition' => $row['condition'],
-                        'source_type' => 'sale_adjustment',
-                        'source_id' => $adjustmentId,
-                        'reason' => 'Producto devuelto no vendible de venta #' . $sale->id,
-                        'reported_by_user_id' => auth()->id(),
-                    ]);
+        // ¿Esta devolución deja la venta sin nada por devolver? Entonces se da por anulada.
+        $quedaAlgo = false;
+        if ($action === 'return_items' && ! $esValor) {
+            foreach ($sale->items as $it) {
+                $resta = (int) $it->quantity - (int) DB::table('sale_adjustment_items')->where('sale_item_id', $it->id)->sum('quantity');
+                $resta -= (int) ($rawItems->firstWhere('sale_item_id', (int) $it->id)['quantity'] ?? 0);
+                if ($resta > 0) {
+                    $quedaAlgo = true;
+                    break;
                 }
             }
+        }
 
-            $newStatus = $validated['action_type'] === 'cancel_sale' ? 'cancelled' : 'annulled';
-            $sale->update(['status' => $newStatus]);
-        });
+        try {
+            DB::transaction(function () use ($validated, $action, $motivo, $alcance, $replacementSaleId, $tieneDte, $dteSvc, $esValor, $quedaAlgo, $refundCash, $refundAmount, $returnProducts, $notes, $rawItems, $sale, $companyId, $warehouseId, $saleItemsById) {
+                $adjustmentId = DB::table('sale_adjustments')->insertGetId([
+                    'sale_id' => $sale->id,
+                    'company_id' => $companyId,
+                    'warehouse_id' => $warehouseId,
+                    'processed_by_user_id' => auth()->id(),
+                    'action_type' => $action,
+                    'motivo' => $motivo !== '' ? $motivo : null,
+                    'refund_cash' => $refundCash,
+                    'refund_amount' => $refundAmount,
+                    'return_products' => $returnProducts,
+                    'notes' => $notes !== '' ? $notes : null,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+                if ($refundCash) {
+                    $activePosSessionId = DB::table('pos_sessions')
+                        ->where('company_id', $companyId)
+                        ->where('warehouse_id', $warehouseId)
+                        ->where('user_id', auth()->id())
+                        ->whereNull('closed_at')
+                        ->latest('id')
+                        ->value('id');
+
+                    DB::table('pos_cash_movements')->insert([
+                        'pos_session_id' => $activePosSessionId ?: null,
+                        'company_id' => $companyId,
+                        'warehouse_id' => $warehouseId,
+                        'user_id' => auth()->id(),
+                        'type' => 'out',
+                        'amount' => $refundAmount,
+                        'reason' => 'Devolucion de efectivo por ajuste de venta #' . $sale->id,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
+
+                foreach ($rawItems as $row) {
+                    $saleItem = $saleItemsById->get($row['sale_item_id']);
+
+                    if ($esValor) {
+                        // Ajuste de valor: solo se acredita dinero; el producto no se mueve.
+                        DB::table('sale_adjustment_items')->insert([
+                            'sale_adjustment_id' => $adjustmentId,
+                            'sale_item_id' => $saleItem->id,
+                            'product_id' => $saleItem->product_id,
+                            'quantity' => 0,
+                            'credit_amount' => $row['credit_amount'],
+                            'product_condition' => 'n/a',
+                            'restocked' => false,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]);
+                        continue;
+                    }
+
+                    $restocked = $row['condition'] === 'unopened';
+
+                    DB::table('sale_adjustment_items')->insert([
+                        'sale_adjustment_id' => $adjustmentId,
+                        'sale_item_id' => $saleItem->id,
+                        'product_id' => $saleItem->product_id,
+                        'quantity' => (int) $row['quantity'],
+                        'product_condition' => $row['condition'],
+                        'restocked' => $restocked,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+
+                    if ($restocked) {
+                        InventoryMovement::create([
+                            'company_id' => $companyId,
+                            'warehouse_id' => $warehouseId,
+                            'product_id' => $saleItem->product_id,
+                            'type' => 'in',
+                            'quantity' => (int) $row['quantity'],
+                            'reference_type' => 'sale_adjustment_restock',
+                            'reference_id' => $adjustmentId,
+                            'user_id' => auth()->id(),
+                            'reason' => 'Devolucion sin abrir de venta #' . $sale->id,
+                        ]);
+                    } else {
+                        NonSellableProduct::create([
+                            'company_id' => $companyId,
+                            'warehouse_id' => $warehouseId,
+                            'product_id' => $saleItem->product_id,
+                            'quantity' => (int) $row['quantity'],
+                            'condition' => $row['condition'],
+                            'source_type' => 'sale_adjustment',
+                            'source_id' => $adjustmentId,
+                            'reason' => 'Producto devuelto no vendible de venta #' . $sale->id,
+                            'reported_by_user_id' => auth()->id(),
+                        ]);
+                    }
+                }
+
+                $newStatus = match (true) {
+                    $action === 'cancel_sale' => 'cancelled',
+                    $action === 'void_invoice' => 'annulled',
+                    // Devolución parcial o ajuste de valor: la venta sigue vigente.
+                    $esValor || $quedaAlgo => null,
+                    default => 'annulled',
+                };
+                if ($newStatus) {
+                    $sale->update(['status' => $newStatus]);
+                }
+
+                // Último paso: informar a Hacienda. Si falla o la rechaza, se lanza y TODO se revierte.
+                if ($tieneDte) {
+                    $dteSvc->ejecutar(
+                        $sale->fresh(['items.product']),
+                        $adjustmentId,
+                        $motivo,
+                        $alcance,
+                        $action,
+                        $rawItems->all(),
+                        $replacementSaleId,
+                        $notes
+                    );
+                }
+            });
+        } catch (\Stockia\DteSvMh\Schemas\DteSchemaException $e) {
+            return back()->withErrors('El documento para Hacienda no pasó la validación: '.$e->getMessage())->withInput();
+        } catch (\RuntimeException $e) {
+            return back()->withErrors($e->getMessage())->withInput();
+        }
 
         return redirect()
             ->route('sales.show', $sale)
-            ->with('success', 'Ajuste administrativo aplicado correctamente. El movimiento de caja se registro automaticamente cuando hubo devolucion de efectivo.');
+            ->with('success', 'Ajuste aplicado correctamente.'.($tieneDte ? ' Se informó a Hacienda según el motivo indicado.' : '').' El movimiento de caja se registro automaticamente cuando hubo devolucion de efectivo.');
     }
 
     public function cancel(Sale $sale)
